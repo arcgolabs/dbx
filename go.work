@@ -1,0 +1,13 @@
+go 1.26.2
+
+use (
+	.
+	examples
+	idgen
+	migrate
+	sqltmplx
+	sqltmplx/validate
+	sqltmplx/validate/mysqlparser
+	sqltmplx/validate/postgresparser
+	sqltmplx/validate/sqliteparser
+)
