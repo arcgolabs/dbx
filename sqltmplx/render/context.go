@@ -3,7 +3,7 @@ package render
 import (
 	"reflect"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx/dialect"
 )
 

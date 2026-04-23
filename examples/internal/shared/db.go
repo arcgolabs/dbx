@@ -6,19 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 
-	"github.com/DaiYuANg/arcgo/dbx"
-	sqlitedialect "github.com/DaiYuANg/arcgo/dbx/dialect/sqlite"
-	"github.com/DaiYuANg/arcgo/logx"
+	"github.com/arcgolabs/dbx"
+	sqlitedialect "github.com/arcgolabs/dbx/dialect/sqlite"
 	_ "modernc.org/sqlite" // Register the SQLite driver used by the examples.
 )
 
 // NewLogger creates a debug logger for dbx example programs.
 func NewLogger() *slog.Logger {
-	return logx.MustNew(
-		logx.WithConsole(true),
-		logx.WithLevel(slog.LevelDebug),
-	)
+	return slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 }
 
 // OpenSQLite opens a SQLite DB with connection managed by dbx. Returns (db, closeFn, err).

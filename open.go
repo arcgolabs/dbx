@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/DaiYuANg/arcgo/pkg/option"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx/dialect"
+	"github.com/arcgolabs/pkg/option"
 	"github.com/samber/oops"
 )
 

@@ -51,11 +51,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/DaiYuANg/arcgo/dbx"
-	"github.com/DaiYuANg/arcgo/dbx/dialect/sqlite"
-	mapperx "github.com/DaiYuANg/arcgo/dbx/mapper"
-	"github.com/DaiYuANg/arcgo/dbx/sqlexec"
-	"github.com/DaiYuANg/arcgo/dbx/sqltmplx"
+	"github.com/arcgolabs/dbx"
+	"github.com/arcgolabs/dbx/dialect/sqlite"
+	mapperx "github.com/arcgolabs/dbx/mapper"
+	"github.com/arcgolabs/dbx/sqlexec"
+	"github.com/arcgolabs/dbx/sqltmplx"
 
 	_ "github.com/mattn/go-sqlite3"
 )

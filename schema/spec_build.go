@@ -3,7 +3,7 @@ package schema
 import (
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 )
 
 func buildTableSpec(def schemaDefinition) TableSpec {

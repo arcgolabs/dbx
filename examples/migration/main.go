@@ -7,12 +7,12 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/DaiYuANg/arcgo/dbx"
-	"github.com/DaiYuANg/arcgo/dbx/migrate"
-	schemax "github.com/DaiYuANg/arcgo/dbx/schema"
-	"github.com/DaiYuANg/arcgo/dbx/schemamigrate"
-	"github.com/DaiYuANg/arcgo/examples/dbx/internal/shared"
+	"github.com/arcgolabs/collectionx"
+	"github.com/arcgolabs/dbx"
+	"github.com/arcgolabs/dbx/examples/internal/shared"
+	"github.com/arcgolabs/dbx/migrate"
+	schemax "github.com/arcgolabs/dbx/schema"
+	"github.com/arcgolabs/dbx/schemamigrate"
 )
 
 //go:embed migrations/*.sql

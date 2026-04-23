@@ -1,6 +1,6 @@
 package migrate
 
-import "github.com/DaiYuANg/arcgo/collectionx"
+import "github.com/arcgolabs/collectionx"
 
 // RunReport describes migrations applied by a runner operation.
 type RunReport struct {

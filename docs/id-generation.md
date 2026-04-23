@@ -78,5 +78,5 @@ Use marker types on `IDColumn` for explicit ID strategy configuration.
 ## Verify
 
 ```bash
-go test ./dbx/... -run ID
+go test ./... -run ID
 ```

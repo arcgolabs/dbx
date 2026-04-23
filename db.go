@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"log/slog"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx/dialect"
 	"github.com/arcgolabs/dbx/idgen"
 	"github.com/arcgolabs/dbx/relationruntime"

@@ -5,13 +5,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/DaiYuANg/arcgo/dbx"
-	mapperx "github.com/DaiYuANg/arcgo/dbx/mapper"
-	projectionx "github.com/DaiYuANg/arcgo/dbx/projection"
-	"github.com/DaiYuANg/arcgo/dbx/querydsl"
-	"github.com/DaiYuANg/arcgo/dbx/schemamigrate"
-	"github.com/DaiYuANg/arcgo/examples/dbx/internal/shared"
+	"github.com/arcgolabs/collectionx"
+	"github.com/arcgolabs/dbx"
+	"github.com/arcgolabs/dbx/examples/internal/shared"
+	mapperx "github.com/arcgolabs/dbx/mapper"
+	projectionx "github.com/arcgolabs/dbx/projection"
+	"github.com/arcgolabs/dbx/querydsl"
+	"github.com/arcgolabs/dbx/schemamigrate"
 )
 
 func main() {

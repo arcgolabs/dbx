@@ -26,8 +26,8 @@ This guide shows a complete, runnable dbx example from schema definition to quer
 ## 1) Install Dependencies
 
 ```bash
-go get github.com/DaiYuANg/arcgo/dbx
-go get github.com/DaiYuANg/arcgo/dbx/dialect/sqlite
+go get github.com/arcgolabs/dbx
+go get github.com/arcgolabs/dbx/dialect/sqlite
 go get github.com/mattn/go-sqlite3
 ```
 
@@ -42,14 +42,14 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/DaiYuANg/arcgo/dbx"
-	columnx "github.com/DaiYuANg/arcgo/dbx/column"
-	"github.com/DaiYuANg/arcgo/dbx/dialect/sqlite"
-	"github.com/DaiYuANg/arcgo/dbx/idgen"
-	mapperx "github.com/DaiYuANg/arcgo/dbx/mapper"
-	"github.com/DaiYuANg/arcgo/dbx/querydsl"
-	"github.com/DaiYuANg/arcgo/dbx/schemamigrate"
-	schemax "github.com/DaiYuANg/arcgo/dbx/schema"
+	"github.com/arcgolabs/dbx"
+	columnx "github.com/arcgolabs/dbx/column"
+	"github.com/arcgolabs/dbx/dialect/sqlite"
+	"github.com/arcgolabs/dbx/idgen"
+	mapperx "github.com/arcgolabs/dbx/mapper"
+	"github.com/arcgolabs/dbx/querydsl"
+	"github.com/arcgolabs/dbx/schemamigrate"
+	schemax "github.com/arcgolabs/dbx/schema"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -143,7 +143,7 @@ go run .
 ## Verify
 
 ```bash
-go test ./dbx/...
+go test ./...
 go run .
 ```
 

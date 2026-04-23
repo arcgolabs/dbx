@@ -1,6 +1,6 @@
 package paging
 
-import "github.com/DaiYuANg/arcgo/collectionx"
+import "github.com/arcgolabs/collectionx"
 
 const (
 	// DefaultPage is used when a page request has no valid page number.

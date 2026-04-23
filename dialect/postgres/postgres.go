@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx"
 	"github.com/arcgolabs/dbx/dialect"
 	schemamigrate "github.com/arcgolabs/dbx/schemamigrate"

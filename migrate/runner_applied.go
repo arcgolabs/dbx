@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 )
 
 // EnsureHistory creates the migration history table when it does not yet exist.

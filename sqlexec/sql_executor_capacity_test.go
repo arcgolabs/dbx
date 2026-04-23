@@ -8,7 +8,7 @@ import (
 	"github.com/arcgolabs/dbx/sqlstmt"
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 )
 
 func TestSQLListUsesStatementCapacityHint(t *testing.T) {

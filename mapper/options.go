@@ -3,8 +3,8 @@ package mapper
 import (
 	"fmt"
 
-	"github.com/DaiYuANg/arcgo/pkg/option"
 	codecx "github.com/arcgolabs/dbx/codec"
+	"github.com/arcgolabs/pkg/option"
 	"github.com/samber/lo"
 )
 

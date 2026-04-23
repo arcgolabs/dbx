@@ -1,9 +1,9 @@
 package shared
 
 import (
-	columnx "github.com/DaiYuANg/arcgo/dbx/column"
-	relationx "github.com/DaiYuANg/arcgo/dbx/relation"
-	schemax "github.com/DaiYuANg/arcgo/dbx/schema"
+	columnx "github.com/arcgolabs/dbx/column"
+	relationx "github.com/arcgolabs/dbx/relation"
+	schemax "github.com/arcgolabs/dbx/schema"
 )
 
 // Role represents an example role row.

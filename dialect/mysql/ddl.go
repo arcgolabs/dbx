@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 )
 
 var mysqlNormalizedTypes = map[string]string{

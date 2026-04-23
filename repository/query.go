@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/arcgolabs/dbx/querydsl"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx"
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/paging"

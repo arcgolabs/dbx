@@ -5,10 +5,10 @@ import (
 	"context"
 	"fmt"
 
-	columnx "github.com/DaiYuANg/arcgo/dbx/column"
-	"github.com/DaiYuANg/arcgo/dbx/idgen"
-	mapperx "github.com/DaiYuANg/arcgo/dbx/mapper"
-	schemax "github.com/DaiYuANg/arcgo/dbx/schema"
+	columnx "github.com/arcgolabs/dbx/column"
+	"github.com/arcgolabs/dbx/idgen"
+	mapperx "github.com/arcgolabs/dbx/mapper"
+	schemax "github.com/arcgolabs/dbx/schema"
 )
 
 type snowflakeUser struct {

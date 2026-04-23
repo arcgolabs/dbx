@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx/sqlstmt"
 	"github.com/samber/mo"
 	"github.com/samber/oops"

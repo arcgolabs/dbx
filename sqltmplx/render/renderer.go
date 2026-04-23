@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx/dialect"
 	"github.com/arcgolabs/dbx/sqltmplx/parse"
 	"github.com/expr-lang/expr/vm"

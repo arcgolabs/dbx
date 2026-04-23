@@ -15,7 +15,7 @@ import (
 	atlaspostgres "ariga.io/atlas/sql/postgres"
 	atlasschema "ariga.io/atlas/sql/schema"
 	atlassqlite "ariga.io/atlas/sql/sqlite"
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/samber/hot"
 )
 

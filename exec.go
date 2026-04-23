@@ -9,7 +9,7 @@ import (
 	"github.com/arcgolabs/dbx/sqlexec"
 	"github.com/arcgolabs/dbx/sqlstmt"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx/dialect"
 	"github.com/samber/oops"
 )

@@ -5,7 +5,7 @@ import (
 	schemax "github.com/arcgolabs/dbx/schema"
 
 	atlasschema "ariga.io/atlas/sql/schema"
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/samber/lo"
 )
 

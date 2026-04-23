@@ -9,7 +9,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx"
 	columnx "github.com/arcgolabs/dbx/column"
 	mapperx "github.com/arcgolabs/dbx/mapper"

@@ -18,8 +18,8 @@ weight: 12
 ## Install / Import
 
 ```bash
-go get github.com/DaiYuANg/arcgo/dbx@latest
-go get github.com/DaiYuANg/arcgo/dbx/sqltmplx@latest
+go get github.com/arcgolabs/dbx@latest
+go get github.com/arcgolabs/dbx/sqltmplx@latest
 ```
 
 ## Template features (quick reference)
@@ -56,11 +56,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/DaiYuANg/arcgo/dbx"
-	"github.com/DaiYuANg/arcgo/dbx/dialect/sqlite"
-	mapperx "github.com/DaiYuANg/arcgo/dbx/mapper"
-	"github.com/DaiYuANg/arcgo/dbx/sqlexec"
-	"github.com/DaiYuANg/arcgo/dbx/sqltmplx"
+	"github.com/arcgolabs/dbx"
+	"github.com/arcgolabs/dbx/dialect/sqlite"
+	mapperx "github.com/arcgolabs/dbx/mapper"
+	"github.com/arcgolabs/dbx/sqlexec"
+	"github.com/arcgolabs/dbx/sqltmplx"
 )
 
 //go:embed sql/**/*.sql
@@ -153,11 +153,7 @@ params := sqltmplx.WithPage(struct {
 ## Related Docs
 
 - dbx pure SQL helpers: [dbx](./)
-- Runnable examples (repository):
-  - [examples/sqltmplx/basic](https://github.com/DaiYuANg/arcgo/tree/main/examples/sqltmplx/basic)
-  - [examples/sqltmplx/postgres](https://github.com/DaiYuANg/arcgo/tree/main/examples/sqltmplx/postgres)
-  - [examples/sqltmplx/sqlite_update](https://github.com/DaiYuANg/arcgo/tree/main/examples/sqltmplx/sqlite_update)
-  - [examples/sqltmplx/precompile](https://github.com/DaiYuANg/arcgo/tree/main/examples/sqltmplx/precompile)
+- Runnable example: [examples/pure_sql](https://github.com/arcgolabs/dbx/tree/main/examples/pure_sql)
 
 ## Pitfalls
 

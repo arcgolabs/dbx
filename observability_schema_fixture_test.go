@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	schemax "github.com/arcgolabs/dbx/schema"
 	"github.com/arcgolabs/dbx/sqlstmt"
 )

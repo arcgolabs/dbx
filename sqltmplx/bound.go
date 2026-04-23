@@ -1,6 +1,6 @@
 package sqltmplx
 
-import "github.com/DaiYuANg/arcgo/collectionx"
+import "github.com/arcgolabs/collectionx"
 
 // BoundSQL contains rendered SQL text and its bind arguments.
 type BoundSQL struct {

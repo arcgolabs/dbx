@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx/dialect"
 	goosedatabase "github.com/pressly/goose/v3/database"
 	"github.com/samber/lo"

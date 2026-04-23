@@ -5,7 +5,7 @@ import (
 	schemax "github.com/arcgolabs/dbx/schema"
 	"reflect"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	codecx "github.com/arcgolabs/dbx/codec"
 )
 

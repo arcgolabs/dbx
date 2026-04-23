@@ -6,13 +6,13 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/DaiYuANg/arcgo/dbx"
-	mapperx "github.com/DaiYuANg/arcgo/dbx/mapper"
-	"github.com/DaiYuANg/arcgo/dbx/schemamigrate"
-	"github.com/DaiYuANg/arcgo/dbx/sqlexec"
-	"github.com/DaiYuANg/arcgo/dbx/sqltmplx"
-	"github.com/DaiYuANg/arcgo/examples/dbx/internal/shared"
+	"github.com/arcgolabs/collectionx"
+	"github.com/arcgolabs/dbx"
+	"github.com/arcgolabs/dbx/examples/internal/shared"
+	mapperx "github.com/arcgolabs/dbx/mapper"
+	"github.com/arcgolabs/dbx/schemamigrate"
+	"github.com/arcgolabs/dbx/sqlexec"
+	"github.com/arcgolabs/dbx/sqltmplx"
 )
 
 //go:embed sql/**/*.sql

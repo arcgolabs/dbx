@@ -1,6 +1,6 @@
 package render
 
-import "github.com/DaiYuANg/arcgo/collectionx"
+import "github.com/arcgolabs/collectionx"
 
 // Result contains rendered SQL text and its bind arguments.
 type Result struct {

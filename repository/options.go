@@ -1,9 +1,9 @@
 package repository
 
 import (
-	"github.com/DaiYuANg/arcgo/pkg/option"
 	"github.com/arcgolabs/dbx"
 	mapperx "github.com/arcgolabs/dbx/mapper"
+	"github.com/arcgolabs/pkg/option"
 )
 
 // Option configures repository construction behavior.

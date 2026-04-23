@@ -80,5 +80,5 @@ When names are not explicitly provided:
 ## Verify
 
 ```bash
-go test ./dbx/... -run Migrate
+go test ./... -run Migrate
 ```

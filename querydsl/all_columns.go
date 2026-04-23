@@ -1,7 +1,7 @@
 package querydsl
 
 import (
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	schemax "github.com/arcgolabs/dbx/schema"
 )
 

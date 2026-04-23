@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx"
 	columnx "github.com/arcgolabs/dbx/column"
 	"github.com/arcgolabs/dbx/dialect"

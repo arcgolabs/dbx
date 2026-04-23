@@ -1,4 +1,4 @@
-module github.com/DaiYuANg/arcgo/examples/dbx
+module github.com/arcgolabs/dbx/examples
 
 go 1.26.2
 

@@ -1,7 +1,7 @@
 package parse
 
 import (
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/expr-lang/expr/vm"
 )
 

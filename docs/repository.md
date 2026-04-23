@@ -24,14 +24,14 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/DaiYuANg/arcgo/dbx"
-	columnx "github.com/DaiYuANg/arcgo/dbx/column"
-	"github.com/DaiYuANg/arcgo/dbx/dialect/sqlite"
-	"github.com/DaiYuANg/arcgo/dbx/idgen"
-	"github.com/DaiYuANg/arcgo/dbx/repository"
-	"github.com/DaiYuANg/arcgo/dbx/schemamigrate"
-	schemax "github.com/DaiYuANg/arcgo/dbx/schema"
-	"github.com/DaiYuANg/arcgo/dbx/sqltmplx"
+	"github.com/arcgolabs/dbx"
+	columnx "github.com/arcgolabs/dbx/column"
+	"github.com/arcgolabs/dbx/dialect/sqlite"
+	"github.com/arcgolabs/dbx/idgen"
+	"github.com/arcgolabs/dbx/repository"
+	"github.com/arcgolabs/dbx/schemamigrate"
+	schemax "github.com/arcgolabs/dbx/schema"
+	"github.com/arcgolabs/dbx/sqltmplx"
 )
 
 type User struct {

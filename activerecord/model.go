@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/arcgolabs/dbx/querydsl"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx"
 	"github.com/arcgolabs/dbx/repository"
 )

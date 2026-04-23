@@ -6,7 +6,7 @@ import (
 
 	atlasmigrate "ariga.io/atlas/sql/migrate"
 	atlasschema "ariga.io/atlas/sql/schema"
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 )
 
 func compileAtlasSchema(dialectName string, driver atlasmigrate.Driver, schemaName string, schemas []Resource) *atlasCompiledSchema {

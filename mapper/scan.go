@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	scanlib "github.com/stephenafamo/scan"
 )
 

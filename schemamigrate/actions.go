@@ -4,7 +4,7 @@ import (
 	schemax "github.com/arcgolabs/dbx/schema"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/samber/lo"
 )
 

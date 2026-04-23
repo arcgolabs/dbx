@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	dbx "github.com/arcgolabs/dbx"
 	codecx "github.com/arcgolabs/dbx/codec"
 	columnx "github.com/arcgolabs/dbx/column"

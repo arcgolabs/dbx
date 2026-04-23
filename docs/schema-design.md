@@ -32,10 +32,10 @@ weight: 8
 package main
 
 import (
-	columnx "github.com/DaiYuANg/arcgo/dbx/column"
-	"github.com/DaiYuANg/arcgo/dbx/idgen"
-	relationx "github.com/DaiYuANg/arcgo/dbx/relation"
-	schemax "github.com/DaiYuANg/arcgo/dbx/schema"
+	columnx "github.com/arcgolabs/dbx/column"
+	"github.com/arcgolabs/dbx/idgen"
+	relationx "github.com/arcgolabs/dbx/relation"
+	schemax "github.com/arcgolabs/dbx/schema"
 )
 
 type Role struct {
@@ -114,5 +114,5 @@ See more patterns in [Indexes](./indexes).
 ## Verify
 
 ```bash
-go test ./dbx/...
+go test ./...
 ```

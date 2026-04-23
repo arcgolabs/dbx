@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 )
 
 type advancedRole struct {

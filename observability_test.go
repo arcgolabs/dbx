@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 )
 
 type memoryHandler struct {

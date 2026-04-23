@@ -40,18 +40,18 @@ These are implementation details. The exposed API is still `dbx`, `dbx/sqltmplx`
 
 ## Package Layout
 
-- Core ORM API: `github.com/DaiYuANg/arcgo/dbx`
-- Generic repository: `github.com/DaiYuANg/arcgo/dbx/repository` (see [Repository Mode](./repository))
-- Active record facade: `github.com/DaiYuANg/arcgo/dbx/activerecord` (see [Active Record Mode](./active-record))
-- Shared dialect contracts: `github.com/DaiYuANg/arcgo/dbx/dialect` (see [Dialect](./dialect))
+- Core ORM API: `github.com/arcgolabs/dbx`
+- Generic repository: `github.com/arcgolabs/dbx/repository` (see [Repository Mode](./repository))
+- Active record facade: `github.com/arcgolabs/dbx/activerecord` (see [Active Record Mode](./active-record))
+- Shared dialect contracts: `github.com/arcgolabs/dbx/dialect` (see [Dialect](./dialect))
 - Built-in query + schema dialects:
-    - `github.com/DaiYuANg/arcgo/dbx/dialect/sqlite`
-    - `github.com/DaiYuANg/arcgo/dbx/dialect/postgres`
-    - `github.com/DaiYuANg/arcgo/dbx/dialect/mysql`
+    - `github.com/arcgolabs/dbx/dialect/sqlite`
+    - `github.com/arcgolabs/dbx/dialect/postgres`
+    - `github.com/arcgolabs/dbx/dialect/mysql`
 - SQL template engine in the same ecosystem:
-    - `github.com/DaiYuANg/arcgo/dbx/sqltmplx`
+    - `github.com/arcgolabs/dbx/sqltmplx`
 - Migration runner package:
-    - `github.com/DaiYuANg/arcgo/dbx/migrate`
+    - `github.com/arcgolabs/dbx/migrate`
 
 ## Documentation Map
 
@@ -77,9 +77,9 @@ These are implementation details. The exposed API is still `dbx`, `dbx/sqltmplx`
 ## Install / Import
 
 ```bash
-go get github.com/DaiYuANg/arcgo/dbx@latest
-go get github.com/DaiYuANg/arcgo/dbx/sqltmplx@latest
-go get github.com/DaiYuANg/arcgo/dbx/migrate@latest
+go get github.com/arcgolabs/dbx@latest
+go get github.com/arcgolabs/dbx/sqltmplx@latest
+go get github.com/arcgolabs/dbx/migrate@latest
 ```
 
 ## Open (connection managed by dbx)
@@ -108,7 +108,7 @@ Schema owns database metadata. Entities only carry field mapping tags.
 ```go
 package main
 
-import "github.com/DaiYuANg/arcgo/dbx"
+import "github.com/arcgolabs/dbx"
 
 type Role struct {
     ID   int64  `dbx:"id"`
@@ -376,31 +376,29 @@ Covered areas:
 
 - Example guide: [dbx examples](./examples)
 - Runnable examples:
-    - [examples/dbx/basic](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/basic)
-    - [examples/dbx/codec](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/codec)
-    - [examples/dbx/mutation](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/mutation)
-    - [examples/dbx/query_advanced](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/query_advanced)
-    - [examples/dbx/relations](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/relations)
-    - [examples/dbx/migration](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration)
-    - [examples/dbx/pure_sql](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/pure_sql)
+    - [examples/basic](https://github.com/arcgolabs/dbx/tree/main/examples/basic)
+    - [examples/codec](https://github.com/arcgolabs/dbx/tree/main/examples/codec)
+    - [examples/mutation](https://github.com/arcgolabs/dbx/tree/main/examples/mutation)
+    - [examples/query_advanced](https://github.com/arcgolabs/dbx/tree/main/examples/query_advanced)
+    - [examples/relations](https://github.com/arcgolabs/dbx/tree/main/examples/relations)
+    - [examples/migration](https://github.com/arcgolabs/dbx/tree/main/examples/migration)
+    - [examples/pure_sql](https://github.com/arcgolabs/dbx/tree/main/examples/pure_sql)
 
 ## Verification
 
 ```bash
-go test ./dbx/...
-go test ./examples/dbx/...
-go run ./examples/dbx/basic
-go run ./examples/dbx/codec
-go run ./examples/dbx/mutation
-go run ./examples/dbx/query_advanced
-go run ./examples/dbx/relations
-go run ./examples/dbx/migration
-go run ./examples/dbx/pure_sql
+go test ./...
+go test ./examples/...
+go run ./examples/basic
+go run ./examples/codec
+go run ./examples/mutation
+go run ./examples/query_advanced
+go run ./examples/relations
+go run ./examples/migration
+go run ./examples/pure_sql
 ```
 
 ## Integration Guide
 
 - With `configx`: externalize driver, DSN, dialect, and migration toggles.
-- With `dix`: initialize DB in infra modules and inject repositories/services per bounded context.
-- With `httpx`: keep query construction and transaction boundaries in service/repository layers.
 - With `logx` / `observabilityx`: attach SQL debug/hook signals with cardinality-safe metadata.

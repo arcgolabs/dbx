@@ -1,6 +1,6 @@
 package querydsl
 
-import "github.com/DaiYuANg/arcgo/collectionx"
+import "github.com/arcgolabs/collectionx"
 
 type InsertQuery struct {
 	Into           Table

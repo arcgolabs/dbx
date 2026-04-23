@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 )
 
 type defaultGenerator struct {

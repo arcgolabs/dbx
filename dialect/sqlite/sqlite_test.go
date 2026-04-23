@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx"
 	sqlitedialect "github.com/arcgolabs/dbx/dialect/sqlite"
 	"github.com/stretchr/testify/require"

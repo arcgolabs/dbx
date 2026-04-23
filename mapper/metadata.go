@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	codecx "github.com/arcgolabs/dbx/codec"
 	"github.com/samber/hot"
 )

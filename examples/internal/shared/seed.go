@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/DaiYuANg/arcgo/dbx"
-	mapperx "github.com/DaiYuANg/arcgo/dbx/mapper"
-	"github.com/DaiYuANg/arcgo/dbx/querydsl"
-	schemax "github.com/DaiYuANg/arcgo/dbx/schema"
+	"github.com/arcgolabs/dbx"
+	mapperx "github.com/arcgolabs/dbx/mapper"
+	"github.com/arcgolabs/dbx/querydsl"
+	schemax "github.com/arcgolabs/dbx/schema"
 )
 
 // InsertAll inserts multiple items for a schema using dbx mapper assignments.

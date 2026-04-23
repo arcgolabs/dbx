@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	schemax "github.com/arcgolabs/dbx/schema"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 )
 
 func TableSpecForTest(schema schemax.Resource) schemax.TableSpec {

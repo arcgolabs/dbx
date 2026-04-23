@@ -1,6 +1,6 @@
 package sqlstmt
 
-import "github.com/DaiYuANg/arcgo/collectionx"
+import "github.com/arcgolabs/collectionx"
 
 // Bound is a SQL statement with bind arguments ready for execution.
 type Bound struct {

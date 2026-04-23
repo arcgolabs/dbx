@@ -3,7 +3,7 @@ package parse_test
 import (
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx/sqltmplx/parse"
 	"github.com/arcgolabs/dbx/sqltmplx/scan"
 	"github.com/stretchr/testify/require"

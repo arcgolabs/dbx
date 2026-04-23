@@ -3,7 +3,7 @@ package render
 import (
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 )
 
 type paramLookup interface {

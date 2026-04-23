@@ -5,7 +5,7 @@ import (
 	"github.com/arcgolabs/dbx/querydsl"
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 )
 
 func closeCursorOrFatal[E any](t *testing.T, cursor Cursor[E]) {

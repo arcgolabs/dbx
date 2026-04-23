@@ -7,7 +7,7 @@ import (
 	schemax "github.com/arcgolabs/dbx/schema"
 	"reflect"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx/idgen"
 	"github.com/arcgolabs/dbx/querydsl"
 )

@@ -5,13 +5,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/DaiYuANg/arcgo/dbx"
-	columnx "github.com/DaiYuANg/arcgo/dbx/column"
-	mapperx "github.com/DaiYuANg/arcgo/dbx/mapper"
-	"github.com/DaiYuANg/arcgo/dbx/querydsl"
-	"github.com/DaiYuANg/arcgo/dbx/schemamigrate"
-	"github.com/DaiYuANg/arcgo/examples/dbx/internal/shared"
+	"github.com/arcgolabs/collectionx"
+	"github.com/arcgolabs/dbx"
+	columnx "github.com/arcgolabs/dbx/column"
+	"github.com/arcgolabs/dbx/examples/internal/shared"
+	mapperx "github.com/arcgolabs/dbx/mapper"
+	"github.com/arcgolabs/dbx/querydsl"
+	"github.com/arcgolabs/dbx/schemamigrate"
 )
 
 type activeUserRow struct {

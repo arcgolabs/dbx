@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx"
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	relationx "github.com/arcgolabs/dbx/relation"

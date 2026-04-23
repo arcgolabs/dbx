@@ -7,9 +7,9 @@ weight: 20
 
 ## Active Record Mode
 
-Package: `github.com/DaiYuANg/arcgo/dbx/activerecord`.
+Package: `github.com/arcgolabs/dbx/activerecord`.
 
-`activerecord` is a small layer on top of `github.com/DaiYuANg/arcgo/dbx/repository`. It wraps entities in `Model` values that delegate persistence to the same `repository.Base` you would use in repository mode—no second query engine.
+`activerecord` is a small layer on top of `github.com/arcgolabs/dbx/repository`. It wraps entities in `Model` values that delegate persistence to the same `repository.Base` you would use in repository mode—no second query engine.
 
 ## When to Use
 
@@ -44,14 +44,14 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/DaiYuANg/arcgo/dbx"
-	"github.com/DaiYuANg/arcgo/dbx/activerecord"
-	columnx "github.com/DaiYuANg/arcgo/dbx/column"
-	"github.com/DaiYuANg/arcgo/dbx/dialect/sqlite"
-	"github.com/DaiYuANg/arcgo/dbx/idgen"
-	"github.com/DaiYuANg/arcgo/dbx/repository"
-	"github.com/DaiYuANg/arcgo/dbx/schemamigrate"
-	schemax "github.com/DaiYuANg/arcgo/dbx/schema"
+	"github.com/arcgolabs/dbx"
+	"github.com/arcgolabs/dbx/activerecord"
+	columnx "github.com/arcgolabs/dbx/column"
+	"github.com/arcgolabs/dbx/dialect/sqlite"
+	"github.com/arcgolabs/dbx/idgen"
+	"github.com/arcgolabs/dbx/repository"
+	"github.com/arcgolabs/dbx/schemamigrate"
+	schemax "github.com/arcgolabs/dbx/schema"
 )
 
 type User struct {

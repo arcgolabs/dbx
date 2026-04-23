@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/arcgolabs/collectionx"
 )
 
 // Scan tokenizes a SQL template string.

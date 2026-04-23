@@ -34,16 +34,16 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/DaiYuANg/arcgo/dbx"
-	columnx "github.com/DaiYuANg/arcgo/dbx/column"
-	"github.com/DaiYuANg/arcgo/dbx/dialect/sqlite"
-	"github.com/DaiYuANg/arcgo/dbx/idgen"
-	mapperx "github.com/DaiYuANg/arcgo/dbx/mapper"
-	"github.com/DaiYuANg/arcgo/dbx/querydsl"
-	relationx "github.com/DaiYuANg/arcgo/dbx/relation"
-	"github.com/DaiYuANg/arcgo/dbx/relationload"
-	"github.com/DaiYuANg/arcgo/dbx/schemamigrate"
-	schemax "github.com/DaiYuANg/arcgo/dbx/schema"
+	"github.com/arcgolabs/dbx"
+	columnx "github.com/arcgolabs/dbx/column"
+	"github.com/arcgolabs/dbx/dialect/sqlite"
+	"github.com/arcgolabs/dbx/idgen"
+	mapperx "github.com/arcgolabs/dbx/mapper"
+	"github.com/arcgolabs/dbx/querydsl"
+	relationx "github.com/arcgolabs/dbx/relation"
+	"github.com/arcgolabs/dbx/relationload"
+	"github.com/arcgolabs/dbx/schemamigrate"
+	schemax "github.com/arcgolabs/dbx/schema"
 	"github.com/samber/mo"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -131,6 +131,6 @@ func main() {
 ## Verify
 
 ```bash
-go test ./dbx/... -run Relation
+go test ./... -run Relation
 go run .
 ```
