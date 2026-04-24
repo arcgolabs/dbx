@@ -183,13 +183,8 @@ func atlasIndexForSpec(table *atlasschema.Table, index schemax.IndexMeta) *atlas
 }
 
 func atlasColumnsByName(table *atlasschema.Table, names collectionx.List[string]) []*atlasschema.Column {
-	columns := make([]*atlasschema.Column, 0, names.Len())
-	names.Range(func(_ int, name string) bool {
+	return collectionx.FilterMapList[string, *atlasschema.Column](names, func(_ int, name string) (*atlasschema.Column, bool) {
 		column, ok := table.Column(name)
-		if ok {
-			columns = append(columns, column)
-		}
-		return true
-	})
-	return columns
+		return column, ok
+	}).Values()
 }

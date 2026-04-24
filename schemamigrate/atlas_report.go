@@ -9,9 +9,10 @@ import (
 func atlasReportFromChanges(changes []atlasschema.Change, compiled *atlasCompiledSchema, current *atlasschema.Schema) schemax.ValidationReport {
 	diffs := atlasReportDiffMap(compiled.order)
 	currentTables := atlasCurrentTablesByName(current)
-	for _, change := range changes {
+	collectionx.NewListWithCapacity[atlasschema.Change](len(changes), changes...).Range(func(_ int, change atlasschema.Change) bool {
 		atlasApplyChangeToReport(diffs, compiled, currentTables, change)
-	}
+		return true
+	})
 	return atlasValidationReport(diffs)
 }
 
@@ -28,11 +29,12 @@ func atlasCurrentTablesByName(current *atlasschema.Schema) collectionx.Map[strin
 	if current == nil {
 		return collectionx.NewMap[string, *atlasschema.Table]()
 	}
-	currentTables := collectionx.NewMapWithCapacity[string, *atlasschema.Table](len(current.Tables))
-	for _, table := range current.Tables {
-		currentTables.Set(table.Name, table)
-	}
-	return currentTables
+	return collectionx.AssociateList[*atlasschema.Table, string, *atlasschema.Table](
+		collectionx.NewListWithCapacity[*atlasschema.Table](len(current.Tables), current.Tables...),
+		func(_ int, table *atlasschema.Table) (string, *atlasschema.Table) {
+			return table.Name, table
+		},
+	)
 }
 
 func atlasApplyChangeToReport(diffs collectionx.OrderedMap[string, *schemax.TableDiff], compiled *atlasCompiledSchema, currentTables collectionx.Map[string, *atlasschema.Table], change atlasschema.Change) {
@@ -70,9 +72,10 @@ func atlasApplyModifyTableChange(diffs collectionx.OrderedMap[string, *schemax.T
 	}
 	diff, _ := diffs.Get(change.T.Name)
 	currentTable, _ := currentTables.Get(change.T.Name)
-	for _, tableChange := range change.Changes {
+	collectionx.NewListWithCapacity[atlasschema.Change](len(change.Changes), change.Changes...).Range(func(_ int, tableChange atlasschema.Change) bool {
 		atlasApplyTableChangeToDiff(diff, compiledTable, currentTable, tableChange)
-	}
+		return true
+	})
 }
 
 func atlasValidationReport(diffs collectionx.OrderedMap[string, *schemax.TableDiff]) schemax.ValidationReport {

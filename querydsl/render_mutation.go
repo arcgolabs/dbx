@@ -119,17 +119,24 @@ func renderInsertValues(state *State, columns collectionx.List[schemax.ColumnMet
 
 func renderInsertValueRow(state *State, row []Assignment) error {
 	state.WriteRawByte('(')
-	for colIndex, assignment := range row {
+	var renderErr error
+	collectionx.NewList[Assignment](row...).Range(func(colIndex int, assignment Assignment) bool {
 		renderer, ok := assignment.(InsertAssignment)
 		if !ok {
-			return fmt.Errorf("dbx/querydsl: unsupported insert assignment %T", assignment)
+			renderErr = fmt.Errorf("dbx/querydsl: unsupported insert assignment %T", assignment)
+			return false
 		}
 		if colIndex > 0 {
 			state.WriteString(", ")
 		}
 		if err := renderer.RenderAssignmentValue(state); err != nil {
-			return wrapRenderError("render insert assignment value", err)
+			renderErr = wrapRenderError("render insert assignment value", err)
+			return false
 		}
+		return true
+	})
+	if renderErr != nil {
+		return renderErr
 	}
 	state.WriteRawByte(')')
 	return nil
@@ -243,15 +250,18 @@ func resolveInsertColumns(q *InsertQuery, rows collectionx.Grid[Assignment]) (co
 }
 
 func assignmentColumns(assignments []Assignment) (collectionx.List[schemax.ColumnMeta], error) {
-	columns := collectionx.NewListWithCapacity[schemax.ColumnMeta](len(assignments))
-	for _, assignment := range assignments {
-		renderer, ok := assignment.(InsertAssignment)
-		if !ok {
-			return nil, fmt.Errorf("dbx/querydsl: unsupported insert assignment %T", assignment)
-		}
-		columns.Add(renderer.AssignmentColumn())
-	}
-	return columns, nil
+	return collectionx.ReduceErrList[Assignment, collectionx.List[schemax.ColumnMeta]](
+		collectionx.NewList[Assignment](assignments...),
+		collectionx.NewListWithCapacity[schemax.ColumnMeta](len(assignments)),
+		func(columns collectionx.List[schemax.ColumnMeta], _ int, assignment Assignment) (collectionx.List[schemax.ColumnMeta], error) {
+			renderer, ok := assignment.(InsertAssignment)
+			if !ok {
+				return nil, fmt.Errorf("dbx/querydsl: unsupported insert assignment %T", assignment)
+			}
+			columns.Add(renderer.AssignmentColumn())
+			return columns, nil
+		},
+	)
 }
 
 func resolveTargetColumns(expressions collectionx.List[Expression]) (collectionx.List[schemax.ColumnMeta], error) {
@@ -291,13 +301,20 @@ func orderInsertRows(columns collectionx.List[schemax.ColumnMeta], rows collecti
 }
 
 func orderInsertRow(columns collectionx.List[schemax.ColumnMeta], row []Assignment) (collectionx.List[Assignment], error) {
-	assignmentsByColumn := collectionx.NewMapWithCapacity[string, Assignment](len(row))
-	for _, assignment := range row {
-		renderer, ok := assignment.(InsertAssignment)
-		if !ok {
-			return nil, fmt.Errorf("dbx/querydsl: unsupported insert assignment %T", assignment)
-		}
-		assignmentsByColumn.Set(renderer.AssignmentColumn().Name, assignment)
+	assignmentsByColumn, err := collectionx.ReduceErrList[Assignment, collectionx.Map[string, Assignment]](
+		collectionx.NewList[Assignment](row...),
+		collectionx.NewMapWithCapacity[string, Assignment](len(row)),
+		func(result collectionx.Map[string, Assignment], _ int, assignment Assignment) (collectionx.Map[string, Assignment], error) {
+			renderer, ok := assignment.(InsertAssignment)
+			if !ok {
+				return nil, fmt.Errorf("dbx/querydsl: unsupported insert assignment %T", assignment)
+			}
+			result.Set(renderer.AssignmentColumn().Name, assignment)
+			return result, nil
+		},
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	orderedRow := collectionx.NewListWithCapacity[Assignment](columns.Len())

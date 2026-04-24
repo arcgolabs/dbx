@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/arcgolabs/collectionx"
 	"github.com/samber/mo"
 )
 
@@ -22,11 +23,11 @@ func TestLoadBelongsToChunksLargeINQueries(t *testing.T) {
 
 	users := MustSchema("users", relationUserSchema{})
 	roles := MustSchema("roles", relationRoleSchema{})
-	items := make([]relationUser, 0, 950)
+	items := collectionx.NewListWithCapacity[relationUser](950)
 	for i := 1; i <= 950; i++ {
-		items = append(items, relationUser{ID: int64(i), Name: fmt.Sprintf("user-%d", i), RoleID: int64(i)})
+		items.Add(relationUser{ID: int64(i), Name: fmt.Sprintf("user-%d", i), RoleID: int64(i)})
 	}
-	loaded := make([]mo.Option[relationRole], len(items))
+	loaded := make([]mo.Option[relationRole], items.Len())
 
 	err := LoadBelongsTo(
 		context.Background(),
@@ -37,8 +38,9 @@ func TestLoadBelongsToChunksLargeINQueries(t *testing.T) {
 		users.Role,
 		roles,
 		MustMapper[relationRole](roles),
-		func(index int, _ *relationUser, value mo.Option[relationRole]) {
+		func(index int, user relationUser, value mo.Option[relationRole]) relationUser {
 			loaded[index] = value
+			return user
 		},
 	)
 	if err != nil {
@@ -59,7 +61,7 @@ func TestLoadManyToManyChunksLargePairQueries(t *testing.T) {
 	users := MustSchema("users", relationUserSchema{})
 	tags := MustSchema("tags", relationTagSchema{})
 	items := chunkedRelationUsers(950)
-	loaded := make([][]relationTag, len(items))
+	loaded := make([][]relationTag, items.Len())
 
 	err := LoadManyToMany(
 		context.Background(),
@@ -70,8 +72,9 @@ func TestLoadManyToManyChunksLargePairQueries(t *testing.T) {
 		users.Tags,
 		tags,
 		MustMapper[relationTag](tags),
-		func(index int, _ *relationUser, value []relationTag) {
-			loaded[index] = value
+		func(index int, user relationUser, value collectionx.List[relationTag]) relationUser {
+			loaded[index] = value.Values()
+			return user
 		},
 	)
 	if err != nil {
@@ -91,8 +94,8 @@ func TestLoadHasManyReturnsDeterministicOrder(t *testing.T) {
 
 	users := MustSchema("users", relationUserSchema{})
 	posts := MustSchema("posts", relationPostSchema{})
-	items := []relationUser{{ID: 1, Name: "alice"}}
-	loaded := make([][]relationPost, len(items))
+	items := collectionx.NewList[relationUser](relationUser{ID: 1, Name: "alice"})
+	loaded := make([][]relationPost, items.Len())
 
 	err := LoadHasMany(
 		context.Background(),
@@ -103,8 +106,9 @@ func TestLoadHasManyReturnsDeterministicOrder(t *testing.T) {
 		users.Posts,
 		posts,
 		MustMapper[relationPost](posts),
-		func(index int, _ *relationUser, value []relationPost) {
-			loaded[index] = value
+		func(index int, user relationUser, value collectionx.List[relationPost]) relationUser {
+			loaded[index] = value.Values()
+			return user
 		},
 	)
 	if err != nil {
@@ -125,7 +129,7 @@ func TestLoadHasOneRejectsDuplicateTargets(t *testing.T) {
 
 	users := MustSchema("users", relationUserSchema{})
 	profiles := MustSchema("profiles", relationProfileSchema{})
-	items := []relationUser{{ID: 1, Name: "alice"}}
+	items := collectionx.NewList[relationUser](relationUser{ID: 1, Name: "alice"})
 
 	err := LoadHasOne(
 		context.Background(),
@@ -136,7 +140,7 @@ func TestLoadHasOneRejectsDuplicateTargets(t *testing.T) {
 		users.Profile,
 		profiles,
 		MustMapper[relationProfile](profiles),
-		func(int, *relationUser, mo.Option[relationProfile]) {},
+		func(_ int, user relationUser, _ mo.Option[relationProfile]) relationUser { return user },
 	)
 	if !errors.Is(err, ErrRelationCardinality) {
 		t.Fatalf("expected relation cardinality error, got: %v", err)
@@ -170,10 +174,10 @@ func insertSharedUserAndPair(t *testing.T, sqlDB interface {
 	}
 }
 
-func chunkedRelationUsers(count int) []relationUser {
-	items := make([]relationUser, 0, count)
+func chunkedRelationUsers(count int) collectionx.List[relationUser] {
+	items := collectionx.NewListWithCapacity[relationUser](count)
 	for i := 1; i <= count; i++ {
-		items = append(items, relationUser{ID: int64(i), Name: fmt.Sprintf("user-%d", i)})
+		items.Add(relationUser{ID: int64(i), Name: fmt.Sprintf("user-%d", i)})
 	}
 	return items
 }

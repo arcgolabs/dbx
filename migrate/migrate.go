@@ -13,7 +13,6 @@ import (
 
 	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx/dialect"
-	"github.com/samber/lo"
 )
 
 // Kind identifies the source type of a recorded migration.
@@ -195,12 +194,16 @@ func (s FileSource) List() (collectionx.List[SQLMigration], error) {
 		return nil, err
 	}
 
-	items := collectionx.NewMapWithCapacity[string, *SQLMigration](len(entries))
-	_, err = lo.ReduceErr(lo.Filter(entries, func(entry fs.DirEntry, _ int) bool {
-		return !entry.IsDir()
-	}), func(_ struct{}, entry fs.DirEntry, _ int) (struct{}, error) {
-		return struct{}{}, s.addEntry(items, entry)
-	}, struct{}{})
+	items := collectionx.NewMapWithCapacity[string, *SQLMigration](entries.Len())
+	_, err = collectionx.ReduceErrList[fs.DirEntry, struct{}](
+		collectionx.FilterList[fs.DirEntry](entries, func(_ int, entry fs.DirEntry) bool {
+			return !entry.IsDir()
+		}),
+		struct{}{},
+		func(state struct{}, _ int, entry fs.DirEntry) (struct{}, error) {
+			return state, s.addEntry(items, entry)
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("dbx/migrate: collect sql migration entries: %w", err)
 	}
@@ -208,12 +211,12 @@ func (s FileSource) List() (collectionx.List[SQLMigration], error) {
 	return sortedSQLMigrations(items), nil
 }
 
-func (s FileSource) readEntries() ([]fs.DirEntry, error) {
+func (s FileSource) readEntries() (collectionx.List[fs.DirEntry], error) {
 	entries, err := fs.ReadDir(s.FS, s.Dir)
 	if err != nil {
 		return nil, fmt.Errorf("dbx/migrate: read migration dir %q: %w", s.Dir, err)
 	}
-	return entries, nil
+	return collectionx.NewList[fs.DirEntry](entries...), nil
 }
 
 func (s FileSource) addEntry(items collectionx.Map[string, *SQLMigration], entry fs.DirEntry) error {

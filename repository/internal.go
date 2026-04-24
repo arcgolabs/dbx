@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	schemax "github.com/arcgolabs/dbx/schema"
+	"maps"
 	"slices"
 	"strings"
 
@@ -15,7 +16,6 @@ import (
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/querydsl"
 	"github.com/arcgolabs/dbx/sqlstmt"
-	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -32,11 +32,12 @@ func (r *Base[E, S]) defaultSelect() *querydsl.SelectQuery {
 
 func (r *Base[E, S]) applySpecs(specs ...Spec) *querydsl.SelectQuery {
 	query := r.defaultSelect()
-	for _, spec := range specs {
+	collectionx.NewList[Spec](specs...).Range(func(_ int, spec Spec) bool {
 		if spec != nil {
 			query = spec.Apply(query)
 		}
-	}
+		return true
+	})
 	return query
 }
 
@@ -197,28 +198,27 @@ func (r *Base[E, S]) primaryColumnName() string {
 	return "id"
 }
 
-func (r *Base[E, S]) primaryKeyColumns() []string {
+func (r *Base[E, S]) primaryKeyColumns() collectionx.List[string] {
 	type primaryKeyProvider interface {
 		PrimaryKey() (schemax.PrimaryKeyMeta, bool)
 	}
 	if provider, ok := any(r.schema).(primaryKeyProvider); ok {
 		if primary, ok := provider.PrimaryKey(); ok && primary.Columns.Len() > 0 {
-			return primary.Columns.Values()
+			return primary.Columns.Clone()
 		}
 	}
-	return []string{r.primaryColumnName()}
+	return collectionx.NewList[string](r.primaryColumnName())
 }
 
 func keyPredicate[S querydsl.TableSource](schema S, key Key) querydsl.Predicate {
 	if len(key) == 0 {
 		return nil
 	}
-	columns := lo.Keys(key)
-	slices.Sort(columns)
-	predicates := lo.Map(columns, func(column string, _ int) querydsl.Predicate {
+	columns := collectionx.NewList[string](slices.Sorted(maps.Keys(key))...)
+	predicates := collectionx.MapList[string, querydsl.Predicate](columns, func(_ int, column string) querydsl.Predicate {
 		return columnx.Named[any](schema, column).Eq(key[column])
 	})
-	return querydsl.And(predicates...)
+	return querydsl.AndList(predicates)
 }
 
 func hasAffectedRows(result sql.Result) bool {

@@ -46,16 +46,16 @@ func atlasFindCheckMeta(compiled *atlasCompiledTable, check *atlasschema.Check) 
 }
 
 func atlasForeignKeyKey(foreignKey *atlasschema.ForeignKey) string {
-	columns := lo.FilterMap(foreignKey.Columns, func(column *atlasschema.Column, _ int) (string, bool) {
+	columns := collectionx.FilterMapList[*atlasschema.Column, string](collectionx.NewListWithCapacity[*atlasschema.Column](len(foreignKey.Columns), foreignKey.Columns...), func(_ int, column *atlasschema.Column) (string, bool) {
 		return column.Name, column != nil
 	})
-	targetColumns := lo.FilterMap(foreignKey.RefColumns, func(column *atlasschema.Column, _ int) (string, bool) {
+	targetColumns := collectionx.FilterMapList[*atlasschema.Column, string](collectionx.NewListWithCapacity[*atlasschema.Column](len(foreignKey.RefColumns), foreignKey.RefColumns...), func(_ int, column *atlasschema.Column) (string, bool) {
 		return column.Name, column != nil
 	})
 	meta := schemax.ForeignKeyMeta{
-		Columns:       collectionx.NewList[string](columns...),
+		Columns:       columns,
 		TargetTable:   lo.If(foreignKey.RefTable != nil, foreignKey.RefTable.Name).Else(""),
-		TargetColumns: collectionx.NewList[string](targetColumns...),
+		TargetColumns: targetColumns,
 		OnDelete:      schemax.ReferentialAction(foreignKey.OnDelete),
 		OnUpdate:      schemax.ReferentialAction(foreignKey.OnUpdate),
 	}
@@ -63,13 +63,12 @@ func atlasForeignKeyKey(foreignKey *atlasschema.ForeignKey) string {
 }
 
 func atlasIndexColumns(index *atlasschema.Index) collectionx.List[string] {
-	columns := lo.FilterMap(index.Parts, func(part *atlasschema.IndexPart, _ int) (string, bool) {
+	return collectionx.FilterMapList[*atlasschema.IndexPart, string](collectionx.NewListWithCapacity[*atlasschema.IndexPart](len(index.Parts), index.Parts...), func(_ int, part *atlasschema.IndexPart) (string, bool) {
 		if part == nil || part.C == nil {
 			return "", false
 		}
 		return part.C.Name, true
 	})
-	return collectionx.NewList[string](columns...)
 }
 
 func atlasPrimaryKeyState(table *atlasschema.Table) *schemax.PrimaryKeyState {

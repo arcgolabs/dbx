@@ -18,7 +18,7 @@ type Builder interface {
 type State struct {
 	dialect  dialect.Dialect
 	buf      strings.Builder
-	args     []any
+	args     collectionx.List[any]
 	writeErr error
 }
 
@@ -28,7 +28,7 @@ type Buffer struct {
 }
 
 func NewState(d dialect.Dialect, capacity int) *State {
-	return &State{dialect: d, args: make([]any, 0, capacity)}
+	return &State{dialect: d, args: collectionx.NewListWithCapacity[any](capacity)}
 }
 
 func (s *State) Dialect() dialect.Dialect {
@@ -89,8 +89,8 @@ func wrapRenderError(op string, err error) error {
 }
 
 func (s *State) Bind(value any) string {
-	s.args = append(s.args, value)
-	return s.dialect.BindVar(len(s.args))
+	s.args.Add(value)
+	return s.dialect.BindVar(s.args.Len())
 }
 
 func (s *State) WriteQuotedIdent(name string) {
@@ -122,7 +122,7 @@ func (s *State) RenderTable(table Table) {
 }
 
 func (s *State) Bound() sqlstmt.Bound {
-	return sqlstmt.Bound{SQL: s.buf.String(), Args: collectionx.NewList[any](s.args...)}
+	return sqlstmt.Bound{SQL: s.buf.String(), Args: s.args.Clone()}
 }
 
 func RenderSelectItem(state *State, item SelectItem) error {
@@ -182,26 +182,30 @@ func RenderOperandValue(state *State, value any) (string, error) {
 		}
 		return operand, nil
 	}
+	if values, ok := value.(collectionx.List[any]); ok {
+		return renderListOperand(state, values)
+	}
 	if values, ok := value.([]any); ok {
-		return renderAnySliceOperand(state, values)
+		return renderListOperand(state, collectionx.NewList[any](values...))
 	}
 	return state.Bind(value), nil
 }
 
-func renderAnySliceOperand(state *State, values []any) (string, error) {
-	if len(values) == 0 {
+func renderListOperand(state *State, values collectionx.List[any]) (string, error) {
+	if values == nil || values.Len() == 0 {
 		return "", errors.New("dbx/querydsl: IN operand cannot be empty")
 	}
 	var builder Buffer
 	builder.WriteRawByte('(')
-	for i, value := range values {
-		if i > 0 {
+	values.Range(func(index int, value any) bool {
+		if index > 0 {
 			builder.WriteString(", ")
 		}
 		builder.WriteString(state.Bind(value))
-	}
+		return true
+	})
 	builder.WriteRawByte(')')
-	return builder.String(), builder.Err("render slice operand")
+	return builder.String(), builder.Err("render list operand")
 }
 
 func DialectFeatures(d dialect.Dialect) dialect.QueryFeatures {

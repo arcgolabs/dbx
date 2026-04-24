@@ -172,11 +172,10 @@ func validateAtlasPlanningSession(session dbx.Session) error {
 }
 
 func atlasCurrentSchema(ctx context.Context, driver atlasmigrate.Driver, session dbx.Session, schemas []Resource) (*atlasschema.Schema, string, error) {
-	tableNames := make([]string, 0, len(schemas))
-	for _, schema := range schemas {
-		tableNames = append(tableNames, schema.TableName())
-	}
-	current, err := atlasInspectCurrentSchema(ctx, driver, tableNames)
+	tableNames := collectionx.MapList[Resource, string](collectionx.NewListWithCapacity[Resource](len(schemas), schemas...), func(_ int, schema Resource) string {
+		return schema.TableName()
+	})
+	current, err := atlasInspectCurrentSchema(ctx, driver, tableNames.Values())
 	if err != nil {
 		return nil, "", err
 	}

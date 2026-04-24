@@ -44,7 +44,7 @@ func (q *InsertQuery) Columns(columns ...Expression) *InsertQuery {
 }
 
 func (q *InsertQuery) ColumnsList(columns collectionx.List[Expression]) *InsertQuery {
-	q.TargetColumns = mergeList(q.TargetColumns, columns)
+	q.TargetColumns = mergeList(q.TargetColumns, CompactExpressionsList(columns))
 	return q
 }
 
@@ -54,7 +54,7 @@ func (q *InsertQuery) Values(assignments ...Assignment) *InsertQuery {
 
 func (q *InsertQuery) ValuesList(assignments collectionx.List[Assignment]) *InsertQuery {
 	grid := collectionx.NewGridWithCapacity[Assignment](1)
-	grid.AddRowList(assignments)
+	grid.AddRowList(CompactAssignmentsList(assignments))
 	return q.ValuesGrid(grid)
 }
 
@@ -90,7 +90,7 @@ func (q *InsertQuery) Returning(items ...SelectItem) *InsertQuery {
 }
 
 func (q *InsertQuery) ReturningList(items collectionx.List[SelectItem]) *InsertQuery {
-	q.ReturningItems = mergeList(q.ReturningItems, items)
+	q.ReturningItems = mergeList(q.ReturningItems, CompactSelectItemsList(items))
 	return q
 }
 
@@ -99,7 +99,7 @@ func (q *InsertQuery) OnConflict(targets ...Expression) *ConflictBuilder {
 }
 
 func (q *InsertQuery) OnConflictList(targets collectionx.List[Expression]) *ConflictBuilder {
-	q.Upsert = &UpsertClause{Targets: targets.Clone()}
+	q.Upsert = &UpsertClause{Targets: CompactExpressionsList(targets)}
 	return &ConflictBuilder{query: q}
 }
 
@@ -118,7 +118,7 @@ func (b *ConflictBuilder) DoUpdateSet(assignments ...Assignment) *InsertQuery {
 func (b *ConflictBuilder) DoUpdateSetList(assignments collectionx.List[Assignment]) *InsertQuery {
 	b.query.Upsert = &UpsertClause{
 		Targets:     b.query.Upsert.Targets.Clone(),
-		Assignments: assignments.Clone(),
+		Assignments: CompactAssignmentsList(assignments),
 	}
 	return b.query
 }
@@ -132,7 +132,7 @@ func (q *UpdateQuery) Set(assignments ...Assignment) *UpdateQuery {
 }
 
 func (q *UpdateQuery) SetList(assignments collectionx.List[Assignment]) *UpdateQuery {
-	q.Assignments = mergeList(q.Assignments, assignments)
+	q.Assignments = mergeList(q.Assignments, CompactAssignmentsList(assignments))
 	return q
 }
 
@@ -146,7 +146,7 @@ func (q *UpdateQuery) Returning(items ...SelectItem) *UpdateQuery {
 }
 
 func (q *UpdateQuery) ReturningList(items collectionx.List[SelectItem]) *UpdateQuery {
-	q.ReturningItems = mergeList(q.ReturningItems, items)
+	q.ReturningItems = mergeList(q.ReturningItems, CompactSelectItemsList(items))
 	return q
 }
 
@@ -164,7 +164,7 @@ func (q *DeleteQuery) Returning(items ...SelectItem) *DeleteQuery {
 }
 
 func (q *DeleteQuery) ReturningList(items collectionx.List[SelectItem]) *DeleteQuery {
-	q.ReturningItems = mergeList(q.ReturningItems, items)
+	q.ReturningItems = mergeList(q.ReturningItems, CompactSelectItemsList(items))
 	return q
 }
 

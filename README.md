@@ -73,6 +73,7 @@ These are implementation details. The exposed API is still `dbx`, `dbx/sqltmplx`
 - dbx + pure SQL templates: [sqltmplx Integration](./sqltmplx-integration)
 - Runnable examples: [Examples](./examples)
 - Benchmark notes: [Benchmarks](./benchmarks)
+- Maintainer conventions: [Style Guide](./STYLE.md)
 
 ## Install / Import
 
@@ -237,14 +238,15 @@ roleMapper := mapperx.MustMapper[Role](Roles)
 if err := relationload.LoadBelongsTo(
     ctx,
     core,
-    users,
+    collectionx.NewList(users...),
     Users,
     userMapper,
     Users.Role,
     Roles,
     roleMapper,
-    func(index int, user *User, role mo.Option[Role]) {
+    func(index int, user User, role mo.Option[Role]) User {
         // attach resolved role here
+        return user
     },
 ); err != nil {
     panic(err)

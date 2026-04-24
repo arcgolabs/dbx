@@ -37,21 +37,30 @@ func planSchemaChangesLegacy(ctx context.Context, session dbx.Session, schemas .
 		return schemax.MigrationPlan{}, err
 	}
 
-	reportTables := collectionx.NewListWithCapacity[schemax.TableDiff](len(schemas))
-	actions := collectionx.NewListWithCapacity[schemax.MigrationAction](len(schemas))
-	for _, schema := range schemas {
-		diff, err := planLegacySchemaDiff(ctx, schemaDialect, session, schema)
-		if err != nil {
-			return schemax.MigrationPlan{}, err
-		}
-		reportTables.Add(diff)
-		actions.Merge(buildLegacyMigrationActions(schemaDialect, schema, diff))
+	state, err := collectionx.ReduceErrList[Resource, legacyPlanState](
+		collectionx.NewListWithCapacity[Resource](len(schemas), schemas...),
+		legacyPlanState{
+			reportTables: collectionx.NewListWithCapacity[schemax.TableDiff](len(schemas)),
+			actions:      collectionx.NewListWithCapacity[schemax.MigrationAction](len(schemas)),
+		},
+		func(result legacyPlanState, _ int, schema Resource) (legacyPlanState, error) {
+			diff, diffErr := planLegacySchemaDiff(ctx, schemaDialect, session, schema)
+			if diffErr != nil {
+				return legacyPlanState{}, diffErr
+			}
+			result.reportTables.Add(diff)
+			result.actions.Merge(buildLegacyMigrationActions(schemaDialect, schema, diff))
+			return result, nil
+		},
+	)
+	if err != nil {
+		return schemax.MigrationPlan{}, err
 	}
 
 	return schemax.MigrationPlan{
-		Actions: actions,
+		Actions: state.actions,
 		Report: schemax.ValidationReport{
-			Tables:   reportTables,
+			Tables:   state.reportTables,
 			Backend:  schemax.ValidationBackendLegacy,
 			Complete: false,
 			Warnings: collectionx.NewList[string]("dbx: schema validation is running in legacy mode; extra drift may not be reported"),
@@ -178,4 +187,9 @@ func primaryKeyManualActions(diff schemax.TableDiff) collectionx.List[schemax.Mi
 		Table:   diff.Table,
 		Summary: "manual primary key migration required",
 	})
+}
+
+type legacyPlanState struct {
+	reportTables collectionx.List[schemax.TableDiff]
+	actions      collectionx.List[schemax.MigrationAction]
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/arcgolabs/collectionx"
 	columnx "github.com/arcgolabs/dbx/column"
 	"github.com/arcgolabs/dbx/querydsl"
 
@@ -93,8 +94,9 @@ func (r *Base[E, S]) UpdateByVersion(ctx context.Context, key Key, currentVersio
 	}
 	predicate := querydsl.And(keyPredicate(r.schema, key), columnx.Named[any](r.schema, "version").Eq(currentVersion))
 	nextVersion := currentVersion + 1
-	assignments = append(assignments, columnx.Named[any](r.schema, "version").Set(nextVersion))
-	result, err := r.Update(ctx, querydsl.Update(r.schema).Set(assignments...).Where(predicate))
+	nextAssignments := collectionx.NewList[querydsl.Assignment](assignments...)
+	nextAssignments.Add(columnx.Named[any](r.schema, "version").Set(nextVersion))
+	result, err := r.Update(ctx, querydsl.Update(r.schema).SetList(nextAssignments).Where(predicate))
 	if err != nil {
 		dbx.LogRuntimeNode(r.session, "repository.update_by_version.error", "table", r.schema.TableName(), "error", err)
 		return nil, err

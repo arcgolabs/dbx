@@ -16,28 +16,34 @@ import (
 type relationSourceState struct {
 	rt     *relationruntime.Runtime
 	keys   collectionx.List[any]
-	lookup []relationLookupValue
+	lookup collectionx.List[relationLookupValue]
 }
 
-func LoadBelongsTo[S any, T any](ctx context.Context, session dbx.Session, sources []S, sourceSchema schemax.SchemaSource[S], sourceMapper mapperx.Mapper[S], relation relationx.BelongsTo[S, T], targetSchema schemax.SchemaSource[T], targetMapper mapperx.Mapper[T], assign func(int, *S, mo.Option[T])) error {
-	dbx.LogRuntimeNode(session, "relation.load.belongs_to.start", "sources", len(sources))
+// SingleRelationAssigner maps a resolved single-valued relation back onto a source item.
+type SingleRelationAssigner[S any, T any] func(index int, source S, value mo.Option[T]) S
+
+// MultiRelationAssigner maps a resolved multi-valued relation back onto a source item.
+type MultiRelationAssigner[S any, T any] func(index int, source S, value collectionx.List[T]) S
+
+func LoadBelongsTo[S any, T any](ctx context.Context, session dbx.Session, sources collectionx.List[S], sourceSchema schemax.SchemaSource[S], sourceMapper mapperx.Mapper[S], relation relationx.BelongsTo[S, T], targetSchema schemax.SchemaSource[T], targetMapper mapperx.Mapper[T], assign SingleRelationAssigner[S, T]) error {
+	dbx.LogRuntimeNode(session, "relation.load.belongs_to.start", "sources", sourceCount(sources))
 	return loadSingleRelation(ctx, session, sources, sourceSchema, sourceMapper, relation.Meta(), targetSchema, targetMapper, assign)
 }
 
-func LoadHasOne[S any, T any](ctx context.Context, session dbx.Session, sources []S, sourceSchema schemax.SchemaSource[S], sourceMapper mapperx.Mapper[S], relation relationx.HasOne[S, T], targetSchema schemax.SchemaSource[T], targetMapper mapperx.Mapper[T], assign func(int, *S, mo.Option[T])) error {
-	dbx.LogRuntimeNode(session, "relation.load.has_one.start", "sources", len(sources))
+func LoadHasOne[S any, T any](ctx context.Context, session dbx.Session, sources collectionx.List[S], sourceSchema schemax.SchemaSource[S], sourceMapper mapperx.Mapper[S], relation relationx.HasOne[S, T], targetSchema schemax.SchemaSource[T], targetMapper mapperx.Mapper[T], assign SingleRelationAssigner[S, T]) error {
+	dbx.LogRuntimeNode(session, "relation.load.has_one.start", "sources", sourceCount(sources))
 	return loadSingleRelation(ctx, session, sources, sourceSchema, sourceMapper, relation.Meta(), targetSchema, targetMapper, assign)
 }
 
-func LoadHasMany[S any, T any](ctx context.Context, session dbx.Session, sources []S, sourceSchema schemax.SchemaSource[S], sourceMapper mapperx.Mapper[S], relation relationx.HasMany[S, T], targetSchema schemax.SchemaSource[T], targetMapper mapperx.Mapper[T], assign func(int, *S, []T)) error {
-	dbx.LogRuntimeNode(session, "relation.load.has_many.start", "sources", len(sources))
+func LoadHasMany[S any, T any](ctx context.Context, session dbx.Session, sources collectionx.List[S], sourceSchema schemax.SchemaSource[S], sourceMapper mapperx.Mapper[S], relation relationx.HasMany[S, T], targetSchema schemax.SchemaSource[T], targetMapper mapperx.Mapper[T], assign MultiRelationAssigner[S, T]) error {
+	dbx.LogRuntimeNode(session, "relation.load.has_many.start", "sources", sourceCount(sources))
 	return loadMultiRelation(ctx, session, sources, sourceSchema, sourceMapper, relation.Meta(), targetSchema, targetMapper, assign)
 }
 
-func LoadManyToMany[S any, T any](ctx context.Context, session dbx.Session, sources []S, sourceSchema schemax.SchemaSource[S], sourceMapper mapperx.Mapper[S], relation relationx.ManyToMany[S, T], targetSchema schemax.SchemaSource[T], targetMapper mapperx.Mapper[T], assign func(int, *S, []T)) error {
+func LoadManyToMany[S any, T any](ctx context.Context, session dbx.Session, sources collectionx.List[S], sourceSchema schemax.SchemaSource[S], sourceMapper mapperx.Mapper[S], relation relationx.ManyToMany[S, T], targetSchema schemax.SchemaSource[T], targetMapper mapperx.Mapper[T], assign MultiRelationAssigner[S, T]) error {
 	const logPrefix = "relation.load.many_to_many"
-	dbx.LogRuntimeNode(session, logPrefix+".start", "sources", len(sources))
-	if proceed, err := startRelationLoad(session, len(sources), sourceSchema, targetSchema, assign != nil, logPrefix); err != nil || !proceed {
+	dbx.LogRuntimeNode(session, logPrefix+".start", "sources", sourceCount(sources))
+	if proceed, err := startRelationLoad(session, sourceCount(sources), sourceSchema, targetSchema, assign != nil, logPrefix); err != nil || !proceed {
 		return err
 	}
 	meta := relation.Meta()
@@ -59,17 +65,17 @@ func LoadManyToMany[S any, T any](ctx context.Context, session dbx.Session, sour
 		logRelationLoadDone(session, logPrefix, "reason", "no_pairs")
 		return nil
 	}
-	for index := range sources {
-		key := state.lookup[index]
-		assign(index, &sources[index], grouped.Get(key.key))
-	}
-	logRelationLoadDone(session, logPrefix, "sources", len(sources), "targets", targetCount)
+	rangeSources(sources, func(index int, source S) (S, bool) {
+		key, _ := state.lookup.Get(index)
+		return assign(index, source, collectionx.NewList[T](grouped.Get(key.key)...)), true
+	})
+	logRelationLoadDone(session, logPrefix, "sources", sourceCount(sources), "targets", targetCount)
 	return nil
 }
 
-func loadSingleRelation[S any, T any](ctx context.Context, session dbx.Session, sources []S, sourceSchema schemax.SchemaSource[S], sourceMapper mapperx.Mapper[S], meta schemax.RelationMeta, targetSchema schemax.SchemaSource[T], targetMapper mapperx.Mapper[T], assign func(int, *S, mo.Option[T])) error {
+func loadSingleRelation[S any, T any](ctx context.Context, session dbx.Session, sources collectionx.List[S], sourceSchema schemax.SchemaSource[S], sourceMapper mapperx.Mapper[S], meta schemax.RelationMeta, targetSchema schemax.SchemaSource[T], targetMapper mapperx.Mapper[T], assign SingleRelationAssigner[S, T]) error {
 	const logPrefix = "relation.load.single"
-	if proceed, err := startRelationLoad(session, len(sources), sourceSchema, targetSchema, assign != nil, logPrefix); err != nil || !proceed {
+	if proceed, err := startRelationLoad(session, sourceCount(sources), sourceSchema, targetSchema, assign != nil, logPrefix); err != nil || !proceed {
 		return err
 	}
 	state, err := prepareRelationSourceState(session, sources, sourceSchema, sourceMapper, meta, logPrefix)
@@ -86,13 +92,13 @@ func loadSingleRelation[S any, T any](ctx context.Context, session dbx.Session, 
 		return err
 	}
 	assignLoadedSingleRelations(sources, state.lookup, targetsByKey, assign)
-	logRelationLoadDone(session, logPrefix, "sources", len(sources), "targets", targetCount)
+	logRelationLoadDone(session, logPrefix, "sources", sourceCount(sources), "targets", targetCount)
 	return nil
 }
 
-func loadMultiRelation[S any, T any](ctx context.Context, session dbx.Session, sources []S, sourceSchema schemax.SchemaSource[S], sourceMapper mapperx.Mapper[S], meta schemax.RelationMeta, targetSchema schemax.SchemaSource[T], targetMapper mapperx.Mapper[T], assign func(int, *S, []T)) error {
+func loadMultiRelation[S any, T any](ctx context.Context, session dbx.Session, sources collectionx.List[S], sourceSchema schemax.SchemaSource[S], sourceMapper mapperx.Mapper[S], meta schemax.RelationMeta, targetSchema schemax.SchemaSource[T], targetMapper mapperx.Mapper[T], assign MultiRelationAssigner[S, T]) error {
 	const logPrefix = "relation.load.multi"
-	if proceed, err := startRelationLoad(session, len(sources), sourceSchema, targetSchema, assign != nil, logPrefix); err != nil || !proceed {
+	if proceed, err := startRelationLoad(session, sourceCount(sources), sourceSchema, targetSchema, assign != nil, logPrefix); err != nil || !proceed {
 		return err
 	}
 	state, err := prepareRelationSourceState(session, sources, sourceSchema, sourceMapper, meta, logPrefix)
@@ -119,11 +125,11 @@ func loadMultiRelation[S any, T any](ctx context.Context, session dbx.Session, s
 		logRelationLoadError(session, logPrefix, "group_targets", err)
 		return err
 	}
-	for index := range sources {
-		key := state.lookup[index]
-		assign(index, &sources[index], grouped.Get(key.key))
-	}
-	logRelationLoadDone(session, logPrefix, "sources", len(sources), "targets", targets.Len())
+	rangeSources(sources, func(index int, source S) (S, bool) {
+		key, _ := state.lookup.Get(index)
+		return assign(index, source, collectionx.NewList[T](grouped.Get(key.key)...)), true
+	})
+	logRelationLoadDone(session, logPrefix, "sources", sourceCount(sources), "targets", targets.Len())
 	return nil
 }
 
@@ -140,10 +146,10 @@ func validateRelationLoadInputs(session dbx.Session, sourceSchema, targetSchema 
 	}
 }
 
-func assignEmptyRelations[S any, T any](sources []S, assign func(int, *S, []T)) {
-	for index := range sources {
-		assign(index, &sources[index], nil)
-	}
+func assignEmptyRelations[S any, T any](sources collectionx.List[S], assign MultiRelationAssigner[S, T]) {
+	rangeSources(sources, func(index int, source S) (S, bool) {
+		return assign(index, source, collectionx.NewList[T]()), true
+	})
 }
 
 func startRelationLoad(session dbx.Session, sourceCount int, sourceSchema, targetSchema any, assignProvided bool, logPrefix string) (bool, error) {
@@ -163,7 +169,7 @@ func startRelationLoad(session dbx.Session, sourceCount int, sourceSchema, targe
 	return true, nil
 }
 
-func prepareRelationSourceState[E any](session dbx.Session, sources []E, sourceSchema schemax.SchemaSource[E], sourceMapper mapperx.Mapper[E], meta schemax.RelationMeta, logPrefix string) (relationSourceState, error) {
+func prepareRelationSourceState[E any](session dbx.Session, sources collectionx.List[E], sourceSchema schemax.SchemaSource[E], sourceMapper mapperx.Mapper[E], meta schemax.RelationMeta, logPrefix string) (relationSourceState, error) {
 	rt := relationruntime.For(session)
 	keys, lookup, err := collectSourceRelationKeys(rt, sources, sourceMapper, sourceSchema.Spec(), meta)
 	if err != nil {
@@ -220,21 +226,21 @@ func loadSingleRelationTargets[T any](ctx context.Context, session dbx.Session, 
 	return targetsByKey, targets.Len(), nil
 }
 
-func assignMissingSingleRelations[S any, T any](sources []S, assign func(int, *S, mo.Option[T])) {
-	for index := range sources {
-		assign(index, &sources[index], mo.None[T]())
-	}
+func assignMissingSingleRelations[S any, T any](sources collectionx.List[S], assign SingleRelationAssigner[S, T]) {
+	rangeSources(sources, func(index int, source S) (S, bool) {
+		return assign(index, source, mo.None[T]()), true
+	})
 }
 
-func assignLoadedSingleRelations[S any, T any](sources []S, lookup []relationLookupValue, targetsByKey map[any]T, assign func(int, *S, mo.Option[T])) {
-	for index := range sources {
-		target, ok := relationTargetByLookup(lookup[index], targetsByKey)
+func assignLoadedSingleRelations[S any, T any](sources collectionx.List[S], lookup collectionx.List[relationLookupValue], targetsByKey map[any]T, assign SingleRelationAssigner[S, T]) {
+	rangeSources(sources, func(index int, source S) (S, bool) {
+		key, _ := lookup.Get(index)
+		target, ok := relationTargetByLookup(key, targetsByKey)
 		if !ok {
-			assign(index, &sources[index], mo.None[T]())
-			continue
+			return assign(index, source, mo.None[T]()), true
 		}
-		assign(index, &sources[index], mo.Some(target))
-	}
+		return assign(index, source, mo.Some(target)), true
+	})
 }
 
 func relationTargetByLookup[T any](lookup relationLookupValue, targetsByKey map[any]T) (T, bool) {
@@ -256,4 +262,22 @@ func logRelationLoadError(session dbx.Session, logPrefix, stage string, err erro
 
 func logRelationLoadDone(session dbx.Session, logPrefix string, attrs ...any) {
 	dbx.LogRuntimeNode(session, logPrefix+".done", attrs...)
+}
+
+func rangeSources[S any](sources collectionx.List[S], fn func(index int, source S) (S, bool)) {
+	if sources == nil {
+		return
+	}
+	sources.Range(func(index int, source S) bool {
+		updated, proceed := fn(index, source)
+		sources.Set(index, updated)
+		return proceed
+	})
+}
+
+func sourceCount[S any](sources collectionx.List[S]) int {
+	if sources == nil {
+		return 0
+	}
+	return sources.Len()
 }

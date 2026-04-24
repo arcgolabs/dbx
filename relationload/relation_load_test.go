@@ -2,6 +2,7 @@ package relationload_test
 
 import (
 	"context"
+	"github.com/arcgolabs/collectionx"
 	relationx "github.com/arcgolabs/dbx/relation"
 	"testing"
 
@@ -90,11 +91,11 @@ func TestLoadBelongsToBatchesAndAttaches(t *testing.T) {
 
 	users := MustSchema("users", relationUserSchema{})
 	roles := MustSchema("roles", relationRoleSchema{})
-	items := []relationUser{
-		{ID: 1, Name: "alice", RoleID: 2},
-		{ID: 2, Name: "bob", RoleID: 4},
-	}
-	loaded := make([]mo.Option[relationRole], len(items))
+	items := collectionx.NewList[relationUser](
+		relationUser{ID: 1, Name: "alice", RoleID: 2},
+		relationUser{ID: 2, Name: "bob", RoleID: 4},
+	)
+	loaded := make([]mo.Option[relationRole], items.Len())
 
 	err := LoadBelongsTo(
 		context.Background(),
@@ -105,8 +106,9 @@ func TestLoadBelongsToBatchesAndAttaches(t *testing.T) {
 		users.Role,
 		roles,
 		MustMapper[relationRole](roles),
-		func(index int, _ *relationUser, value mo.Option[relationRole]) {
+		func(index int, user relationUser, value mo.Option[relationRole]) relationUser {
 			loaded[index] = value
+			return user
 		},
 	)
 	if err != nil {
@@ -134,8 +136,11 @@ func TestLoadHasOneBatchesAndAttaches(t *testing.T) {
 
 	users := MustSchema("users", relationUserSchema{})
 	profiles := MustSchema("profiles", relationProfileSchema{})
-	items := []relationUser{{ID: 1, Name: "alice"}, {ID: 2, Name: "bob"}}
-	loaded := make([]mo.Option[relationProfile], len(items))
+	items := collectionx.NewList[relationUser](
+		relationUser{ID: 1, Name: "alice"},
+		relationUser{ID: 2, Name: "bob"},
+	)
+	loaded := make([]mo.Option[relationProfile], items.Len())
 
 	err := LoadHasOne(
 		context.Background(),
@@ -146,8 +151,9 @@ func TestLoadHasOneBatchesAndAttaches(t *testing.T) {
 		users.Profile,
 		profiles,
 		MustMapper[relationProfile](profiles),
-		func(index int, _ *relationUser, value mo.Option[relationProfile]) {
+		func(index int, user relationUser, value mo.Option[relationProfile]) relationUser {
 			loaded[index] = value
+			return user
 		},
 	)
 	if err != nil {
@@ -171,8 +177,11 @@ func TestLoadHasManyBatchesAndAttaches(t *testing.T) {
 
 	users := MustSchema("users", relationUserSchema{})
 	posts := MustSchema("posts", relationPostSchema{})
-	items := []relationUser{{ID: 1, Name: "alice"}, {ID: 2, Name: "bob"}}
-	loaded := make([][]relationPost, len(items))
+	items := collectionx.NewList[relationUser](
+		relationUser{ID: 1, Name: "alice"},
+		relationUser{ID: 2, Name: "bob"},
+	)
+	loaded := make([][]relationPost, items.Len())
 
 	err := LoadHasMany(
 		context.Background(),
@@ -183,8 +192,9 @@ func TestLoadHasManyBatchesAndAttaches(t *testing.T) {
 		users.Posts,
 		posts,
 		MustMapper[relationPost](posts),
-		func(index int, _ *relationUser, value []relationPost) {
-			loaded[index] = value
+		func(index int, user relationUser, value collectionx.List[relationPost]) relationUser {
+			loaded[index] = value.Values()
+			return user
 		},
 	)
 	if err != nil {
@@ -209,8 +219,11 @@ func TestLoadManyToManyBatchesAndAttaches(t *testing.T) {
 
 	users := MustSchema("users", relationUserSchema{})
 	tags := MustSchema("tags", relationTagSchema{})
-	items := []relationUser{{ID: 1, Name: "alice"}, {ID: 2, Name: "bob"}}
-	loaded := make([][]relationTag, len(items))
+	items := collectionx.NewList[relationUser](
+		relationUser{ID: 1, Name: "alice"},
+		relationUser{ID: 2, Name: "bob"},
+	)
+	loaded := make([][]relationTag, items.Len())
 
 	err := LoadManyToMany(
 		context.Background(),
@@ -221,8 +234,9 @@ func TestLoadManyToManyBatchesAndAttaches(t *testing.T) {
 		users.Tags,
 		tags,
 		MustMapper[relationTag](tags),
-		func(index int, _ *relationUser, value []relationTag) {
-			loaded[index] = value
+		func(index int, user relationUser, value collectionx.List[relationTag]) relationUser {
+			loaded[index] = value.Values()
+			return user
 		},
 	)
 	if err != nil {

@@ -11,19 +11,19 @@ import (
 
 func compileAtlasSchema(dialectName string, driver atlasmigrate.Driver, schemaName string, schemas []Resource) *atlasCompiledSchema {
 	compiled := newAtlasCompiledSchema(schemaName, schemas)
-	for _, resource := range schemas {
+	collectionx.NewListWithCapacity[Resource](len(schemas), schemas...).Range(func(_ int, resource Resource) bool {
 		compileAtlasResource(compiled, dialectName, driver, resource)
-	}
+		return true
+	})
 	attachCompiledTableConstraints(compiled)
 	return compiled
 }
 
 func newAtlasCompiledSchema(schemaName string, schemas []Resource) *atlasCompiledSchema {
 	atlasSchema := atlasschema.New(schemaName)
-	order := collectionx.NewListWithCapacity[string](len(schemas))
-	for _, schema := range schemas {
-		order.Add(schema.TableName())
-	}
+	order := collectionx.MapList[Resource, string](collectionx.NewListWithCapacity[Resource](len(schemas), schemas...), func(_ int, schema Resource) string {
+		return schema.TableName()
+	})
 	return &atlasCompiledSchema{
 		schema:    atlasSchema,
 		tables:    collectionx.NewMapWithCapacity[string, *atlasCompiledTable](len(schemas)),

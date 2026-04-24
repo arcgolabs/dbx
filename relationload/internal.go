@@ -24,36 +24,50 @@ type relationKeyPair struct {
 	target any
 }
 
-func collectSourceRelationKeys[E any](rt *relationruntime.Runtime, entities []E, mapper mapperx.Mapper[E], spec schemax.TableSpec, meta schemax.RelationMeta) (collectionx.List[any], []relationLookupValue, error) {
+type relationKeyCollectionState struct {
+	lookup collectionx.List[relationLookupValue]
+	keys   collectionx.List[any]
+}
+
+func collectSourceRelationKeys[E any](rt *relationruntime.Runtime, entities collectionx.List[E], mapper mapperx.Mapper[E], spec schemax.TableSpec, meta schemax.RelationMeta) (collectionx.List[any], collectionx.List[relationLookupValue], error) {
 	localColumn, err := sourceColumnFromSpec(spec, meta)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	lookup := collectionx.NewListWithCapacity[relationLookupValue](len(entities))
-	keys := collectionx.NewListWithCapacity[any](len(entities))
 	seen, err := rt.AcquireSeenSet()
 	if err != nil {
 		return nil, nil, wrapRelationLoadError("acquire relation seen set", err)
 	}
 	defer rt.ReleaseSeenSet(seen)
 
-	for index := range entities {
-		key, err := entityRelationKey(mapper, &entities[index], localColumn.Name)
-		if err != nil {
-			return nil, nil, err
-		}
-		lookup.AddAt(index, key)
-		if !key.present {
-			continue
-		}
-		if _, ok := seen.Get(key.key); ok {
-			continue
-		}
-		seen.Set(key.key, struct{}{})
-		keys.Add(key.key)
+	state, err := collectionx.ReduceErrList[E, relationKeyCollectionState](
+		entities,
+		relationKeyCollectionState{
+			lookup: collectionx.NewListWithCapacity[relationLookupValue](entities.Len()),
+			keys:   collectionx.NewListWithCapacity[any](entities.Len()),
+		},
+		func(state relationKeyCollectionState, _ int, entity E) (relationKeyCollectionState, error) {
+			key, keyErr := entityRelationKey(mapper, &entity, localColumn.Name)
+			if keyErr != nil {
+				return relationKeyCollectionState{}, keyErr
+			}
+			state.lookup.Add(key)
+			if !key.present {
+				return state, nil
+			}
+			if _, ok := seen.Get(key.key); ok {
+				return state, nil
+			}
+			seen.Set(key.key, struct{}{})
+			state.keys.Add(key.key)
+			return state, nil
+		},
+	)
+	if err != nil {
+		return nil, nil, err
 	}
-	return keys, lookup.Values(), nil
+	return state.keys, state.lookup, nil
 }
 
 func entityRelationKey[E any](mapper mapperx.Mapper[E], entity *E, column string) (relationLookupValue, error) {

@@ -2,15 +2,16 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx"
 	columnx "github.com/arcgolabs/dbx/column"
+	"github.com/arcgolabs/dbx/idgen"
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/querydsl"
-	"github.com/samber/lo"
 )
 
 // Create inserts a single entity.
@@ -22,7 +23,7 @@ func (r *Base[E, S]) Create(ctx context.Context, entity *E) error {
 		return &ValidationError{Message: "entity is nil"}
 	}
 	dbx.LogRuntimeNode(r.session, "repository.create.start", "table", r.schema.TableName())
-	assignments, err := r.insertAssignments(entity)
+	assignments, err := r.insertAssignments(ctx, entity)
 	if err != nil {
 		dbx.LogRuntimeNode(r.session, "repository.create.error", "table", r.schema.TableName(), "stage", "assignments", "error", err)
 		return err
@@ -47,16 +48,23 @@ func (r *Base[E, S]) CreateMany(ctx context.Context, entities ...*E) error {
 	}
 	dbx.LogRuntimeNode(r.session, "repository.create_many.start", "table", r.schema.TableName(), "entities", len(entities))
 	query := querydsl.InsertInto(r.schema)
-	for index, entity := range entities {
+	var buildErr error
+	collectionx.NewList[*E](entities...).Range(func(index int, entity *E) bool {
 		if entity == nil {
-			return &ValidationError{Message: fmt.Sprintf("entity at index %d is nil", index)}
+			buildErr = &ValidationError{Message: fmt.Sprintf("entity at index %d is nil", index)}
+			return false
 		}
-		assignments, err := r.insertAssignments(entity)
+		assignments, err := r.insertAssignments(ctx, entity)
 		if err != nil {
 			dbx.LogRuntimeNode(r.session, "repository.create_many.error", "table", r.schema.TableName(), "stage", "assignments", "index", index, "error", err)
-			return err
+			buildErr = err
+			return false
 		}
 		query.ValuesList(assignments)
+		return true
+	})
+	if buildErr != nil {
+		return buildErr
 	}
 	_, err := dbx.Exec(ctx, r.session, query)
 	if err != nil {
@@ -77,13 +85,13 @@ func (r *Base[E, S]) Upsert(ctx context.Context, entity *E, conflictColumns ...s
 		return &ValidationError{Message: "entity is nil"}
 	}
 	dbx.LogRuntimeNode(r.session, "repository.upsert.start", "table", r.schema.TableName(), "conflict_columns", conflictColumns)
-	assignments, err := r.insertAssignments(entity)
+	assignments, err := r.insertAssignments(ctx, entity)
 	if err != nil {
 		dbx.LogRuntimeNode(r.session, "repository.upsert.error", "table", r.schema.TableName(), "stage", "assignments", "error", err)
 		return err
 	}
 	query := querydsl.InsertInto(r.schema).ValuesList(assignments)
-	targetColumns := normalizeConflictColumns(conflictColumns, r.primaryKeyColumns())
+	targetColumns := normalizeConflictColumns(collectionx.NewList[string](conflictColumns...), r.primaryKeyColumns())
 	if targetColumns.Len() == 0 {
 		return &ValidationError{Message: "upsert requires conflict columns"}
 	}
@@ -106,8 +114,15 @@ func (r *Base[E, S]) Upsert(ctx context.Context, entity *E, conflictColumns ...s
 	return nil
 }
 
-func (r *Base[E, S]) insertAssignments(entity *E) (collectionx.List[querydsl.Assignment], error) {
-	assignments, err := r.mapper.InsertAssignments(r.session, r.schema, entity)
+func (r *Base[E, S]) insertAssignments(ctx context.Context, entity *E) (collectionx.List[querydsl.Assignment], error) {
+	type idGeneratorCarrier interface {
+		IDGenerator() idgen.Generator
+	}
+	carrier, ok := any(r.session).(idGeneratorCarrier)
+	if !ok {
+		return nil, fmt.Errorf("build insert assignments: %w", errors.New("session does not expose id generator"))
+	}
+	assignments, err := r.mapper.InsertAssignmentsWithID(ctx, r.schema, entity, carrier.IDGenerator())
 	if err != nil {
 		return nil, fmt.Errorf("build insert assignments: %w", err)
 	}
@@ -115,22 +130,24 @@ func (r *Base[E, S]) insertAssignments(entity *E) (collectionx.List[querydsl.Ass
 	return assignments, nil
 }
 
-func normalizeConflictColumns(columns, fallback []string) collectionx.List[string] {
-	if len(columns) == 0 {
-		columns = fallback
+func normalizeConflictColumns(columns, fallback collectionx.List[string]) collectionx.List[string] {
+	items := columns
+	if items == nil || items.Len() == 0 {
+		items = fallback
 	}
 	ordered := collectionx.NewOrderedSet[string]()
-	lo.ForEach(columns, func(column string, _ int) {
+	items.Range(func(_ int, column string) bool {
 		if name := strings.TrimSpace(column); name != "" {
 			ordered.Add(name)
 		}
-	})
-	items := collectionx.NewListWithCapacity[string](ordered.Len())
-	ordered.Range(func(item string) bool {
-		items.Add(item)
 		return true
 	})
-	return items
+	result := collectionx.NewListWithCapacity[string](ordered.Len())
+	ordered.Range(func(item string) bool {
+		result.Add(item)
+		return true
+	})
+	return result
 }
 
 func upsertUpdateAssignments[S querydsl.TableSource](schema S, fields collectionx.List[mapperx.MappedField], conflictColumns collectionx.List[string]) collectionx.List[querydsl.Assignment] {

@@ -7,7 +7,6 @@ import (
 
 	"github.com/arcgolabs/collectionx"
 	"github.com/pressly/goose/v3"
-	"github.com/samber/lo"
 )
 
 // UpGo applies the provided Go migrations.
@@ -82,18 +81,22 @@ func buildRunReport(
 	metaByVersion collectionx.Map[int64, AppliedRecord],
 	results []*goose.MigrationResult,
 ) (RunReport, error) {
-	reportApplied, err := lo.ReduceErr(results, func(items collectionx.List[AppliedRecord], result *goose.MigrationResult, _ int) (collectionx.List[AppliedRecord], error) {
-		record, ok := metaByVersion.Get(result.Source.Version)
-		if !ok {
+	reportApplied, err := collectionx.ReduceErrList[*goose.MigrationResult, collectionx.List[AppliedRecord]](
+		collectionx.NewList[*goose.MigrationResult](results...),
+		collectionx.NewListWithCapacity[AppliedRecord](len(results)),
+		func(items collectionx.List[AppliedRecord], _ int, result *goose.MigrationResult) (collectionx.List[AppliedRecord], error) {
+			record, ok := metaByVersion.Get(result.Source.Version)
+			if !ok {
+				return items, nil
+			}
+			current, currentErr := appliedRecordForVersion(applied, record)
+			if currentErr != nil {
+				return nil, currentErr
+			}
+			items.Add(current)
 			return items, nil
-		}
-		current, currentErr := appliedRecordForVersion(applied, record)
-		if currentErr != nil {
-			return nil, currentErr
-		}
-		items.Add(current)
-		return items, nil
-	}, collectionx.NewListWithCapacity[AppliedRecord](len(results)))
+		},
+	)
 	if err != nil {
 		return RunReport{}, fmt.Errorf("dbx/migrate: build run report: %w", err)
 	}

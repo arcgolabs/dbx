@@ -38,16 +38,20 @@ func atlasClassifyChange(change atlasschema.Change) ([]atlasschema.Change, []sch
 }
 
 func atlasClassifyModifyTableChange(change *atlasschema.ModifyTable) ([]atlasschema.Change, []schemax.MigrationAction) {
-	safeChanges := make([]atlasschema.Change, 0, len(change.Changes))
-	manualActions := make([]schemax.MigrationAction, 0, len(change.Changes))
-	for _, tableChange := range change.Changes {
-		if atlasIsExecutableTableChange(tableChange) {
-			safeChanges = append(safeChanges, &atlasschema.ModifyTable{T: change.T, Changes: []atlasschema.Change{tableChange}})
-			continue
+	changes := collectionx.NewListWithCapacity[atlasschema.Change](len(change.Changes), change.Changes...)
+	safeChanges := collectionx.FilterMapList[atlasschema.Change, atlasschema.Change](changes, func(_ int, tableChange atlasschema.Change) (atlasschema.Change, bool) {
+		if !atlasIsExecutableTableChange(tableChange) {
+			return nil, false
 		}
-		manualActions = append(manualActions, atlasManualAction(change.T.Name, tableChange))
-	}
-	return safeChanges, manualActions
+		return &atlasschema.ModifyTable{T: change.T, Changes: []atlasschema.Change{tableChange}}, true
+	})
+	manualActions := collectionx.FilterMapList[atlasschema.Change, schemax.MigrationAction](changes, func(_ int, tableChange atlasschema.Change) (schemax.MigrationAction, bool) {
+		if atlasIsExecutableTableChange(tableChange) {
+			return schemax.MigrationAction{}, false
+		}
+		return atlasManualAction(change.T.Name, tableChange), true
+	})
+	return safeChanges.Values(), manualActions.Values()
 }
 
 func atlasIsExecutableTableChange(change atlasschema.Change) bool {
@@ -60,15 +64,22 @@ func atlasIsExecutableTableChange(change atlasschema.Change) bool {
 }
 
 func atlasPlanActions(ctx context.Context, driver atlasmigrate.Driver, changes []atlasschema.Change) ([]schemax.MigrationAction, error) {
-	actions := make([]schemax.MigrationAction, 0, len(changes))
-	for _, change := range changes {
-		plannedActions, err := atlasPlanChangeActions(ctx, driver, change)
-		if err != nil {
-			return nil, err
-		}
-		actions = append(actions, plannedActions...)
+	actions, err := collectionx.ReduceErrList[atlasschema.Change, collectionx.List[schemax.MigrationAction]](
+		collectionx.NewListWithCapacity[atlasschema.Change](len(changes), changes...),
+		collectionx.NewListWithCapacity[schemax.MigrationAction](len(changes)),
+		func(result collectionx.List[schemax.MigrationAction], _ int, change atlasschema.Change) (collectionx.List[schemax.MigrationAction], error) {
+			plannedActions, planErr := atlasPlanChangeActions(ctx, driver, change)
+			if planErr != nil {
+				return nil, planErr
+			}
+			result.Merge(collectionx.NewListWithCapacity[schemax.MigrationAction](len(plannedActions), plannedActions...))
+			return result, nil
+		},
+	)
+	if err != nil {
+		return nil, err
 	}
-	return actions, nil
+	return actions.Values(), nil
 }
 
 func atlasPlanChangeActions(ctx context.Context, driver atlasmigrate.Driver, change atlasschema.Change) ([]schemax.MigrationAction, error) {

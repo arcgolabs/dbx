@@ -5,13 +5,17 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/arcgolabs/collectionx"
 	"github.com/samber/mo"
 )
 
 func BenchmarkLoadBelongsTo(b *testing.B) {
 	users := MustSchema("users", relationUserSchema{})
 	roles := MustSchema("roles", relationRoleSchema{})
-	items := []relationUser{{ID: 1, Name: "alice", RoleID: 2}, {ID: 2, Name: "bob", RoleID: 4}}
+	items := collectionx.NewList[relationUser](
+		relationUser{ID: 1, Name: "alice", RoleID: 2},
+		relationUser{ID: 2, Name: "bob", RoleID: 4},
+	)
 	ddl := []string{relationTestSchemaDDL, `INSERT INTO "roles" ("id","name") VALUES (2,'admin')`}
 
 	run := func(b *testing.B, sqlDB *sql.DB) {
@@ -19,12 +23,13 @@ func BenchmarkLoadBelongsTo(b *testing.B) {
 		core := New(sqlDB, testSQLiteDialect{})
 		sourceMapper := MustMapper[relationUser](users)
 		targetMapper := MustMapper[relationRole](roles)
-		loaded := make([]mo.Option[relationRole], len(items))
+		loaded := make([]mo.Option[relationRole], items.Len())
 		b.ReportAllocs()
 		b.ResetTimer()
 		for range b.N {
-			if err := LoadBelongsTo(context.Background(), core, items, users, sourceMapper, users.Role, roles, targetMapper, func(index int, _ *relationUser, value mo.Option[relationRole]) {
+			if err := LoadBelongsTo(context.Background(), core, items, users, sourceMapper, users.Role, roles, targetMapper, func(index int, user relationUser, value mo.Option[relationRole]) relationUser {
 				loaded[index] = value
+				return user
 			}); err != nil {
 				b.Fatalf("LoadBelongsTo returned error: %v", err)
 			}
@@ -46,7 +51,10 @@ func BenchmarkLoadBelongsTo(b *testing.B) {
 func BenchmarkLoadHasMany(b *testing.B) {
 	users := MustSchema("users", relationUserSchema{})
 	posts := MustSchema("posts", relationPostSchema{})
-	items := []relationUser{{ID: 1, Name: "alice"}, {ID: 2, Name: "bob"}}
+	items := collectionx.NewList[relationUser](
+		relationUser{ID: 1, Name: "alice"},
+		relationUser{ID: 2, Name: "bob"},
+	)
 	ddl := []string{
 		relationTestSchemaDDL,
 		`INSERT INTO "roles" ("id","name") VALUES (1,'r')`,
@@ -59,12 +67,13 @@ func BenchmarkLoadHasMany(b *testing.B) {
 		core := New(sqlDB, testSQLiteDialect{})
 		sourceMapper := MustMapper[relationUser](users)
 		targetMapper := MustMapper[relationPost](posts)
-		loaded := make([][]relationPost, len(items))
+		loaded := make([][]relationPost, items.Len())
 		b.ReportAllocs()
 		b.ResetTimer()
 		for range b.N {
-			if err := LoadHasMany(context.Background(), core, items, users, sourceMapper, users.Posts, posts, targetMapper, func(index int, _ *relationUser, value []relationPost) {
-				loaded[index] = value
+			if err := LoadHasMany(context.Background(), core, items, users, sourceMapper, users.Posts, posts, targetMapper, func(index int, user relationUser, value collectionx.List[relationPost]) relationUser {
+				loaded[index] = value.Values()
+				return user
 			}); err != nil {
 				b.Fatalf("LoadHasMany returned error: %v", err)
 			}
@@ -86,7 +95,10 @@ func BenchmarkLoadHasMany(b *testing.B) {
 func BenchmarkLoadManyToMany(b *testing.B) {
 	users := MustSchema("users", relationUserSchema{})
 	tags := MustSchema("tags", relationTagSchema{})
-	items := []relationUser{{ID: 1, Name: "alice"}, {ID: 2, Name: "bob"}}
+	items := collectionx.NewList[relationUser](
+		relationUser{ID: 1, Name: "alice"},
+		relationUser{ID: 2, Name: "bob"},
+	)
 	ddl := []string{
 		relationTestSchemaDDL,
 		`INSERT INTO "roles" ("id","name") VALUES (1,'r')`,
@@ -100,12 +112,13 @@ func BenchmarkLoadManyToMany(b *testing.B) {
 		core := New(sqlDB, testSQLiteDialect{})
 		sourceMapper := MustMapper[relationUser](users)
 		targetMapper := MustMapper[relationTag](tags)
-		loaded := make([][]relationTag, len(items))
+		loaded := make([][]relationTag, items.Len())
 		b.ReportAllocs()
 		b.ResetTimer()
 		for range b.N {
-			if err := LoadManyToMany(context.Background(), core, items, users, sourceMapper, users.Tags, tags, targetMapper, func(index int, _ *relationUser, value []relationTag) {
-				loaded[index] = value
+			if err := LoadManyToMany(context.Background(), core, items, users, sourceMapper, users.Tags, tags, targetMapper, func(index int, user relationUser, value collectionx.List[relationTag]) relationUser {
+				loaded[index] = value.Values()
+				return user
 			}); err != nil {
 				b.Fatalf("LoadManyToMany returned error: %v", err)
 			}

@@ -46,7 +46,7 @@ func Select(items ...SelectItem) *SelectQuery {
 }
 
 func SelectList(items collectionx.List[SelectItem]) *SelectQuery {
-	return &SelectQuery{Items: items.Clone()}
+	return &SelectQuery{Items: CompactSelectItemsList(items)}
 }
 
 func (q *SelectQuery) Clone() *SelectQuery {
@@ -76,7 +76,7 @@ func (q *SelectQuery) DistinctOn() *SelectQuery {
 }
 
 func (q *SelectQuery) With(name string, query *SelectQuery) *SelectQuery {
-	q.CTEs = mergeList(q.CTEs, collectionx.NewList[CTE](CTE{Name: name, Query: query}))
+	q.CTEs = appendListItem(q.CTEs, CTE{Name: name, Query: query})
 	return q
 }
 
@@ -95,7 +95,7 @@ func (q *SelectQuery) GroupBy(expressions ...Expression) *SelectQuery {
 }
 
 func (q *SelectQuery) GroupByList(expressions collectionx.List[Expression]) *SelectQuery {
-	q.Groups = mergeList(q.Groups, expressions)
+	q.Groups = mergeList(q.Groups, CompactExpressionsList(expressions))
 	return q
 }
 
@@ -109,7 +109,7 @@ func (q *SelectQuery) OrderBy(orders ...Order) *SelectQuery {
 }
 
 func (q *SelectQuery) OrderByList(orders collectionx.List[Order]) *SelectQuery {
-	q.Orders = mergeList(q.Orders, orders)
+	q.Orders = mergeList(q.Orders, CompactOrdersList(orders))
 	return q
 }
 
@@ -138,27 +138,27 @@ func (q *SelectQuery) PageBy(page, pageSize int) *SelectQuery {
 }
 
 func (q *SelectQuery) Union(query *SelectQuery) *SelectQuery {
-	q.Unions = mergeList(q.Unions, collectionx.NewList[UnionClause](UnionClause{Query: query}))
+	q.Unions = appendListItem(q.Unions, UnionClause{Query: query})
 	return q
 }
 
 func (q *SelectQuery) UnionAll(query *SelectQuery) *SelectQuery {
-	q.Unions = mergeList(q.Unions, collectionx.NewList[UnionClause](UnionClause{All: true, Query: query}))
+	q.Unions = appendListItem(q.Unions, UnionClause{All: true, Query: query})
 	return q
 }
 
 func (q *SelectQuery) Join(source TableSource) *JoinBuilder {
-	q.Joins = mergeList(q.Joins, collectionx.NewList[Join](Join{Type: InnerJoin, Table: TableRef(source)}))
+	q.Joins = appendListItem(q.Joins, Join{Type: InnerJoin, Table: TableRef(source)})
 	return &JoinBuilder{query: q, index: q.Joins.Len() - 1}
 }
 
 func (q *SelectQuery) LeftJoin(source TableSource) *JoinBuilder {
-	q.Joins = mergeList(q.Joins, collectionx.NewList[Join](Join{Type: LeftJoin, Table: TableRef(source)}))
+	q.Joins = appendListItem(q.Joins, Join{Type: LeftJoin, Table: TableRef(source)})
 	return &JoinBuilder{query: q, index: q.Joins.Len() - 1}
 }
 
 func (q *SelectQuery) RightJoin(source TableSource) *JoinBuilder {
-	q.Joins = mergeList(q.Joins, collectionx.NewList[Join](Join{Type: RightJoin, Table: TableRef(source)}))
+	q.Joins = appendListItem(q.Joins, Join{Type: RightJoin, Table: TableRef(source)})
 	return &JoinBuilder{query: q, index: q.Joins.Len() - 1}
 }
 
@@ -187,13 +187,28 @@ func cloneInt(value *int) *int {
 	if value == nil {
 		return nil
 	}
-	return new(*value)
+	cloned := *value
+	return &cloned
 }
 
 func mergeList[T any](current, next collectionx.List[T]) collectionx.List[T] {
+	if next == nil {
+		if current == nil {
+			return collectionx.NewList[T]()
+		}
+		return current
+	}
 	if current == nil {
 		return next.Clone()
 	}
 	current.Merge(next)
+	return current
+}
+
+func appendListItem[T any](current collectionx.List[T], item T) collectionx.List[T] {
+	if current == nil {
+		return collectionx.NewList[T](item)
+	}
+	current.Add(item)
 	return current
 }

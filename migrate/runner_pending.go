@@ -6,7 +6,6 @@ import (
 
 	"github.com/arcgolabs/collectionx"
 	"github.com/pressly/goose/v3"
-	"github.com/samber/lo"
 )
 
 // PendingGo returns Go migrations that have not yet been applied.
@@ -80,14 +79,18 @@ func (r *Runner) appliedIndex(ctx context.Context) (map[string]AppliedRecord, er
 }
 
 func indexGoMigrationsByVersion(migrations []Migration) (map[int64]Migration, error) {
-	byVersion, err := lo.ReduceErr(migrations, func(result map[int64]Migration, migration Migration, _ int) (map[int64]Migration, error) {
-		version, parseErr := parseNumericVersion(migration.Version())
-		if parseErr != nil {
-			return nil, fmt.Errorf("dbx/migrate: parse go migration version %q: %w", migration.Version(), parseErr)
-		}
-		result[version] = migration
-		return result, nil
-	}, make(map[int64]Migration, len(migrations)))
+	byVersion, err := collectionx.ReduceErrList[Migration, map[int64]Migration](
+		collectionx.NewList[Migration](migrations...),
+		make(map[int64]Migration, len(migrations)),
+		func(result map[int64]Migration, _ int, migration Migration) (map[int64]Migration, error) {
+			version, parseErr := parseNumericVersion(migration.Version())
+			if parseErr != nil {
+				return nil, fmt.Errorf("dbx/migrate: parse go migration version %q: %w", migration.Version(), parseErr)
+			}
+			result[version] = migration
+			return result, nil
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("dbx/migrate: index sql migrations by version: %w", err)
 	}
@@ -163,20 +166,24 @@ func collectPendingMigrations[T any](
 	validateHash bool,
 	kind string,
 ) (collectionx.List[T], error) {
-	pending, err := lo.ReduceErr(statuses, func(result collectionx.List[T], status *goose.MigrationStatus, _ int) (collectionx.List[T], error) {
-		migration, ok := byVersion[status.Source.Version]
-		if !ok {
+	pending, err := collectionx.ReduceErrList[*goose.MigrationStatus, collectionx.List[T]](
+		collectionx.NewList[*goose.MigrationStatus](statuses...),
+		collectionx.NewListWithCapacity[T](len(statuses)),
+		func(result collectionx.List[T], _ int, status *goose.MigrationStatus) (collectionx.List[T], error) {
+			migration, ok := byVersion[status.Source.Version]
+			if !ok {
+				return result, nil
+			}
+			if err := validatePendingStatus(status, metaByVersion, indexed, validateHash); err != nil {
+				return nil, err
+			}
+			if status.State != goose.StatePending {
+				return result, nil
+			}
+			result.Add(migration)
 			return result, nil
-		}
-		if err := validatePendingStatus(status, metaByVersion, indexed, validateHash); err != nil {
-			return nil, err
-		}
-		if status.State != goose.StatePending {
-			return result, nil
-		}
-		result.Add(migration)
-		return result, nil
-	}, collectionx.NewListWithCapacity[T](len(statuses)))
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("dbx/migrate: collect pending %s migrations: %w", kind, err)
 	}
