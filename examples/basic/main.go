@@ -124,12 +124,11 @@ func updateUserStatus(ctx context.Context, core *dbx.DB, catalog shared.Catalog,
 			Where(catalog.Users.Username.Eq(username)),
 	)
 	if err != nil {
-		rollbackOrPanic(tx.Rollback)
+		rollbackOrPanic(ctx, tx)
 		panic(err)
 	}
 
-	//nolint:contextcheck // dbx.Tx commit API does not accept context.
-	commitOrPanic(tx)
+	commitOrPanic(ctx, tx)
 }
 
 func queryUsersByUsername(ctx context.Context, core *dbx.DB, catalog shared.Catalog, username string) collectionx.List[shared.User] {
@@ -157,15 +156,15 @@ func printUpdatedStatus(users collectionx.List[shared.User]) {
 	printFormat("bob status after tx update: %d\n", user.Status)
 }
 
-func rollbackOrPanic(rollback func() error) {
-	err := rollback()
+func rollbackOrPanic(ctx context.Context, tx *dbx.Tx) {
+	err := tx.RollbackContext(ctx)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func commitOrPanic(tx *dbx.Tx) {
-	err := tx.Commit()
+func commitOrPanic(ctx context.Context, tx *dbx.Tx) {
+	err := tx.CommitContext(ctx)
 	if err != nil {
 		panic(err)
 	}

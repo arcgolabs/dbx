@@ -176,17 +176,18 @@ func loadRelations(ctx context.Context, core *dbx.DB, catalog shared.Catalog) co
 	}
 
 	loadedRole := make([]mo.Option[shared.Role], usersToLoad.Len())
-	err = relationload.LoadBelongsTo(
+	err = relationload.LoadBelongsTo[shared.User, shared.Role](
 		ctx,
 		core,
-		usersToLoad.Values(),
+		usersToLoad,
 		catalog.Users,
 		userMapper,
 		catalog.Users.Role,
 		catalog.Roles,
 		roleMapper,
-		func(index int, _ *shared.User, value mo.Option[shared.Role]) {
+		func(index int, user shared.User, value mo.Option[shared.Role]) shared.User {
 			loadedRole[index] = value
+			return user
 		},
 	)
 	if err != nil {
@@ -194,17 +195,18 @@ func loadRelations(ctx context.Context, core *dbx.DB, catalog shared.Catalog) co
 	}
 
 	loadedRoles := make([][]shared.Role, usersToLoad.Len())
-	err = relationload.LoadManyToMany(
+	err = relationload.LoadManyToMany[shared.User, shared.Role](
 		ctx,
 		core,
-		usersToLoad.Values(),
+		usersToLoad,
 		catalog.Users,
 		userMapper,
 		catalog.Users.Roles,
 		catalog.Roles,
 		roleMapper,
-		func(index int, _ *shared.User, value []shared.Role) {
-			loadedRoles[index] = value
+		func(index int, user shared.User, value collectionx.List[shared.Role]) shared.User {
+			loadedRoles[index] = value.Values()
+			return user
 		},
 	)
 	if err != nil {

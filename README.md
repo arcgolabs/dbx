@@ -169,7 +169,7 @@ var Events = schemax.MustSchema("events", EventSchema{})
 query := querydsl.Select(Users.ID, Users.Username).From(Users).Where(Users.Status.Eq(1))
 bound, _ := dbx.Build(session, query)
 for range batches {
-    items, _ := dbx.QueryAllBound(ctx, session, bound, mapper)
+    items, _ := dbx.QueryAllBound[User](ctx, session, bound, mapper)
     // ...
 }
 ```
@@ -235,10 +235,10 @@ mapper := mapperx.MustStructMapperWithOptions[Account](
 userMapper := mapperx.MustMapper[User](Users)
 roleMapper := mapperx.MustMapper[Role](Roles)
 
-if err := relationload.LoadBelongsTo(
+if err := relationload.LoadBelongsTo[User, Role](
     ctx,
     core,
-    collectionx.NewList(users...),
+    collectionx.NewList[User](users...),
     Users,
     userMapper,
     Users.Role,
@@ -263,7 +263,7 @@ var sqlFS embed.FS
 
 registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
 
-items, err := sqlexec.List(
+items, err := sqlexec.List[UserSummary](
 	ctx,
 	core,
 	registry.MustStatement("sql/user/find_active.sql"),
@@ -280,11 +280,11 @@ if err != nil {
 Pure SQL helpers:
 
 - `db.SQL().Exec(...)` / `tx.SQL().Exec(...)`
-- `sqlexec.List(...)`
-- `sqlexec.Get(...)`
-- `sqlexec.Find(...)`
-- `sqlexec.Scalar(...)`
-- `sqlexec.ScalarOption(...)`
+- `sqlexec.List[T](...)`
+- `sqlexec.Get[T](...)`
+- `sqlexec.Find[T](...)`
+- `sqlexec.Scalar[T](...)`
+- `sqlexec.ScalarOption[T](...)`
 
 `SQLFind` and `SQLScalarOption` return `mo.Option[T]`.
 

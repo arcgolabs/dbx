@@ -119,12 +119,11 @@ func updatePureSQLUserStatus(ctx context.Context, core *dbx.DB, registry *sqltmp
 		},
 	)
 	if err != nil {
-		rollbackOrPanic(tx.Rollback)
+		rollbackOrPanic(ctx, tx)
 		panic(err)
 	}
 
-	//nolint:contextcheck // dbx.Tx commit API does not accept context.
-	commitOrPanic(tx)
+	commitOrPanic(ctx, tx)
 }
 
 func runUserByUsername(ctx context.Context, core *dbx.DB, registry *sqltmplx.Registry, username string) shared.User {
@@ -148,14 +147,14 @@ func printUpdatedUser(user shared.User) {
 	printFormat("bob status after pure sql update: %d\n", user.Status)
 }
 
-func rollbackOrPanic(rollback func() error) {
-	if err := rollback(); err != nil {
+func rollbackOrPanic(ctx context.Context, tx *dbx.Tx) {
+	if err := tx.RollbackContext(ctx); err != nil {
 		panic(err)
 	}
 }
 
-func commitOrPanic(tx *dbx.Tx) {
-	if err := tx.Commit(); err != nil {
+func commitOrPanic(ctx context.Context, tx *dbx.Tx) {
+	if err := tx.CommitContext(ctx); err != nil {
 		panic(err)
 	}
 }

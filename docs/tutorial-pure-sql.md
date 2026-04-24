@@ -57,7 +57,7 @@ import (
 	"github.com/arcgolabs/dbx/sqlexec"
 	"github.com/arcgolabs/dbx/sqltmplx"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 //go:embed sql/**/*.sql
@@ -71,7 +71,7 @@ type UserSummary struct {
 func main() {
 	ctx := context.Background()
 
-	raw, err := sql.Open("sqlite3", "file:dbx_pure_sql.db?cache=shared")
+	raw, err := sql.Open("sqlite", "file:dbx_pure_sql.db?cache=shared")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func main() {
 	registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
 	stmt := registry.MustStatement("sql/user/find_active.sql")
 
-	items, err := sqlexec.List(
+	items, err := sqlexec.List[UserSummary](
 		ctx,
 		core,
 		stmt,
@@ -111,6 +111,6 @@ func main() {
 ## Verify
 
 ```bash
-go test ./dbx/sqltmplx/...
+go test ./sqltmplx/...
 go run .
 ```

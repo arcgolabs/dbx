@@ -28,7 +28,7 @@ This guide shows a complete, runnable dbx example from schema definition to quer
 ```bash
 go get github.com/arcgolabs/dbx
 go get github.com/arcgolabs/dbx/dialect/sqlite
-go get github.com/mattn/go-sqlite3
+go get modernc.org/sqlite
 ```
 
 ## 2) Create `main.go`
@@ -51,7 +51,7 @@ import (
 	"github.com/arcgolabs/dbx/schemamigrate"
 	schemax "github.com/arcgolabs/dbx/schema"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 type User struct {
@@ -74,7 +74,7 @@ var Users = schemax.MustSchema("users", UserSchema{})
 func main() {
 	ctx := context.Background()
 
-	raw, err := sql.Open("sqlite3", "file:dbx_getting_started.db?cache=shared")
+	raw, err := sql.Open("sqlite", "file:dbx_getting_started.db?cache=shared")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -110,7 +110,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	items, err := dbx.QueryAll(
+	items, err := dbx.QueryAll[User](
 		ctx,
 		core,
 		querydsl.Select(querydsl.AllColumns(Users).Values()...).From(Users).Where(Users.Status.Eq(1)),

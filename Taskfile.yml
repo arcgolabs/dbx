@@ -1,0 +1,28 @@
+version: '3'
+
+tasks:
+  test:
+    desc: Run tests for the root module.
+    cmds:
+      - GOCACHE="$PWD/.cache/go-build" go test ./...
+
+  vet:
+    desc: Run go vet for the root module.
+    cmds:
+      - GOCACHE="$PWD/.cache/go-build" go vet ./...
+
+  test:workspace:
+    desc: Run tests for every module in go.work.
+    cmds:
+      - GOCACHE="$PWD/.cache/go-build" go test ./... ./examples/... ./migrate/... ./sqltmplx/... ./sqltmplx/validate/... ./sqltmplx/validate/mysqlparser/... ./sqltmplx/validate/postgresparser/... ./sqltmplx/validate/sqliteparser/...
+
+  vet:workspace:
+    desc: Run go vet for every module in go.work.
+    cmds:
+      - GOCACHE="$PWD/.cache/go-build" go vet ./... ./examples/... ./migrate/... ./sqltmplx/... ./sqltmplx/validate/... ./sqltmplx/validate/mysqlparser/... ./sqltmplx/validate/postgresparser/... ./sqltmplx/validate/sqliteparser/...
+
+  ci:
+    desc: Run workspace test and vet checks.
+    cmds:
+      - task test:workspace
+      - task vet:workspace

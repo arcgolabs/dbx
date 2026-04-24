@@ -41,7 +41,7 @@ import (
 	"github.com/arcgolabs/dbx/schemamigrate"
 	schemax "github.com/arcgolabs/dbx/schema"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 type User struct {
@@ -61,7 +61,7 @@ var Users = schemax.MustSchema("users", UserSchema{})
 
 func main() {
 	ctx := context.Background()
-	raw, err := sql.Open("sqlite3", "file:dbx_migrate.db?cache=shared")
+	raw, err := sql.Open("sqlite", "file:dbx_migrate.db?cache=shared")
 	if err != nil {
 		log.Fatal(err)
 	}

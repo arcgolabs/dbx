@@ -46,7 +46,7 @@ import (
 	schemax "github.com/arcgolabs/dbx/schema"
 	"github.com/samber/mo"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 type Role struct {
@@ -79,7 +79,7 @@ var Users = schemax.MustSchema("users", UserSchema{})
 
 func main() {
 	ctx := context.Background()
-	raw, err := sql.Open("sqlite3", "file:dbx_relations.db?cache=shared")
+	raw, err := sql.Open("sqlite", "file:dbx_relations.db?cache=shared")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -96,25 +96,26 @@ func main() {
 	userMapper := mapperx.MustMapper[User](Users)
 	roleMapper := mapperx.MustMapper[Role](Roles)
 
-	items, err := dbx.QueryAll(ctx, core, querydsl.Select(querydsl.AllColumns(Users).Values()...).From(Users), userMapper)
+	items, err := dbx.QueryAll[User](ctx, core, querydsl.Select(querydsl.AllColumns(Users).Values()...).From(Users), userMapper)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := relationload.LoadBelongsTo(
+	if err := relationload.LoadBelongsTo[User, Role](
 		ctx,
 		core,
-		items.Values(),
+		items,
 		Users,
 		userMapper,
 		Users.Role,
 		Roles,
 		roleMapper,
-		func(index int, user *User, role mo.Option[Role]) {
+		func(index int, user User, role mo.Option[Role]) User {
 			if role.IsPresent() {
 				value, _ := role.Get()
 				fmt.Printf("user=%s role=%s\n", user.Username, value.Name)
 			}
+			return user
 		},
 	); err != nil {
 		log.Fatal(err)

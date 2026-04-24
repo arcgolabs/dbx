@@ -71,7 +71,7 @@ mapper := mapperx.MustStructMapperWithOptions[shared.Account](
     mapperx.WithMapperCodecs(csvCodec),
 )
 
-items, err := dbx.QueryAll(
+items, err := dbx.QueryAll[shared.Account](
     ctx,
     core,
     querydsl.Select(querydsl.AllColumns(catalog.Accounts).Values()...).From(catalog.Accounts),
@@ -105,7 +105,7 @@ query := querydsl.Select(activeID, activeName, statusLabel).
 ## Example: Relation Loading
 
 ```go
-if err := relationload.LoadBelongsTo(
+if err := relationload.LoadBelongsTo[shared.User, shared.Role](
     ctx,
     core,
     users,
@@ -114,8 +114,9 @@ if err := relationload.LoadBelongsTo(
     catalog.Users.Role,
     catalog.Roles,
     roleMapper,
-    func(index int, user *shared.User, role mo.Option[shared.Role]) {
+    func(index int, user shared.User, role mo.Option[shared.Role]) shared.User {
         // attach role
+        return user
     },
 ); err != nil {
     panic(err)
@@ -146,7 +147,7 @@ if err != nil {
 ```go
 registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
 
-items, err := sqlexec.List(
+items, err := sqlexec.List[shared.UserSummary](
 	ctx,
 	core,
 	registry.MustStatement("sql/user/find_active.sql"),

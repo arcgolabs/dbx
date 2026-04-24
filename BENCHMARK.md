@@ -1,5 +1,5 @@
 # dbx Benchmarks
 
-Benchmark documentation has been migrated to Hugo docs:
+Benchmark documentation lives in:
 
-- `docs/content/docs/dbx/benchmarks.md`
+- `docs/benchmarks.md`

@@ -27,8 +27,8 @@ weight: 18
 - `querydsl.InsertInto(schema).Values(assignments.Values()...)`
 - `querydsl.Update(schema).Set(...).Where(...)`
 - `querydsl.DeleteFrom(schema).Where(...)`
-- `dbx.Exec(ctx, session, query)` / `dbx.QueryAll(ctx, session, query, scanner)`
-- `dbx.Build(session, query)` then `ExecBound` / `QueryAllBound` for reuse.
+- `dbx.Exec(ctx, session, query)` / `dbx.QueryAll[T](ctx, session, query, scanner)`
+- `dbx.Build(session, query)` then `ExecBound` / `QueryAllBound[T]` for reuse.
 - `paging.Page(page, pageSize)` / `paging.NewRequest(page, pageSize)` for shared pagination requests.
 - `paging.NewResult(items, total, request)` / `paging.MapResult(...)` for pagination metadata.
 
@@ -63,7 +63,7 @@ weight: 18
 - `sqltmplx.Page(page, pageSize)` / `sqltmplx.NewPageRequest(page, pageSize)`
 - `sqltmplx.WithPage(params, request)`
 - `template.RenderPage(params, request)` / `template.BindPage(params, request)`
-- `sqlexec.List/Get/Find/Scalar/ScalarOption`
+- `sqlexec.List[T]` / `Get[T]` / `Find[T]` / `Scalar[T]` / `ScalarOption[T]`
 
 ## Common Error Sentinels and Types
 

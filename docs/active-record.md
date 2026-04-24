@@ -52,6 +52,8 @@ import (
 	"github.com/arcgolabs/dbx/repository"
 	"github.com/arcgolabs/dbx/schemamigrate"
 	schemax "github.com/arcgolabs/dbx/schema"
+
+	_ "modernc.org/sqlite"
 )
 
 type User struct {
@@ -69,7 +71,7 @@ var Users = schemax.MustSchema("users", UserSchema{})
 
 func main() {
 	ctx := context.Background()
-	raw, _ := sql.Open("sqlite3", "file:ar_example.db?cache=shared")
+	raw, _ := sql.Open("sqlite", "file:ar_example.db?cache=shared")
 	core := dbx.MustNewWithOptions(raw, sqlite.New())
 	_, _ = schemamigrate.AutoMigrate(ctx, core, Users)
 
