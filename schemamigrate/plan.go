@@ -3,12 +3,10 @@ package schemamigrate
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx"
 	schemax "github.com/arcgolabs/dbx/schema"
-	"github.com/samber/lo"
 )
 
 func PlanSchemaChanges(ctx context.Context, session dbx.Session, schemas ...Resource) (schemax.MigrationPlan, error) {
@@ -173,9 +171,9 @@ func schemaNames(schemas []Resource) string {
 	if len(schemas) == 0 {
 		return ""
 	}
-	return strings.Join(lo.Map(schemas, func(schema Resource, _ int) string {
+	return collectionx.MapList[Resource, string](collectionx.NewList[Resource](schemas...), func(_ int, schema Resource) string {
 		return schema.TableName()
-	}), ",")
+	}).Join(",")
 }
 
 func primaryKeyManualActions(diff schemax.TableDiff) collectionx.List[schemax.MigrationAction] {

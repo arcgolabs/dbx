@@ -4,9 +4,10 @@ go 1.26.2
 
 require (
 	github.com/arcgolabs/collectionx v0.2.0
+	github.com/arcgolabs/dbx v0.1.1
+	github.com/arcgolabs/dbx/sqltmplx/validate v0.1.0
 	github.com/expr-lang/expr v1.17.8
 	github.com/samber/hot v0.13.0
-	github.com/samber/lo v1.53.0
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -41,6 +42,7 @@ require (
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/samber/go-singleflightx v0.3.2 // indirect
+	github.com/samber/lo v1.53.0 // indirect
 	github.com/samber/mo v1.16.0 // indirect
 	github.com/samber/oops v1.21.0 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect

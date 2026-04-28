@@ -5,12 +5,11 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/samber/lo"
+	"github.com/arcgolabs/collectionx"
 )
 
 func resolveColumnName(field reflect.StructField) string {
-	keys := []string{"column", "dbx", "json"}
-	key, ok := lo.Find(keys, func(key string) bool {
+	key, ok := collectionx.FindList[string](collectionx.NewList[string]("column", "dbx", "json"), func(_ int, key string) bool {
 		raw := strings.TrimSpace(field.Tag.Get(key))
 		if raw == "" || raw == "-" {
 			return false
@@ -49,14 +48,15 @@ func parseTagOptions(raw string) map[string]string {
 }
 
 func associateTagOptions(parts []string) map[string]string {
-	pairs := lo.FilterMap(parts, func(part string, _ int) (lo.Entry[string, string], bool) {
-		k, v := splitTagOption(part)
-		if k == "" {
-			return lo.Entry[string, string]{}, false
+	options := make(map[string]string, len(parts))
+	collectionx.NewList[string](parts...).Range(func(_ int, part string) bool {
+		key, value := splitTagOption(part)
+		if key != "" {
+			options[key] = value
 		}
-		return lo.Entry[string, string]{Key: k, Value: v}, true
+		return true
 	})
-	return lo.Associate(pairs, func(e lo.Entry[string, string]) (string, string) { return e.Key, e.Value })
+	return options
 }
 
 func splitTagOption(raw string) (string, string) {

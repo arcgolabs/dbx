@@ -6,7 +6,6 @@ import (
 
 	atlasschema "ariga.io/atlas/sql/schema"
 	"github.com/arcgolabs/collectionx"
-	"github.com/samber/lo"
 )
 
 func atlasFindIndexMeta(compiled *atlasCompiledTable, index *atlasschema.Index) (schemax.IndexMeta, bool) {
@@ -54,7 +53,7 @@ func atlasForeignKeyKey(foreignKey *atlasschema.ForeignKey) string {
 	})
 	meta := schemax.ForeignKeyMeta{
 		Columns:       columns,
-		TargetTable:   lo.If(foreignKey.RefTable != nil, foreignKey.RefTable.Name).Else(""),
+		TargetTable:   atlasRefTableName(foreignKey.RefTable),
 		TargetColumns: targetColumns,
 		OnDelete:      schemax.ReferentialAction(foreignKey.OnDelete),
 		OnUpdate:      schemax.ReferentialAction(foreignKey.OnUpdate),
@@ -83,4 +82,11 @@ func atlasColumnChangeIssue(change atlasschema.ChangeKind) string {
 		return "column migration required"
 	}
 	return fmt.Sprintf("column migration required (%s)", change)
+}
+
+func atlasRefTableName(table *atlasschema.Table) string {
+	if table == nil {
+		return ""
+	}
+	return table.Name
 }

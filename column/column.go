@@ -4,10 +4,10 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx/idgen"
 	"github.com/arcgolabs/dbx/querydsl"
 	schemax "github.com/arcgolabs/dbx/schema"
-	"github.com/samber/lo"
 )
 
 type Ref[E any, T any] interface {
@@ -41,8 +41,11 @@ type Option[E any, T any] func(Column[E, T]) Column[E, T]
 
 func New[E any, T any](opts ...Option[E, T]) Column[E, T] {
 	column := Column[E, T]{}
-	lo.ForEach(lo.Filter(opts, func(opt Option[E, T], _ int) bool { return opt != nil }), func(opt Option[E, T], _ int) {
+	collectionx.FilterList[Option[E, T]](collectionx.NewList[Option[E, T]](opts...), func(_ int, opt Option[E, T]) bool {
+		return opt != nil
+	}).Range(func(_ int, opt Option[E, T]) bool {
 		column = opt(column)
+		return true
 	})
 	return column
 }

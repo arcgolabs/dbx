@@ -3,9 +3,9 @@ package column
 import (
 	"reflect"
 
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx/querydsl"
 	schemax "github.com/arcgolabs/dbx/schema"
-	"github.com/samber/lo"
 )
 
 func (c Column[E, T]) QueryExpression()              {}
@@ -103,7 +103,7 @@ func (c Column[E, T]) Le(value T) querydsl.Predicate {
 }
 
 func (c Column[E, T]) In(values ...T) querydsl.Predicate {
-	return querydsl.Compare(c, querydsl.OpIn, lo.Map(values, func(value T, _ int) any {
+	return querydsl.Compare(c, querydsl.OpIn, collectionx.MapList[T, any](collectionx.NewList[T](values...), func(_ int, value T) any {
 		return value
 	}))
 }

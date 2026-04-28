@@ -30,6 +30,10 @@ github.com/arcgolabs/collectionx/set v0.2.0 h1:qtxy6CwtO1v6FqgdT5CT/88XpjlH3g1WI
 github.com/arcgolabs/collectionx/set v0.2.0/go.mod h1:ZwKKXMlMhgXM+rP4daDm849gVM3yTuOlA+2Zoqv2HUM=
 github.com/arcgolabs/collectionx/tree v0.2.0 h1:+pAPgKek5Q7IQO360cixcPd46eC+ALlswBGzI4yJUfQ=
 github.com/arcgolabs/collectionx/tree v0.2.0/go.mod h1:iW9OQ+LPZ20sLpdGpxR4otICRjnMD8uyrAWBqhv8XE4=
+github.com/arcgolabs/dbx v0.1.1 h1:dt5DpKhAzgro9YC5M1Fufgp9H7Tcx9C+rXkc8r2zvPY=
+github.com/arcgolabs/dbx v0.1.1/go.mod h1:dxLWzHsnwcPzJxeFsA7ZRU8Xno4ZI7PGygWtYdpCl8w=
+github.com/arcgolabs/dbx/sqltmplx/validate v0.1.0 h1:6WakvjMVmsvwnQr8X2xFG6UdQmakDvISoQLSuPOsz6Q=
+github.com/arcgolabs/dbx/sqltmplx/validate v0.1.0/go.mod h1:NC09Z909R8ZyY+QfZHT5RNZ+TIO7uDlAfVuEduVi1Rg=
 github.com/arcgolabs/pkg/option v0.0.3 h1:SS7WDMUAr7XW2/sOZkaqDrIUrygJK8u1gdPs9A4K5+A=
 github.com/arcgolabs/pkg/option v0.0.3/go.mod h1:91/Ov3tYLKEZ+ytBT30ay4l6JNTRjzk/HRRfDTElhyA=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=

@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/arcgolabs/collectionx"
-	"github.com/samber/lo"
 )
 
 var postgresNormalizedTypes = map[string]string{
@@ -201,9 +200,10 @@ func parseIndexColumns(definition string) []string {
 	}
 
 	parts := strings.Split(definition[start+1:end], ",")
-	return lo.Compact(lo.Map(parts, func(part string, _ int) string {
-		return strings.TrimSpace(strings.Trim(part, `"`))
-	}))
+	return collectionx.FilterMapList[string, string](collectionx.NewList[string](parts...), func(_ int, part string) (string, bool) {
+		trimmed := strings.TrimSpace(strings.Trim(part, `"`))
+		return trimmed, trimmed != ""
+	}).Values()
 }
 
 func singlePrimaryKeyColumn(primaryKey *schemax.PrimaryKeyMeta) string {
@@ -218,11 +218,9 @@ func (d Dialect) joinQuotedIdentifiers(items collectionx.List[string]) string {
 	if items.Len() == 0 {
 		return ""
 	}
-	quoted := items.Values()
-	for index, item := range quoted {
-		quoted[index] = d.QuoteIdent(item)
-	}
-	return strings.Join(quoted, ", ")
+	return collectionx.MapList[string, string](items, func(_ int, item string) string {
+		return d.QuoteIdent(item)
+	}).Join(", ")
 }
 
 func joinPostgresStrings(items collectionx.List[string], sep string) string {

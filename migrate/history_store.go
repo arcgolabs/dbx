@@ -10,7 +10,6 @@ import (
 	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx/dialect"
 	goosedatabase "github.com/pressly/goose/v3/database"
-	"github.com/samber/lo"
 )
 
 type historyStore struct {
@@ -119,9 +118,16 @@ func (s *historyStore) GetLatestVersion(ctx context.Context, db goosedatabase.DB
 	if len(items) == 0 {
 		return 0, nil
 	}
-	maxItem := lo.MaxBy(items, func(a, b *goosedatabase.ListMigrationsResult) bool {
-		return a.Version > b.Version
+	var maxItem *goosedatabase.ListMigrationsResult
+	collectionx.NewList[*goosedatabase.ListMigrationsResult](items...).Range(func(_ int, candidate *goosedatabase.ListMigrationsResult) bool {
+		if maxItem == nil || candidate.Version > maxItem.Version {
+			maxItem = candidate
+		}
+		return true
 	})
+	if maxItem == nil {
+		return 0, nil
+	}
 	return maxItem.Version, nil
 }
 

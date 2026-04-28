@@ -3,9 +3,9 @@ package sqltmplx
 import (
 	"fmt"
 
+	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx/dialect"
 	"github.com/samber/hot"
-	"github.com/samber/lo"
 )
 
 // Engine compiles and renders SQL templates for a dialect.
@@ -23,10 +23,11 @@ type templateCacheKey struct {
 // New returns a template engine configured for the provided dialect.
 func New(d dialect.Contract, opts ...Option) *Engine {
 	cfg := defaultConfig()
-	lo.ForEach(opts, func(opt Option, _ int) {
+	collectionx.NewList[Option](opts...).Range(func(_ int, opt Option) bool {
 		if opt != nil {
 			opt(&cfg)
 		}
+		return true
 	})
 	return &Engine{dialect: d, cfg: cfg, templateCache: newTemplateCache(cfg.templateCacheSize)}
 }

@@ -177,11 +177,9 @@ func (d Dialect) joinQuotedIdentifiers(items collectionx.List[string]) string {
 	if items.Len() == 0 {
 		return ""
 	}
-	quoted := items.Values()
-	for index, item := range quoted {
-		quoted[index] = d.QuoteIdent(item)
-	}
-	return strings.Join(quoted, ", ")
+	return collectionx.MapList[string, string](items, func(_ int, item string) string {
+		return d.QuoteIdent(item)
+	}).Join(", ")
 }
 
 func joinSQLiteStrings(items collectionx.List[string], sep string) string {

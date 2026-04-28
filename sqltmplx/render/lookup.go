@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/arcgolabs/collectionx"
-	"github.com/samber/lo"
 )
 
 func lookupValue(params any, name string) (any, bool) {
@@ -177,7 +176,10 @@ func isBlank(v any) bool {
 	if !ok {
 		return true
 	}
-	return lo.IsEmpty(rv.Interface())
+	if isLengthValue(rv.Kind()) {
+		return rv.Len() == 0
+	}
+	return rv.IsZero()
 }
 
 func isPresent(v any) bool {

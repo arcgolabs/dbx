@@ -10,18 +10,18 @@ import (
 	atlasmigrate "ariga.io/atlas/sql/migrate"
 	atlasschema "ariga.io/atlas/sql/schema"
 	"github.com/arcgolabs/collectionx"
-	"github.com/samber/lo"
 )
 
 func atlasSplitChanges(changes []atlasschema.Change) ([]atlasschema.Change, []schemax.MigrationAction) {
-	result := lo.Reduce(changes, func(acc atlasSplitResult, change atlasschema.Change, _ int) atlasSplitResult {
-		currentSafe, currentManual := atlasClassifyChange(change)
-		acc.safeChanges = append(acc.safeChanges, currentSafe...)
-		acc.manualActions = append(acc.manualActions, currentManual...)
-		return acc
-	}, atlasSplitResult{
+	result := atlasSplitResult{
 		safeChanges:   make([]atlasschema.Change, 0, len(changes)),
 		manualActions: make([]schemax.MigrationAction, 0, len(changes)),
+	}
+	collectionx.NewListWithCapacity[atlasschema.Change](len(changes), changes...).Range(func(_ int, change atlasschema.Change) bool {
+		currentSafe, currentManual := atlasClassifyChange(change)
+		result.safeChanges = append(result.safeChanges, currentSafe...)
+		result.manualActions = append(result.manualActions, currentManual...)
+		return true
 	})
 	return result.safeChanges, result.manualActions
 }
@@ -90,9 +90,9 @@ func atlasPlanChangeActions(ctx context.Context, driver atlasmigrate.Driver, cha
 		}
 		return nil, wrapMigrateError("plan atlas schema changes", err)
 	}
-	return lo.Map(plan.Changes, func(planned *atlasmigrate.Change, _ int) schemax.MigrationAction {
+	return collectionx.MapList[*atlasmigrate.Change, schemax.MigrationAction](collectionx.NewListWithCapacity[*atlasmigrate.Change](len(plan.Changes), plan.Changes...), func(_ int, planned *atlasmigrate.Change) schemax.MigrationAction {
 		return atlasPlannedAction(change, planned)
-	}), nil
+	}).Values(), nil
 }
 
 func atlasPlannedAction(change atlasschema.Change, planned *atlasmigrate.Change) schemax.MigrationAction {

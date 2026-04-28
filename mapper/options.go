@@ -3,9 +3,9 @@ package mapper
 import (
 	"fmt"
 
+	"github.com/arcgolabs/collectionx"
 	codecx "github.com/arcgolabs/dbx/codec"
 	"github.com/arcgolabs/pkg/option"
-	"github.com/samber/lo"
 )
 
 type MapperOption func(*mapperBuildOptions) error
@@ -16,18 +16,24 @@ type mapperBuildOptions struct {
 
 func WithMapperCodecs(codecs ...codecx.Codec) MapperOption {
 	return func(opts *mapperBuildOptions) error {
-		filtered := lo.Filter(codecs, func(codec codecx.Codec, _ int) bool {
+		filtered := collectionx.FilterList[codecx.Codec](collectionx.NewList[codecx.Codec](codecs...), func(_ int, codec codecx.Codec) bool {
 			return !codecx.IsNil(codec)
 		})
-		if len(filtered) == 0 {
+		if filtered.Len() == 0 {
 			return nil
 		}
 
 		runtime := opts.runtime.clone()
-		for _, codec := range filtered {
+		var registerErr error
+		filtered.Range(func(_ int, codec codecx.Codec) bool {
 			if err := runtime.codecs.Register(codec); err != nil {
-				return fmt.Errorf("register mapper codec: %w", err)
+				registerErr = fmt.Errorf("register mapper codec: %w", err)
+				return false
 			}
+			return true
+		})
+		if registerErr != nil {
+			return registerErr
 		}
 		opts.runtime = runtime
 		return nil

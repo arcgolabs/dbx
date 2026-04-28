@@ -5,7 +5,9 @@ import (
 	schemax "github.com/arcgolabs/dbx/schema"
 	"maps"
 	"reflect"
+	"slices"
 
+	"github.com/arcgolabs/collectionx"
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/querydsl"
 	"github.com/arcgolabs/dbx/repository"
@@ -16,7 +18,7 @@ func (s *Store[E, S]) keyOf(entity *E) repository.Key {
 		return nil
 	}
 	columns := primaryKeyColumns(s.repository.Schema())
-	if len(columns) == 0 {
+	if columns.Len() == 0 {
 		return nil
 	}
 	root := reflect.ValueOf(entity)
@@ -27,29 +29,35 @@ func (s *Store[E, S]) keyOf(entity *E) repository.Key {
 	if root.Kind() != reflect.Struct {
 		return nil
 	}
-	key := make(repository.Key, len(columns))
-	for i := range columns {
-		column := columns[i]
+	key := make(repository.Key, columns.Len())
+	var resolveErr error
+	columns.Range(func(_ int, column string) bool {
 		field, ok := s.repository.Mapper().FieldByColumn(column)
 		if !ok {
-			return nil
+			resolveErr = fmt.Errorf("dbx: mapped field for column %s not found", column)
+			return false
 		}
 		value, err := mappedFieldValue(root, field)
 		if err != nil {
-			return nil
+			resolveErr = err
+			return false
 		}
 		key[column] = value.Interface()
+		return true
+	})
+	if resolveErr != nil {
+		return nil
 	}
 	return key
 }
 
-func primaryKeyColumns[S querydsl.TableSource](schema S) []string {
+func primaryKeyColumns[S querydsl.TableSource](schema S) collectionx.List[string] {
 	type primaryKeyProvider interface {
 		PrimaryKey() (schemax.PrimaryKeyMeta, bool)
 	}
 	if provider, ok := any(schema).(primaryKeyProvider); ok {
 		if primary, ok := provider.PrimaryKey(); ok && primary.Columns.Len() > 0 {
-			return primary.Columns.Values()
+			return primary.Columns.Clone()
 		}
 	}
 	type primaryColumnProvider interface {
@@ -57,10 +65,10 @@ func primaryKeyColumns[S querydsl.TableSource](schema S) []string {
 	}
 	if provider, ok := any(schema).(primaryColumnProvider); ok {
 		if column, ok := provider.PrimaryColumn(); ok && column.Name != "" {
-			return []string{column.Name}
+			return collectionx.NewList[string](column.Name)
 		}
 	}
-	return []string{"id"}
+	return collectionx.NewList[string]("id")
 }
 
 func mappedFieldValue(root reflect.Value, field mapperx.MappedField) (reflect.Value, error) {
@@ -123,12 +131,7 @@ func cloneKey(key repository.Key) repository.Key {
 }
 
 func hasZeroKeyValue(key repository.Key) bool {
-	for _, value := range key {
-		if isZeroKeyValue(value) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(slices.Collect(maps.Values(key)), isZeroKeyValue)
 }
 
 func isZeroKeyValue(value any) bool {

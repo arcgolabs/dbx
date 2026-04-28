@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/arcgolabs/collectionx"
-	"github.com/samber/lo"
 )
 
 func mappedMigrationActions[T any](items collectionx.List[T], mapper func(T) schemax.MigrationAction) collectionx.List[schemax.MigrationAction] {
@@ -27,14 +26,14 @@ func columnDiffManualActions(diff schemax.TableDiff) collectionx.List[schemax.Mi
 func columnDiffIssues(schemaDialect Dialect, expected schemax.ColumnMeta, actual schemax.ColumnState) []string {
 	expectedType := normalizeExpectedType(schemaDialect, expected)
 	actualType := schemaDialect.NormalizeType(actual.Type)
-	return lo.FilterMap([]string{
+	return collectionx.FilterMapList[string, string](collectionx.NewList[string](
 		typeMismatchIssue(expectedType, actualType),
 		nullableMismatchIssue(expected, actual),
 		autoIncrementMismatchIssue(expected, actual),
 		defaultMismatchIssue(expected, actual),
-	}, func(issue string, _ int) (string, bool) {
+	), func(_ int, issue string) (string, bool) {
 		return issue, issue != ""
-	})
+	}).Values()
 }
 
 func buildCreateTableAction(schemaDialect Dialect, spec schemax.TableSpec) schemax.MigrationAction {

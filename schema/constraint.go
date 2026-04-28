@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/arcgolabs/collectionx"
-	"github.com/samber/lo"
 )
 
 type constraintBinder interface {
@@ -159,9 +158,10 @@ func splitColumnsOption(value string) []string {
 	parts := strings.FieldsFunc(trimmed, func(r rune) bool {
 		return r == '|' || r == ','
 	})
-	return lo.Compact(lo.Map(parts, func(part string, _ int) string {
-		return strings.TrimSpace(part)
-	}))
+	return collectionx.FilterMapList[string, string](collectionx.NewList[string](parts...), func(_ int, part string) (string, bool) {
+		trimmedPart := strings.TrimSpace(part)
+		return trimmedPart, trimmedPart != ""
+	}).Values()
 }
 
 func defaultConstraintName(table, field string, meta keyBindingMeta) string {
@@ -189,7 +189,8 @@ func clonePrimaryKeyMetaPtr(meta *PrimaryKeyMeta) *PrimaryKeyMeta {
 	if meta == nil {
 		return nil
 	}
-	return new(clonePrimaryKeyMeta(*meta))
+	cloned := clonePrimaryKeyMeta(*meta)
+	return &cloned
 }
 
 func cloneForeignKeyMeta(meta ForeignKeyMeta) ForeignKeyMeta {
