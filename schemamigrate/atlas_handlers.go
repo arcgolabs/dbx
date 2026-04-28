@@ -29,11 +29,9 @@ var atlasTableChangeHandlers = []atlasTableChangeHandler{
 }
 
 func atlasApplyTableChangeToDiff(diff *schemax.TableDiff, compiled *atlasCompiledTable, current *atlasschema.Table, change atlasschema.Change) {
-	for _, handler := range atlasTableChangeHandlers {
-		if handler(diff, compiled, current, change) {
-			return
-		}
-	}
+	collectionx.NewList(atlasTableChangeHandlers...).Range(func(_ int, handler atlasTableChangeHandler) bool {
+		return !handler(diff, compiled, current, change)
+	})
 }
 
 func handleAtlasAddColumnChange(diff *schemax.TableDiff, compiled *atlasCompiledTable, _ *atlasschema.Table, change atlasschema.Change) bool {

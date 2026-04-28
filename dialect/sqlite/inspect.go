@@ -48,14 +48,14 @@ func (d Dialect) inspectColumns(ctx context.Context, executor dbx.Executor, tabl
 		}
 	}()
 
-	columns := make([]schemax.ColumnState, 0, 8)
+	columns := collectionx.NewListWithCapacity[schemax.ColumnState](8)
 	primaryPositions := make(map[int]string, 2)
 	for rows.Next() {
 		column, primaryPosition, scanErr := scanSQLiteColumn(rows)
 		if scanErr != nil {
 			return nil, nil, scanErr
 		}
-		columns = append(columns, column)
+		columns.Add(column)
 		if primaryPosition > 0 {
 			primaryPositions[primaryPosition] = column.Name
 		}
@@ -65,7 +65,7 @@ func (d Dialect) inspectColumns(ctx context.Context, executor dbx.Executor, tabl
 		return nil, nil, rowsErr
 	}
 
-	return columns, sqlitePrimaryKeyState(primaryPositions), nil
+	return columns.Values(), sqlitePrimaryKeyState(primaryPositions), nil
 }
 
 func (d Dialect) inspectIndexes(ctx context.Context, executor dbx.Executor, table string) (_ []schemax.IndexState, resultErr error) {
@@ -81,14 +81,14 @@ func (d Dialect) inspectIndexes(ctx context.Context, executor dbx.Executor, tabl
 		}
 	}()
 
-	indexes := make([]schemax.IndexState, 0, 4)
+	indexes := collectionx.NewListWithCapacity[schemax.IndexState](4)
 	for rows.Next() {
 		index, skip, indexErr := d.loadSQLiteIndex(ctx, executor, rows)
 		if indexErr != nil {
 			return nil, indexErr
 		}
 		if !skip {
-			indexes = append(indexes, index)
+			indexes.Add(index)
 		}
 	}
 
@@ -96,7 +96,7 @@ func (d Dialect) inspectIndexes(ctx context.Context, executor dbx.Executor, tabl
 		return nil, rowsErr
 	}
 
-	return indexes, nil
+	return indexes.Values(), nil
 }
 
 func (d Dialect) loadSQLiteIndex(ctx context.Context, executor dbx.Executor, rows *sql.Rows) (schemax.IndexState, bool, error) {
@@ -136,20 +136,20 @@ func (d Dialect) inspectIndexColumns(ctx context.Context, executor dbx.Executor,
 		}
 	}()
 
-	columns := make([]string, 0, 2)
+	columns := collectionx.NewListWithCapacity[string](2)
 	for rows.Next() {
 		column, scanErr := scanSQLiteIndexColumn(rows)
 		if scanErr != nil {
 			return nil, scanErr
 		}
-		columns = append(columns, column)
+		columns.Add(column)
 	}
 
 	if rowsErr := sqliteRowsError(action, rows); rowsErr != nil {
 		return nil, rowsErr
 	}
 
-	return columns, nil
+	return columns.Values(), nil
 }
 
 func (d Dialect) inspectForeignKeys(ctx context.Context, executor dbx.Executor, table string) (_ []schemax.ForeignKeyState, resultErr error) {
@@ -178,12 +178,12 @@ func (d Dialect) inspectForeignKeys(ctx context.Context, executor dbx.Executor, 
 		return nil, rowsErr
 	}
 
-	foreignKeys := make([]schemax.ForeignKeyState, 0, groups.Len())
+	foreignKeys := collectionx.NewListWithCapacity[schemax.ForeignKeyState](groups.Len())
 	groups.Range(func(_ int, value schemax.ForeignKeyState) bool {
-		foreignKeys = append(foreignKeys, value)
+		foreignKeys.Add(value)
 		return true
 	})
-	return foreignKeys, nil
+	return foreignKeys.Values(), nil
 }
 
 func inspectSQLiteCreateMetadata(ctx context.Context, executor dbx.Executor, table string) (_ []schemax.CheckState, _ map[string]struct{}, resultErr error) {
@@ -199,7 +199,7 @@ func inspectSQLiteCreateMetadata(ctx context.Context, executor dbx.Executor, tab
 		}
 	}()
 
-	checks := make([]schemax.CheckState, 0, 2)
+	checks := collectionx.NewListWithCapacity[schemax.CheckState](2)
 	autoincrementColumns := make(map[string]struct{}, 1)
 	for rows.Next() {
 		createSQL, scanErr := scanSQLiteCreateSQL(rows)
@@ -208,16 +208,16 @@ func inspectSQLiteCreateMetadata(ctx context.Context, executor dbx.Executor, tab
 		}
 
 		cols := parseCreateTableAutoincrementColumns(createSQL)
-		for i := range cols {
-			column := cols[i]
+		collectionx.NewList[string](cols...).Range(func(_ int, column string) bool {
 			autoincrementColumns[column] = struct{}{}
-		}
-		checks = append(checks, parseCreateTableChecks(createSQL)...)
+			return true
+		})
+		checks.MergeSlice(parseCreateTableChecks(createSQL))
 	}
 
 	if rowsErr := sqliteRowsError(action, rows); rowsErr != nil {
 		return nil, nil, rowsErr
 	}
 
-	return checks, autoincrementColumns, nil
+	return checks.Values(), autoincrementColumns, nil
 }

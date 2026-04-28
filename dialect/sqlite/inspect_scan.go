@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	schemax "github.com/arcgolabs/dbx/schema"
+	"maps"
 	"slices"
 
 	"github.com/arcgolabs/collectionx"
@@ -95,18 +96,11 @@ func sqlitePrimaryKeyState(positions map[int]string) *schemax.PrimaryKeyState {
 		return nil
 	}
 
-	keys := make([]int, 0, len(positions))
-	for position := range positions {
-		keys = append(keys, position)
-	}
-	slices.Sort(keys)
-
-	columns := make([]string, 0, len(keys))
-	for _, position := range keys {
-		columns = append(columns, positions[position])
-	}
-
-	return &schemax.PrimaryKeyState{Columns: collectionx.NewList[string](columns...)}
+	keys := slices.Sorted(maps.Keys(positions))
+	columns := collectionx.MapList[int, string](collectionx.NewList[int](keys...), func(_ int, position int) string {
+		return positions[position]
+	})
+	return &schemax.PrimaryKeyState{Columns: columns}
 }
 
 func appendSQLiteForeignKey(groups collectionx.OrderedMap[int, schemax.ForeignKeyState], id int, state schemax.ForeignKeyState) {
@@ -146,10 +140,12 @@ func sqliteRowsError(action string, rows *sql.Rows) error {
 }
 
 func markSQLiteAutoincrementColumns(columns []schemax.ColumnState, autoincrementColumns map[string]struct{}) []schemax.ColumnState {
-	for i := range columns {
-		if _, ok := autoincrementColumns[columns[i].Name]; ok {
-			columns[i].AutoIncrement = true
+	items := collectionx.NewList[schemax.ColumnState](columns...)
+	items.SetAllIndexed(func(_ int, column schemax.ColumnState) schemax.ColumnState {
+		if _, ok := autoincrementColumns[column.Name]; ok {
+			column.AutoIncrement = true
 		}
-	}
-	return columns
+		return column
+	})
+	return items.Values()
 }

@@ -53,16 +53,16 @@ func (d Dialect) inspectColumns(ctx context.Context, executor dbx.Executor, tabl
 		}
 	}()
 
-	columns := make([]schemax.ColumnState, 0, 8)
-	primaryColumns := make([]string, 0, 2)
+	columns := collectionx.NewListWithCapacity[schemax.ColumnState](8)
+	primaryColumns := collectionx.NewListWithCapacity[string](2)
 	for rows.Next() {
 		column, isPrimary, scanErr := scanMySQLColumn(rows)
 		if scanErr != nil {
 			return nil, nil, scanErr
 		}
-		columns = append(columns, column)
+		columns.Add(column)
 		if isPrimary {
-			primaryColumns = append(primaryColumns, column.Name)
+			primaryColumns.Add(column.Name)
 		}
 	}
 
@@ -70,7 +70,7 @@ func (d Dialect) inspectColumns(ctx context.Context, executor dbx.Executor, tabl
 		return nil, nil, rowsErr
 	}
 
-	return columns, mysqlPrimaryKeyState(primaryColumns), nil
+	return columns.Values(), mysqlPrimaryKeyState(primaryColumns), nil
 }
 
 func (d Dialect) inspectIndexes(ctx context.Context, executor dbx.Executor, table string) (_ []schemax.IndexState, resultErr error) {
@@ -102,12 +102,12 @@ func (d Dialect) inspectIndexes(ctx context.Context, executor dbx.Executor, tabl
 		return nil, rowsErr
 	}
 
-	indexes := make([]schemax.IndexState, 0, groups.Len())
+	indexes := collectionx.NewListWithCapacity[schemax.IndexState](groups.Len())
 	groups.Range(func(_ string, value schemax.IndexState) bool {
-		indexes = append(indexes, value)
+		indexes.Add(value)
 		return true
 	})
-	return indexes, nil
+	return indexes.Values(), nil
 }
 
 func (d Dialect) inspectForeignKeys(ctx context.Context, executor dbx.Executor, table string) (_ []schemax.ForeignKeyState, resultErr error) {
@@ -145,12 +145,12 @@ func (d Dialect) inspectForeignKeys(ctx context.Context, executor dbx.Executor, 
 		return nil, rowsErr
 	}
 
-	foreignKeys := make([]schemax.ForeignKeyState, 0, groups.Len())
+	foreignKeys := collectionx.NewListWithCapacity[schemax.ForeignKeyState](groups.Len())
 	groups.Range(func(_ string, value schemax.ForeignKeyState) bool {
-		foreignKeys = append(foreignKeys, value)
+		foreignKeys.Add(value)
 		return true
 	})
-	return foreignKeys, nil
+	return foreignKeys.Values(), nil
 }
 
 func (d Dialect) inspectChecks(ctx context.Context, executor dbx.Executor, table string) (_ []schemax.CheckState, resultErr error) {
@@ -166,20 +166,20 @@ func (d Dialect) inspectChecks(ctx context.Context, executor dbx.Executor, table
 		}
 	}()
 
-	checks := make([]schemax.CheckState, 0, 4)
+	checks := collectionx.NewListWithCapacity[schemax.CheckState](4)
 	for rows.Next() {
 		check, scanErr := scanMySQLCheck(rows)
 		if scanErr != nil {
 			return nil, scanErr
 		}
-		checks = append(checks, check)
+		checks.Add(check)
 	}
 
 	if rowsErr := mysqlRowsError(action, rows); rowsErr != nil {
 		return nil, rowsErr
 	}
 
-	return checks, nil
+	return checks.Values(), nil
 }
 
 func scanMySQLColumn(rows *sql.Rows) (schemax.ColumnState, bool, error) {
@@ -264,11 +264,11 @@ func scanMySQLCheck(rows *sql.Rows) (schemax.CheckState, error) {
 	return schemax.CheckState{Name: name, Expression: clause}, nil
 }
 
-func mysqlPrimaryKeyState(columns []string) *schemax.PrimaryKeyState {
-	if len(columns) == 0 {
+func mysqlPrimaryKeyState(columns collectionx.List[string]) *schemax.PrimaryKeyState {
+	if columns.Len() == 0 {
 		return nil
 	}
-	return &schemax.PrimaryKeyState{Name: "PRIMARY", Columns: collectionx.NewList[string](columns...)}
+	return &schemax.PrimaryKeyState{Name: "PRIMARY", Columns: columns.Clone()}
 }
 
 func queryMySQLRows(ctx context.Context, executor dbx.Executor, action, query string, args ...any) (*sql.Rows, error) {

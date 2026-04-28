@@ -255,10 +255,18 @@ var atlasManualSummaryHandlers = []atlasManualSummaryHandler{
 }
 
 func atlasManualSummary(change atlasschema.Change) string {
-	for _, handler := range atlasManualSummaryHandlers {
-		if summary, ok := handler(change); ok {
-			return summary
+	var summary string
+	found := false
+	collectionx.NewList(atlasManualSummaryHandlers...).Range(func(_ int, handler atlasManualSummaryHandler) bool {
+		if value, ok := handler(change); ok {
+			summary = value
+			found = true
+			return false
 		}
+		return true
+	})
+	if found {
+		return summary
 	}
 	return "manual schema migration required"
 }

@@ -45,9 +45,10 @@ func schemaFingerprint(schemas []Resource) string {
 		return ""
 	}
 	var buffer querydsl.Buffer
-	for _, resource := range schemas {
+	collectionx.NewListWithCapacity[Resource](len(schemas), schemas...).Range(func(_ int, resource Resource) bool {
 		writeSchemaFingerprint(&buffer, resource.Spec())
-	}
+		return true
+	})
 	if err := buffer.Err("build schema fingerprint"); err != nil {
 		return ""
 	}
