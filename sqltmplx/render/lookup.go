@@ -132,21 +132,22 @@ func reflectMapStringValue(v reflect.Value, key string) (any, bool) {
 func fieldAliases(f reflect.StructField) collectionx.List[string] {
 	aliases := collectionx.NewListWithCapacity[string](3)
 	seen := collectionx.NewSetWithCapacity[string](3)
-	for _, tagKey := range [...]string{"sqltmpl", "db", "json"} {
+	collectionx.NewList[string]("sqltmpl", "db", "json").Range(func(_ int, tagKey string) bool {
 		raw := strings.TrimSpace(f.Tag.Get(tagKey))
 		if raw == "" || raw == "-" {
-			continue
+			return true
 		}
 		alias := strings.TrimSpace(strings.Split(raw, ",")[0])
 		if alias == "" || alias == "-" {
-			continue
+			return true
 		}
 		if seen.Contains(alias) {
-			continue
+			return true
 		}
 		seen.Add(alias)
 		aliases.Add(alias)
-	}
+		return true
+	})
 	return aliases
 }
 

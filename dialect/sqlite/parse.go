@@ -4,6 +4,8 @@ import (
 	schemax "github.com/arcgolabs/dbx/schema"
 	"regexp"
 	"strings"
+
+	"github.com/arcgolabs/collectionx"
 )
 
 func parseCreateTableChecks(createSQL string) []schemax.CheckState {
@@ -61,14 +63,12 @@ func sqliteMatchingParen(input string, start int) int {
 
 func parseCreateTableAutoincrementColumns(createSQL string) []string {
 	matches := sqliteAutoincrementPattern.FindAllStringSubmatch(createSQL, -1)
-	columns := make([]string, 0, len(matches))
-	for i := range matches {
-		match := matches[i]
-		if len(match) >= 2 {
-			columns = append(columns, strings.TrimSpace(match[1]))
+	return collectionx.FilterMapList[[]string, string](collectionx.NewListWithCapacity[[]string](len(matches), matches...), func(_ int, match []string) (string, bool) {
+		if len(match) < 2 {
+			return "", false
 		}
-	}
-	return columns
+		return strings.TrimSpace(match[1]), true
+	}).Values()
 }
 
 func referentialAction(value string) schemax.ReferentialAction {
