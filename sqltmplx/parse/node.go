@@ -2,6 +2,7 @@ package parse
 
 import (
 	"github.com/arcgolabs/collectionx"
+	"github.com/arcgolabs/dbx/sqltmplx/scan"
 	"github.com/expr-lang/expr/vm"
 )
 
@@ -13,15 +14,26 @@ type Node interface {
 // TextNode stores literal SQL text.
 type TextNode struct {
 	Text string
+	Span scan.Span
 }
 
 func (TextNode) node() {}
+
+// ParamNode stores a compiled placeholder parameter.
+type ParamNode struct {
+	Name   string
+	Spread bool
+	Span   scan.Span
+}
+
+func (ParamNode) node() {}
 
 // IfNode stores a conditional block.
 type IfNode struct {
 	RawExpr string
 	Program *vm.Program
 	Body    collectionx.List[Node]
+	Span    scan.Span
 }
 
 func (*IfNode) node() {}
@@ -29,6 +41,7 @@ func (*IfNode) node() {}
 // WhereNode stores a conditional WHERE block.
 type WhereNode struct {
 	Body collectionx.List[Node]
+	Span scan.Span
 }
 
 func (*WhereNode) node() {}
@@ -36,6 +49,7 @@ func (*WhereNode) node() {}
 // SetNode stores a conditional SET block.
 type SetNode struct {
 	Body collectionx.List[Node]
+	Span scan.Span
 }
 
 func (*SetNode) node() {}

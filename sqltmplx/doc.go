@@ -1,2 +1,3 @@
-// Package sqltmplx provides SQL template binding and rendering utilities.
+// Package sqltmplx provides SQL template compilation, rendering, metadata,
+// and registry-based precheck utilities.
 package sqltmplx

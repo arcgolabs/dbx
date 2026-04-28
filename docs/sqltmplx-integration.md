@@ -126,6 +126,74 @@ engineNoCache := sqltmplx.New(core.Dialect(), sqltmplx.WithTemplateCacheSize(0))
 
 For file-backed SQL, prefer `Registry` / `MustStatement` so statement names stay stable for hooks and logs.
 
+## Metadata and Prechecks
+
+Compiled templates expose static metadata. Use this for documentation, CI checks, or startup diagnostics:
+
+```go
+template := registry.MustStatement("sql/user/find_active.sql")
+metadata := template.Metadata()
+
+fmt.Println(metadata.StatementType)
+fmt.Println(metadata.Parameters.Values())
+fmt.Println(metadata.SpreadParameters.Values())
+fmt.Println(metadata.Conditions.Values())
+```
+
+Inline templates can use the same pipeline through `Engine`:
+
+```go
+metadata, err := engine.AnalyzeNamed("user/find.sql", `
+SELECT id, username
+FROM users
+WHERE status = /* status */1
+`)
+if err != nil {
+	return err
+}
+
+report, err := engine.CheckNamed("user/find.sql", `
+SELECT id, username
+FROM users
+WHERE status = /* status */1
+`, struct {
+	Status int
+}{Status: 1})
+if err != nil {
+	return err
+}
+
+fmt.Println(metadata.StatementType)
+fmt.Println(report.Stage)
+fmt.Println(report.SQL)
+```
+
+For file-backed templates, preload and check the registry at startup:
+
+```go
+if _, err := registry.PreloadAll(); err != nil {
+	return err
+}
+
+reports, err := registry.CheckAll(map[string]any{
+	"sql/user/find_active.sql": struct {
+		Status int
+	}{Status: 1},
+})
+if err != nil {
+	return err
+}
+
+reports.Range(func(_ int, report sqltmplx.CheckReport) bool {
+	if report.Err != nil {
+		fmt.Printf("%s failed at %s: %v\n", report.Name, report.Stage, report.Err)
+	}
+	return true
+})
+```
+
+`CheckReport.Stage` is one of `compile`, `load`, `render`, `analyze`, or `ok`.
+
 ## Pagination
 
 `sqltmplx` reuses `paging.Request` directly. In SQL templates, bind the normalized page under `Page`:

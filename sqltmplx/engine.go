@@ -65,6 +65,20 @@ func (e *Engine) CompileNamed(name, tpl string) (*Template, error) {
 	return compiled, nil
 }
 
+// Analyze compiles a template and returns its static metadata.
+func (e *Engine) Analyze(tpl string) (TemplateMetadata, error) {
+	return e.AnalyzeNamed("", tpl)
+}
+
+// AnalyzeNamed compiles a named template and returns its static metadata.
+func (e *Engine) AnalyzeNamed(name, tpl string) (TemplateMetadata, error) {
+	t, err := e.CompileNamed(name, tpl)
+	if err != nil {
+		return TemplateMetadata{}, fmt.Errorf("compile template: %w", err)
+	}
+	return t.Metadata(), nil
+}
+
 // Render compiles and renders a template with the provided parameters.
 func (e *Engine) Render(tpl string, params any) (BoundSQL, error) {
 	t, err := e.Compile(tpl)
@@ -72,4 +86,25 @@ func (e *Engine) Render(tpl string, params any) (BoundSQL, error) {
 		return BoundSQL{}, fmt.Errorf("compile template: %w", err)
 	}
 	return t.Render(params)
+}
+
+// Check compiles, renders, validates, and analyzes a template.
+func (e *Engine) Check(tpl string, params any) (CheckReport, error) {
+	return e.CheckNamed("", tpl, params)
+}
+
+// CheckNamed compiles, renders, validates, and analyzes a named template.
+func (e *Engine) CheckNamed(name, tpl string, params any) (CheckReport, error) {
+	t, err := e.CompileNamed(name, tpl)
+	if err != nil {
+		report := CheckReport{
+			Name:           name,
+			Dialect:        e.dialect.Name(),
+			Stage:          CheckStageCompile,
+			SampleProvided: params != nil,
+			Err:            fmt.Errorf("compile template check: %w", err),
+		}
+		return report, report.Err
+	}
+	return t.Check(params)
 }

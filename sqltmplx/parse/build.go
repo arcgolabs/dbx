@@ -67,64 +67,71 @@ func BuildList(tokens collectionx.List[scan.Token]) (collectionx.List[Node], err
 func consumeToken(tok scan.Token, stack collectionx.List[frame], appendNode func(Node)) error {
 	switch tok.Kind {
 	case scan.Text:
-		appendNode(TextNode{Text: tok.Value})
+		nodes, err := compileTextToken(tok)
+		if err != nil {
+			return err
+		}
+		nodes.Range(func(_ int, node Node) bool {
+			appendNode(node)
+			return true
+		})
 		return nil
 	case scan.Directive:
-		return consumeDirective(tok.Value, stack, appendNode)
+		return consumeDirective(tok, stack, appendNode)
 	default:
 		return nil
 	}
 }
 
-func consumeDirective(value string, stack collectionx.List[frame], appendNode func(Node)) error {
-	directive, err := parseDirective(value)
+func consumeDirective(tok scan.Token, stack collectionx.List[frame], appendNode func(Node)) error {
+	directive, err := parseDirective(tok.Value)
 	if err != nil {
-		return err
+		return wrapParseError(tok.Span.Start, err)
 	}
 
 	switch {
 	case directive.If != nil:
-		return pushIfNode(directive.If, stack, appendNode)
+		return pushIfNode(directive.If, tok.Span, stack, appendNode)
 	case directive.Where != nil:
-		pushWhereNode(stack, appendNode)
+		pushWhereNode(tok.Span, stack, appendNode)
 		return nil
 	case directive.Set != nil:
-		pushSetNode(stack, appendNode)
+		pushSetNode(tok.Span, stack, appendNode)
 		return nil
 	case directive.End != nil:
-		return popFrame(stack)
+		return popFrame(tok.Span.Start, stack)
 	default:
 		return nil
 	}
 }
 
-func pushIfNode(directive *IfDirective, stack collectionx.List[frame], appendNode func(Node)) error {
+func pushIfNode(directive *IfDirective, span scan.Span, stack collectionx.List[frame], appendNode func(Node)) error {
 	program, err := expr.Compile(directive.Expr)
 	if err != nil {
-		return fmt.Errorf("sqltmplx: compile expr %q: %w", directive.Expr, err)
+		return wrapParseError(span.Start, fmt.Errorf("sqltmplx: compile expr %q: %w", directive.Expr, err))
 	}
 
-	node := &IfNode{RawExpr: directive.Expr, Program: program}
+	node := &IfNode{RawExpr: directive.Expr, Program: program, Span: span}
 	appendNode(node)
 	stack.Add(frame{kind: frameIf, out: &node.Body})
 	return nil
 }
 
-func pushWhereNode(stack collectionx.List[frame], appendNode func(Node)) {
-	node := &WhereNode{}
+func pushWhereNode(span scan.Span, stack collectionx.List[frame], appendNode func(Node)) {
+	node := &WhereNode{Span: span}
 	appendNode(node)
 	stack.Add(frame{kind: frameWhere, out: &node.Body})
 }
 
-func pushSetNode(stack collectionx.List[frame], appendNode func(Node)) {
-	node := &SetNode{}
+func pushSetNode(span scan.Span, stack collectionx.List[frame], appendNode func(Node)) {
+	node := &SetNode{Span: span}
 	appendNode(node)
 	stack.Add(frame{kind: frameSet, out: &node.Body})
 }
 
-func popFrame(stack collectionx.List[frame]) error {
+func popFrame(position scan.Position, stack collectionx.List[frame]) error {
 	if stack.Len() == 1 {
-		return errUnexpectedEnd
+		return wrapParseError(position, errUnexpectedEnd)
 	}
 	_, _ = stack.RemoveAt(stack.Len() - 1)
 	return nil
@@ -137,4 +144,11 @@ func appendFrameNode(stack collectionx.List[frame], node Node) {
 		*out = collectionx.NewList[Node]()
 	}
 	(*out).Add(node)
+}
+
+func wrapParseError(position scan.Position, err error) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%w at %d:%d", err, position.Line, position.Column)
 }

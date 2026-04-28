@@ -8,6 +8,7 @@ import (
 	"github.com/arcgolabs/collectionx"
 	"github.com/arcgolabs/dbx/dialect"
 	"github.com/arcgolabs/dbx/sqltmplx/parse"
+	"github.com/arcgolabs/dbx/sqltmplx/scan"
 	"github.com/expr-lang/expr/vm"
 )
 
@@ -50,6 +51,8 @@ func renderNode(node parse.Node, st *state) (string, error) {
 	switch typed := node.(type) {
 	case parse.TextNode:
 		return bindText(typed.Text, st)
+	case parse.ParamNode:
+		return renderParamNode(typed, st)
 	case *parse.IfNode:
 		return renderIfNode(typed, st)
 	case *parse.WhereNode:
@@ -61,10 +64,18 @@ func renderNode(node parse.Node, st *state) (string, error) {
 	}
 }
 
+func renderParamNode(node parse.ParamNode, st *state) (string, error) {
+	text, err := bindParam(node.Name, node.Spread, st)
+	if err != nil {
+		return "", fmt.Errorf("%w at %s", err, formatPosition(node.Span.Start))
+	}
+	return text, nil
+}
+
 func renderIfNode(node *parse.IfNode, st *state) (string, error) {
 	ok, err := evalIf(node.Program, st)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w at %s", err, formatPosition(node.Span.Start))
 	}
 	if !ok {
 		return "", nil
@@ -100,4 +111,8 @@ func writeBuilderString(builder *strings.Builder, value string) {
 	if _, err := builder.WriteString(value); err != nil {
 		panic(err)
 	}
+}
+
+func formatPosition(position scan.Position) string {
+	return fmt.Sprintf("%d:%d", position.Line, position.Column)
 }

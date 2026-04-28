@@ -21,25 +21,33 @@ func ScanList(input string) (collectionx.List[Token], error) {
 	var (
 		tokens  = collectionx.NewList[Token]()
 		textBuf strings.Builder
+		textPos = Position{Line: 1, Column: 1}
+		pos     = textPos
 	)
 
-	flushText := func() {
+	flushText := func(end Position) {
 		if textBuf.Len() == 0 {
 			return
 		}
-		tokens.Add(Token{Kind: Text, Value: textBuf.String()})
+		value := textBuf.String()
+		tokens.Add(Token{Kind: Text, Value: value, Span: Span{Start: textPos, End: end}})
 		textBuf.Reset()
+		textPos = end
 	}
 
 	for input != "" {
 		start := strings.Index(input, "/*")
 		if start < 0 {
 			writeBuilderString(&textBuf, input)
+			pos = AdvancePosition(pos, input)
 			break
 		}
 
 		writeBuilderString(&textBuf, input[:start])
+		pos = AdvancePosition(pos, input[:start])
 		input = input[start+2:]
+		commentStart := pos
+		pos = AdvancePosition(pos, "/*")
 
 		end := strings.Index(input, "*/")
 		if end < 0 {
@@ -49,18 +57,21 @@ func ScanList(input string) (collectionx.List[Token], error) {
 		rawBody := input[:end]
 		raw := strings.TrimSpace(rawBody)
 		fullComment := "/*" + rawBody + "*/"
+		pos = AdvancePosition(pos, rawBody)
+		pos = AdvancePosition(pos, "*/")
 		input = input[end+2:]
 
 		if isTemplateDirective(raw) {
-			flushText()
-			tokens.Add(Token{Kind: Directive, Value: raw})
+			flushText(commentStart)
+			tokens.Add(Token{Kind: Directive, Value: raw, Span: Span{Start: commentStart, End: pos}})
+			textPos = pos
 			continue
 		}
 
 		writeBuilderString(&textBuf, fullComment)
 	}
 
-	flushText()
+	flushText(pos)
 	return tokens, nil
 }
 

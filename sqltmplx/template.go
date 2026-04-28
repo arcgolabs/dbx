@@ -16,6 +16,7 @@ import (
 type Template struct {
 	name      string
 	nodes     collectionx.List[parse.Node]
+	metadata  TemplateMetadata
 	dialect   dialect.Contract
 	validator validate.Validator
 }
@@ -29,7 +30,13 @@ func compileTemplate(name, tpl string, d dialect.Contract, cfg config) (*Templat
 	if err != nil {
 		return nil, fmt.Errorf("build template nodes: %w", err)
 	}
-	return &Template{name: name, nodes: nodes, dialect: d, validator: cfg.validator}, nil
+	return &Template{
+		name:      name,
+		nodes:     nodes,
+		metadata:  buildTemplateMetadata(nodes),
+		dialect:   d,
+		validator: cfg.validator,
+	}, nil
 }
 
 // StatementName returns the template statement name.
@@ -38,6 +45,18 @@ func (t *Template) StatementName() string {
 		return ""
 	}
 	return t.name
+}
+
+// Metadata returns a copy of the template's static metadata.
+func (t *Template) Metadata() TemplateMetadata {
+	if t == nil {
+		return TemplateMetadata{
+			Parameters:       collectionx.NewList[string](),
+			SpreadParameters: collectionx.NewList[string](),
+			Conditions:       collectionx.NewList[string](),
+		}
+	}
+	return cloneTemplateMetadata(t.metadata)
 }
 
 // Render renders the template into SQL and bind arguments.

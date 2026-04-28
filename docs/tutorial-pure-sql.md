@@ -102,6 +102,34 @@ func main() {
 }
 ```
 
+## Startup Precheck
+
+For embedded SQL files, load and check templates once during startup or CI:
+
+```go
+registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
+
+if _, err := registry.PreloadAll(); err != nil {
+	return err
+}
+
+reports, err := registry.CheckAll(map[string]any{
+	"sql/user/find_active.sql": sqltmplx.WithPage(struct {
+		Status int `dbx:"status"`
+	}{Status: 1}, sqltmplx.Page(1, 20)),
+})
+if err != nil {
+	return err
+}
+
+reports.Range(func(_ int, report sqltmplx.CheckReport) bool {
+	if report.Err != nil {
+		log.Printf("sql template %s failed at %s: %v", report.Name, report.Stage, report.Err)
+	}
+	return true
+})
+```
+
 ## Pitfalls
 
 - Re-resolving statement text repeatedly in hot loops adds overhead; cache `MustStatement(...)`.

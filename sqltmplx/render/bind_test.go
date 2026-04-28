@@ -7,6 +7,7 @@ import (
 	"github.com/arcgolabs/dbx/dialect/postgres"
 	"github.com/arcgolabs/dbx/sqltmplx/parse"
 	"github.com/arcgolabs/dbx/sqltmplx/render"
+	"github.com/arcgolabs/dbx/sqltmplx/scan"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,6 +20,18 @@ func TestBindCommentPlaceholderWithStructTags(t *testing.T) {
 	result, err := render.Render([]parse.Node{
 		parse.TextNode{Text: "name = /* name */'bob' AND id IN (/* ids */(1, 2))"},
 	}, bindQuery{Name: "alice", IDs: []int{10, 20}}, postgres.New())
+	require.NoError(t, err)
+	require.Equal(t, "name = $1 AND id IN ($2, $3)", result.Query)
+	require.Equal(t, []any{"alice", 10, 20}, result.Args.Values())
+}
+
+func TestRenderCompiledTemplateUsesParamNode(t *testing.T) {
+	tokens, err := scan.ScanList("name = /* name */'bob' AND id IN (/* ids */(1, 2))")
+	require.NoError(t, err)
+	nodes, err := parse.BuildList(tokens)
+	require.NoError(t, err)
+
+	result, err := render.RenderList(nodes, bindQuery{Name: "alice", IDs: []int{10, 20}}, postgres.New())
 	require.NoError(t, err)
 	require.Equal(t, "name = $1 AND id IN ($2, $3)", result.Query)
 	require.Equal(t, []any{"alice", 10, 20}, result.Args.Values())
