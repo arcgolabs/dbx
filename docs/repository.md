@@ -31,7 +31,7 @@ import (
 	"github.com/arcgolabs/dbx/repository"
 	"github.com/arcgolabs/dbx/schemamigrate"
 	schemax "github.com/arcgolabs/dbx/schema"
-	"github.com/arcgolabs/dbx/sqltmplx"
+	"github.com/arcgolabs/dbx/sqltmpl"
 
 	_ "modernc.org/sqlite"
 )
@@ -58,7 +58,7 @@ func main() {
 	repo := repository.NewWithOptions[User](core, Users, repository.WithByIDNotFoundAsError(true))
 	_ = repo.CreateMany(ctx, &User{Name: "alice"}, &User{Name: "bob"})
 	_ = repo.Upsert(ctx, &User{ID: 1, Name: "alice-v2"})
-	page, _ := repo.ListPageSpecRequest(ctx, sqltmplx.Page(1, 20), repository.Where(Users.Name.Eq("alice-v2")))
+	page, _ := repo.ListPageSpecRequest(ctx, sqltmpl.Page(1, 20), repository.Where(Users.Name.Eq("alice-v2")))
 	_ = page.HasNext
 }
 ```
@@ -79,7 +79,7 @@ func main() {
 Use `paging.Page(page, pageSize)` or `paging.NewRequest(page, pageSize)` when you need one pagination model across repository, active-record, and template SQL code paths.
 
 ```go
-request := sqltmplx.Page(1, 20)
+request := sqltmpl.Page(1, 20)
 
 page, err := repo.ListPageSpecRequest(
 	ctx,
@@ -96,7 +96,7 @@ _ = page.TotalPages
 _ = page.HasNext
 ```
 
-`ListPage(ctx, query, page, pageSize)` and `ListPageSpec(ctx, page, pageSize, specs...)` remain available for direct page/size calls. The `*Request` variants are preferred when the page request is passed through service boundaries or reused by `sqltmplx`.
+`ListPage(ctx, query, page, pageSize)` and `ListPageSpec(ctx, page, pageSize, specs...)` remain available for direct page/size calls. The `*Request` variants are preferred when the page request is passed through service boundaries or reused by `sqltmpl`.
 
 ## Optional reads (`mo.Option`)
 

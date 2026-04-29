@@ -48,7 +48,7 @@ go run ./examples/id_generation
 | `query_advanced` | `WITH`, `UNION ALL`, `CASE WHEN`, named tables, result columns | [examples/query_advanced](https://github.com/arcgolabs/dbx/tree/main/examples/query_advanced) |
 | `relations` | alias + relation metadata + `JoinRelation`, plus `LoadBelongsTo` and `LoadManyToMany` | [examples/relations](https://github.com/arcgolabs/dbx/tree/main/examples/relations) |
 | `migration` | `PlanSchemaChanges`, `SQLPreview`, `AutoMigrate`, `ValidateSchemas`, `migrate.NewRunner(core.SQLDB(), core.Dialect(), ...).UpGo/UpSQL` | [examples/migration](https://github.com/arcgolabs/dbx/tree/main/examples/migration) |
-| `pure_sql` | `sqltmplx` registry, shared `PageRequest` pagination, `sqlexec.List/Get/Find/Scalar`, statement-name logging, `tx.SQL().Exec(...)` | [examples/pure_sql](https://github.com/arcgolabs/dbx/tree/main/examples/pure_sql) |
+| `pure_sql` | `sqltmpl` registry, shared `PageRequest` pagination, `sqlexec.List/Get/Find/Scalar`, statement-name logging, `tx.SQL().Exec(...)` | [examples/pure_sql](https://github.com/arcgolabs/dbx/tree/main/examples/pure_sql) |
 | `id_generation` | typed ID strategy markers: `IDAuto`, `IDSnowflake`, `IDUUIDv7`, and `IDColumn` | [examples/id_generation](https://github.com/arcgolabs/dbx/tree/main/examples/id_generation) |
 
 ## Coverage (by topic)
@@ -59,7 +59,7 @@ Taken together, the examples exercise:
 - advanced DSL: `WITH`, `UNION ALL`, `CASE WHEN`
 - mapper scans, field codecs, scoped custom codecs via `mapperx.WithMapperCodecs(...)`
 - relation join helpers and `LoadBelongsTo` / `LoadManyToMany`
-- pure SQL via `sqltmplx` registry, shared `PageRequest`, and `dbx.SQL*`
+- pure SQL via `sqltmpl` registry, shared `PageRequest`, and `dbx.SQL*`
 - typed ID strategies via `IDColumn` markers
 - `PlanSchemaChanges`, `ValidateSchemas`, `AutoMigrate`, and the `dbx/migrate` runner
 - optional `slog` SQL debug logging and hooks
@@ -89,11 +89,15 @@ statusLabel := querydsl.CaseWhen[string](catalog.Users.Status.Eq(1), "active").
     Else("inactive").
     As("status_label")
 
-activeUsers := querydsl.View("active_users")
-activeID := querydsl.Col[int64](activeUsers, "id")
-activeName := querydsl.Col[string](activeUsers, "username")
+type ActiveUsersSource struct {
+    querydsl.Table
+    ID       querydsl.Column[int64]  `dbx:"id"`
+    Username querydsl.Column[string] `dbx:"username"`
+}
 
-query := querydsl.SelectFrom(activeUsers, activeID, activeName, statusLabel).
+activeUsers := querydsl.MustSource("active_users", ActiveUsersSource{})
+
+query := querydsl.SelectFrom(activeUsers, activeUsers.ID, activeUsers.Username, statusLabel).
     With("active_users",
         querydsl.SelectFrom(catalog.Users, catalog.Users.ID, catalog.Users.Username).
             Where(catalog.Users.Status.Eq(1)),
@@ -103,15 +107,12 @@ query := querydsl.SelectFrom(activeUsers, activeID, activeName, statusLabel).
 ## Example: Relation Loading
 
 ```go
-if err := relationload.LoadBelongsTo[shared.User, shared.Role](
+loader := relationload.New[shared.User, shared.Role](core, catalog.Users, catalog.Roles)
+
+if err := loader.BelongsTo(
     ctx,
-    core,
     users,
-    catalog.Users,
-    userMapper,
     catalog.Users.Role,
-    catalog.Roles,
-    roleMapper,
     func(index int, user shared.User, role mo.Option[shared.Role]) shared.User {
         // attach role
         return user
@@ -140,18 +141,18 @@ if err != nil {
 }
 ```
 
-## Example: Pure SQL With sqltmplx
+## Example: Pure SQL With sqltmpl
 
 ```go
-registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
+registry := sqltmpl.NewRegistry(sqlFS, core.Dialect())
 
 items, err := sqlexec.List[shared.UserSummary](
 	ctx,
 	core,
 	registry.MustStatement("sql/user/find_active.sql"),
-	sqltmplx.WithPage(struct {
+	sqltmpl.WithPage(struct {
 		Status int `dbx:"status"`
-	}{Status: 1}, sqltmplx.Page(1, 20)),
+	}{Status: 1}, sqltmpl.Page(1, 20)),
 	mapperx.MustStructMapper[shared.UserSummary](),
 )
 if err != nil {

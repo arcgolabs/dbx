@@ -1,7 +1,7 @@
 ---
 title: 'Production Checklist'
 linkTitle: 'production-checklist'
-description: 'Recommended production configuration for dbx and sqltmplx'
+description: 'Recommended production configuration for dbx and sqltmpl'
 weight: 17
 ---
 
@@ -46,7 +46,7 @@ Use this checklist before production rollout.
 - run `ValidateSchemas` against production-like snapshots before release
 - use `AutoMigrate` conservatively and keep manual migration scripts for destructive changes
 
-## 6) Pure SQL (sqltmplx)
+## 6) Pure SQL (sqltmpl)
 
 - keep SQL in `.sql` files and use registry statements (`MustStatement`) for reuse
 - rely on the default compiled-template cache for repeated inline `Engine.Render`; tune with `WithTemplateCacheSize`
@@ -66,7 +66,7 @@ Use this checklist before production rollout.
 - [ID Generation](./id-generation)
 - [Indexes](./indexes)
 - [Migration Tutorial](./tutorial-migration)
-- [sqltmplx Integration](./sqltmplx-integration)
+- [sqltmpl Integration](./sqltmpl-integration)
 
 ## Pitfalls
 
@@ -78,5 +78,5 @@ Use this checklist before production rollout.
 
 ```bash
 go test ./...
-go test ./sqltmplx/...
+go test ./sqltmpl/...
 ```

@@ -1,0 +1,118 @@
+package render
+
+import (
+	"errors"
+	"fmt"
+	"strings"
+
+	collectionx "github.com/arcgolabs/collectionx/list"
+	"github.com/arcgolabs/dbx/dialect"
+	"github.com/arcgolabs/dbx/sqltmpl/parse"
+	"github.com/arcgolabs/dbx/sqltmpl/scan"
+	"github.com/expr-lang/expr/vm"
+)
+
+var errIfExpressionNotBool = errors.New("sqltmpl: if expression must return bool")
+
+// Render renders parsed template nodes into SQL.
+func Render(nodes []parse.Node, params any, d dialect.Contract) (Result, error) {
+	return RenderList(collectionx.NewListWithCapacity[parse.Node](len(nodes), nodes...), params, d)
+}
+
+// RenderList renders parsed template nodes from a collectionx.List into SQL.
+func RenderList(nodes *collectionx.List[parse.Node], params any, d dialect.Contract) (Result, error) {
+	st := newState(params, d)
+	query, err := renderNodes(nodes, st)
+	if err != nil {
+		return Result{}, err
+	}
+	return Result{Query: compactWhitespace(query), Args: st.args}, nil
+}
+
+func renderNodes(nodes *collectionx.List[parse.Node], st *state) (string, error) {
+	var sb strings.Builder
+	var renderErr error
+	nodes.Range(func(_ int, node parse.Node) bool {
+		text, err := renderNode(node, st)
+		if err != nil {
+			renderErr = err
+			return false
+		}
+		writeBuilderString(&sb, text)
+		return true
+	})
+	if renderErr != nil {
+		return "", renderErr
+	}
+	return sb.String(), nil
+}
+
+func renderNode(node parse.Node, st *state) (string, error) {
+	switch typed := node.(type) {
+	case parse.TextNode:
+		return bindText(typed.Text, st)
+	case parse.ParamNode:
+		return renderParamNode(typed, st)
+	case *parse.IfNode:
+		return renderIfNode(typed, st)
+	case *parse.WhereNode:
+		return renderCleanedBlock(typed.Body, st, cleanupWhere)
+	case *parse.SetNode:
+		return renderCleanedBlock(typed.Body, st, cleanupSet)
+	default:
+		return "", fmt.Errorf("sqltmpl: unsupported node %T", node)
+	}
+}
+
+func renderParamNode(node parse.ParamNode, st *state) (string, error) {
+	text, err := bindParam(node.Name, node.Spread, st)
+	if err != nil {
+		return "", fmt.Errorf("%w at %s", err, formatPosition(node.Span.Start))
+	}
+	return text, nil
+}
+
+func renderIfNode(node *parse.IfNode, st *state) (string, error) {
+	ok, err := evalIf(node.Program, st)
+	if err != nil {
+		return "", fmt.Errorf("%w at %s", err, formatPosition(node.Span.Start))
+	}
+	if !ok {
+		return "", nil
+	}
+	return renderNodes(node.Body, st)
+}
+
+func renderCleanedBlock(body *collectionx.List[parse.Node], st *state, cleanup func(string) string) (string, error) {
+	text, err := renderNodes(body, st)
+	if err != nil {
+		return "", err
+	}
+	cleaned := cleanup(text)
+	if cleaned == "" {
+		return "", nil
+	}
+	return " " + cleaned + " ", nil
+}
+
+func evalIf(program *vm.Program, st *state) (bool, error) {
+	out, err := exprRun(program, st.exprEnv())
+	if err != nil {
+		return false, err
+	}
+	b, ok := out.(bool)
+	if !ok {
+		return false, errIfExpressionNotBool
+	}
+	return b, nil
+}
+
+func writeBuilderString(builder *strings.Builder, value string) {
+	if _, err := builder.WriteString(value); err != nil {
+		panic(err)
+	}
+}
+
+func formatPosition(position scan.Position) string {
+	return fmt.Sprintf("%d:%d", position.Line, position.Column)
+}

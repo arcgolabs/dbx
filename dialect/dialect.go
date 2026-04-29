@@ -1,7 +1,7 @@
 package dialect
 
 // Contract is the minimal dialect interface. Required for parameter binding and identification.
-// Used by sqltmplx, dbx render, and other consumers that need Name and BindVar only.
+// Used by sqltmpl, dbx render, and other consumers that need Name and BindVar only.
 type Contract interface {
 	Name() string
 	BindVar(n int) string

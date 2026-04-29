@@ -48,6 +48,10 @@ func (c Column[T]) QueryExpression()              {}
 func (c Column[T]) QuerySelectItem()              {}
 func (c Column[T]) ColumnRef() schemax.ColumnMeta { return c.meta }
 func (c Column[T]) ColumnType(T)                  {}
+func (c Column[T]) bindSourceColumn(meta schemax.ColumnMeta) any {
+	c.meta = meta
+	return c
+}
 
 func (Column[T]) ValueType() reflect.Type {
 	return reflect.TypeFor[T]()

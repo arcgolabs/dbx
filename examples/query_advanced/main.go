@@ -18,6 +18,12 @@ type activeUserRow struct {
 	Username string `dbx:"username"`
 }
 
+type activeUsersSource struct {
+	querydsl.Table
+	ID       querydsl.Column[int64]  `dbx:"id"`
+	Username querydsl.Column[string] `dbx:"username"`
+}
+
 type labeledUserRow struct {
 	ID          int64  `dbx:"id"`
 	Username    string `dbx:"username"`
@@ -47,15 +53,13 @@ func main() {
 		panic(err)
 	}
 
-	activeUsers := querydsl.View("active_users")
-	activeID := querydsl.Col[int64](activeUsers, "id")
-	activeUsername := querydsl.Col[string](activeUsers, "username")
-	activeQuery := querydsl.SelectFrom(activeUsers, activeID, activeUsername).
+	activeUsers := querydsl.MustSource("active_users", activeUsersSource{})
+	activeQuery := querydsl.SelectFrom(activeUsers, activeUsers.ID, activeUsers.Username).
 		With("active_users",
 			querydsl.SelectFrom(catalog.Users, catalog.Users.ID, catalog.Users.Username).
 				Where(catalog.Users.Status.Eq(1)),
 		).
-		OrderBy(activeID.Asc())
+		OrderBy(activeUsers.ID.Asc())
 
 	activeRows, err := dbx.QueryAll[activeUserRow](ctx, core, activeQuery, mapperx.MustStructMapper[activeUserRow]())
 	if err != nil {

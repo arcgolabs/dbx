@@ -94,22 +94,17 @@ func main() {
 	}
 
 	userMapper := mapperx.MustMapper[User](Users)
-	roleMapper := mapperx.MustMapper[Role](Roles)
+	loader := relationload.New[User, Role](core, Users, Roles)
 
 items, err := dbx.QueryAll[User](ctx, core, querydsl.SelectFrom(Users, querydsl.AllColumns(Users).Values()...), userMapper)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := relationload.LoadBelongsTo[User, Role](
+	if err := loader.BelongsTo(
 		ctx,
-		core,
 		items,
-		Users,
-		userMapper,
 		Users.Role,
-		Roles,
-		roleMapper,
 		func(index int, user User, role mo.Option[Role]) User {
 			if role.IsPresent() {
 				value, _ := role.Get()

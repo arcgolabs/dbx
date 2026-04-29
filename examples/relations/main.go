@@ -164,7 +164,6 @@ func scanUserRolePairs(ctx context.Context, core *dbx.DB, bound sqlstmt.Bound) *
 
 func loadRelations(ctx context.Context, core *dbx.DB, catalog shared.Catalog) *collectionx.List[loadedUserRelations] {
 	userMapper := mapperx.MustMapper[shared.User](catalog.Users)
-	roleMapper := mapperx.MustMapper[shared.Role](catalog.Roles)
 	usersToLoad, err := dbx.QueryAll[shared.User](
 		ctx,
 		core,
@@ -175,16 +174,12 @@ func loadRelations(ctx context.Context, core *dbx.DB, catalog shared.Catalog) *c
 		panic(err)
 	}
 
+	loader := relationload.New[shared.User, shared.Role](core, catalog.Users, catalog.Roles)
 	loadedRole := make([]mo.Option[shared.Role], usersToLoad.Len())
-	err = relationload.LoadBelongsTo[shared.User, shared.Role](
+	err = loader.BelongsTo(
 		ctx,
-		core,
 		usersToLoad,
-		catalog.Users,
-		userMapper,
 		catalog.Users.Role,
-		catalog.Roles,
-		roleMapper,
 		func(index int, user shared.User, value mo.Option[shared.Role]) shared.User {
 			loadedRole[index] = value
 			return user
@@ -195,15 +190,10 @@ func loadRelations(ctx context.Context, core *dbx.DB, catalog shared.Catalog) *c
 	}
 
 	loadedRoles := make([][]shared.Role, usersToLoad.Len())
-	err = relationload.LoadManyToMany[shared.User, shared.Role](
+	err = loader.ManyToMany(
 		ctx,
-		core,
 		usersToLoad,
-		catalog.Users,
-		userMapper,
 		catalog.Users.Roles,
-		catalog.Roles,
-		roleMapper,
 		func(index int, user shared.User, value *collectionx.List[shared.Role]) shared.User {
 			loadedRoles[index] = value.Values()
 			return user

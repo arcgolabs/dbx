@@ -1,7 +1,7 @@
 ---
 title: 'API Quick Reference'
 linkTitle: 'api-reference'
-description: 'Quick lookup for core dbx and sqltmplx-related APIs'
+description: 'Quick lookup for core dbx and sqltmpl-related APIs'
 weight: 18
 ---
 
@@ -54,15 +54,15 @@ weight: 18
 - `idgen.NewSnowflake(nodeID)`
 - `idgen.ResolveNodeIDFromHostName()`
 
-## sqltmplx Integration
+## sqltmpl Integration
 
-- `sqltmplx.New(dialect, options...)`
-- `sqltmplx.WithTemplateCacheSize(size)` - configure the compiled-template LRU cache for `Engine.Render` / `Compile`.
-- `sqltmplx.WithValidator(validator)` - validate rendered SQL during development or CI.
-- `sqltmplx.NewRegistry(fs, dialect)`
+- `sqltmpl.New(dialect, options...)`
+- `sqltmpl.WithTemplateCacheSize(size)` - configure the compiled-template LRU cache for `Engine.Render` / `Compile`.
+- `sqltmpl.WithValidator(validator)` - validate rendered SQL during development or CI.
+- `sqltmpl.NewRegistry(fs, dialect)`
 - `registry.MustStatement(path)`
-- `sqltmplx.Page(page, pageSize)` / `sqltmplx.NewPageRequest(page, pageSize)`
-- `sqltmplx.WithPage(params, request)`
+- `sqltmpl.Page(page, pageSize)` / `sqltmpl.NewPageRequest(page, pageSize)`
+- `sqltmpl.WithPage(params, request)`
 - `template.RenderPage(params, request)` / `template.BindPage(params, request)`
 - `sqlexec.List[T]` / `Get[T]` / `Find[T]` / `Scalar[T]` / `ScalarOption[T]`
 

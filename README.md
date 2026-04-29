@@ -6,7 +6,7 @@ It keeps database metadata in `Schema[E]`, keeps entities as data carriers, and 
 - typed schema and relation modeling
 - typed query DSL and SQL rendering
 - mapper / struct-mapper reads with codec support
-- pure SQL execution through `sqltmplx` statements
+- pure SQL execution through `sqltmpl` statements
 - relation loading for `BelongsTo` / `HasOne` / `HasMany` / `ManyToMany`
 - schema planning, validation, conservative auto-migrate, and migration runner
 - runtime logging, hooks, transactions, and benchmark coverage
@@ -36,7 +36,7 @@ The public API remains `dbx`-centric. Internally, the current implementation use
 - `goose` as the migration runner engine inside `dbx/migrate`
 - `hot` for runtime cache storage
 
-These are implementation details. The exposed API is still `dbx`, `dbx/sqltmplx`, and `dbx/migrate`.
+These are implementation details. The exposed API is still `dbx`, `dbx/sqltmpl`, and `dbx/migrate`.
 
 ## Package Layout
 
@@ -49,7 +49,7 @@ These are implementation details. The exposed API is still `dbx`, `dbx/sqltmplx`
     - `github.com/arcgolabs/dbx/dialect/postgres`
     - `github.com/arcgolabs/dbx/dialect/mysql`
 - SQL template engine in the same ecosystem:
-    - `github.com/arcgolabs/dbx/sqltmplx`
+    - `github.com/arcgolabs/dbx/sqltmpl`
 - Migration runner package:
     - `github.com/arcgolabs/dbx/migrate`
 
@@ -70,7 +70,7 @@ These are implementation details. The exposed API is still `dbx`, `dbx/sqltmplx`
 - Generic repository abstraction: [Repository Mode](./repository)
 - Active record facade: [Active Record Mode](./active-record)
 - Dialect abstraction: [Dialect](./dialect)
-- dbx + pure SQL templates: [sqltmplx Integration](./sqltmplx-integration)
+- dbx + pure SQL templates: [sqltmpl Integration](./sqltmpl-integration)
 - Runnable examples: [Examples](./examples)
 - Benchmark notes: [Benchmarks](./benchmarks)
 - Maintainer conventions: [Style Guide](./STYLE.md)
@@ -79,7 +79,7 @@ These are implementation details. The exposed API is still `dbx`, `dbx/sqltmplx`
 
 ```bash
 go get github.com/arcgolabs/dbx@latest
-go get github.com/arcgolabs/dbx/sqltmplx@latest
+go get github.com/arcgolabs/dbx/sqltmpl@latest
 go get github.com/arcgolabs/dbx/migrate@latest
 ```
 
@@ -180,11 +180,15 @@ statusLabel := querydsl.CaseWhen[string](Users.Status.Eq(1), "active").
     Else("unknown").
     As("status_label")
 
-activeUsers := querydsl.View("active_users")
-activeID := querydsl.Col[int64](activeUsers, "id")
-activeName := querydsl.Col[string](activeUsers, "username")
+type ActiveUsersSource struct {
+    querydsl.Table
+    ID       querydsl.Column[int64]  `dbx:"id"`
+    Username querydsl.Column[string] `dbx:"username"`
+}
 
-query := querydsl.SelectFrom(activeUsers, activeID, activeName, statusLabel).
+activeUsers := querydsl.MustSource("active_users", ActiveUsersSource{})
+
+query := querydsl.SelectFrom(activeUsers, activeUsers.ID, activeUsers.Username, statusLabel).
     With("active_users",
         querydsl.SelectFrom(Users, Users.ID, Users.Username).
             Where(Users.Status.Eq(1)),
@@ -229,18 +233,12 @@ mapper := mapperx.MustStructMapperWithOptions[Account](
 `dbx` now supports batch relation loading in addition to join helpers.
 
 ```go
-userMapper := mapperx.MustMapper[User](Users)
-roleMapper := mapperx.MustMapper[Role](Roles)
+loader := relationload.New[User, Role](core, Users, Roles)
 
-if err := relationload.LoadBelongsTo[User, Role](
+if err := loader.BelongsTo(
     ctx,
-    core,
     collectionx.NewList[User](users...),
-    Users,
-    userMapper,
     Users.Role,
-    Roles,
-    roleMapper,
     func(index int, user User, role mo.Option[Role]) User {
         // attach resolved role here
         return user
@@ -252,21 +250,21 @@ if err := relationload.LoadBelongsTo[User, Role](
 
 ## Pure SQL Entry
 
-`sqltmplx` stays responsible for template compile / render / validate. `dbx` owns execution, transaction handling, hooks, logging, and the shared `PageRequest` pagination model.
+`sqltmpl` stays responsible for template compile / render / validate. `dbx` owns execution, transaction handling, hooks, logging, and the shared `PageRequest` pagination model.
 
 ```go
 //go:embed sql/**/*.sql
 var sqlFS embed.FS
 
-registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
+registry := sqltmpl.NewRegistry(sqlFS, core.Dialect())
 
 items, err := sqlexec.List[UserSummary](
 	ctx,
 	core,
 	registry.MustStatement("sql/user/find_active.sql"),
-	sqltmplx.WithPage(struct {
+	sqltmpl.WithPage(struct {
 		Status int `dbx:"status"`
-	}{Status: 1}, sqltmplx.Page(1, 20)),
+	}{Status: 1}, sqltmpl.Page(1, 20)),
 	mapperx.MustStructMapper[UserSummary](),
 )
 if err != nil {

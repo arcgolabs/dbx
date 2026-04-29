@@ -12,7 +12,7 @@ import (
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/schemamigrate"
 	"github.com/arcgolabs/dbx/sqlexec"
-	"github.com/arcgolabs/dbx/sqltmplx"
+	"github.com/arcgolabs/dbx/sqltmpl"
 )
 
 //go:embed sql/**/*.sql
@@ -32,7 +32,7 @@ func main() {
 	printUpdatedUser(runUserByUsername(ctx, core, registry, "bob"))
 }
 
-func openPureSQLDB() (*dbx.DB, func() error, *sqltmplx.Registry) {
+func openPureSQLDB() (*dbx.DB, func() error, *sqltmpl.Registry) {
 	core, closeDB, err := shared.OpenSQLite(
 		"dbx-pure-sql",
 		dbx.WithLogger(shared.NewLogger()),
@@ -42,7 +42,7 @@ func openPureSQLDB() (*dbx.DB, func() error, *sqltmplx.Registry) {
 		panic(err)
 	}
 
-	return core, closeDB, sqltmplx.NewRegistry(sqlFS, core.Dialect())
+	return core, closeDB, sqltmpl.NewRegistry(sqlFS, core.Dialect())
 }
 
 func preparePureSQLData(ctx context.Context, core *dbx.DB, catalog shared.Catalog) {
@@ -56,14 +56,14 @@ func preparePureSQLData(ctx context.Context, core *dbx.DB, catalog shared.Catalo
 	}
 }
 
-func runActiveUserQuery(ctx context.Context, core *dbx.DB, registry *sqltmplx.Registry) *collectionx.List[shared.UserSummary] {
+func runActiveUserQuery(ctx context.Context, core *dbx.DB, registry *sqltmpl.Registry) *collectionx.List[shared.UserSummary] {
 	users, err := sqlexec.List[shared.UserSummary](
 		ctx,
 		core,
 		registry.MustStatement("sql/user/find_active.sql"),
-		sqltmplx.WithPage(struct {
+		sqltmpl.WithPage(struct {
 			Status int `dbx:"status"`
-		}{Status: 1}, sqltmplx.Page(1, 20)),
+		}{Status: 1}, sqltmpl.Page(1, 20)),
 		mapperx.MustStructMapper[shared.UserSummary](),
 	)
 	if err != nil {
@@ -81,7 +81,7 @@ func printActiveUsers(users *collectionx.List[shared.UserSummary]) {
 	})
 }
 
-func runActiveUserCount(ctx context.Context, core *dbx.DB, registry *sqltmplx.Registry) int64 {
+func runActiveUserCount(ctx context.Context, core *dbx.DB, registry *sqltmpl.Registry) int64 {
 	total, err := sqlexec.Scalar[int64](
 		ctx,
 		core,
@@ -101,7 +101,7 @@ func printActiveCount(total int64) {
 	printFormat("active user count: %d\n", total)
 }
 
-func updatePureSQLUserStatus(ctx context.Context, core *dbx.DB, registry *sqltmplx.Registry, username string, status int) {
+func updatePureSQLUserStatus(ctx context.Context, core *dbx.DB, registry *sqltmpl.Registry, username string, status int) {
 	tx, err := core.BeginTx(ctx, nil)
 	if err != nil {
 		panic(err)
@@ -126,7 +126,7 @@ func updatePureSQLUserStatus(ctx context.Context, core *dbx.DB, registry *sqltmp
 	commitOrPanic(ctx, tx)
 }
 
-func runUserByUsername(ctx context.Context, core *dbx.DB, registry *sqltmplx.Registry, username string) shared.User {
+func runUserByUsername(ctx context.Context, core *dbx.DB, registry *sqltmpl.Registry, username string) shared.User {
 	user, err := sqlexec.Get[shared.User](
 		ctx,
 		core,

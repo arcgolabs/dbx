@@ -4,9 +4,19 @@ use (
 	.
 	examples
 	migrate
-	sqltmplx
-	sqltmplx/validate
-	sqltmplx/validate/mysqlparser
-	sqltmplx/validate/postgresparser
-	sqltmplx/validate/sqliteparser
+	sqltmpl
+	sqltmpl/validate
+	sqltmpl/validate/mysqlparser
+	sqltmpl/validate/postgresparser
+	sqltmpl/validate/sqliteparser
+)
+
+replace (
+	github.com/arcgolabs/dbx v0.1.1 => .
+	github.com/arcgolabs/dbx/migrate v0.1.0 => ./migrate
+	github.com/arcgolabs/dbx/sqltmpl v0.1.0 => ./sqltmpl
+	github.com/arcgolabs/dbx/sqltmpl/validate v0.1.0 => ./sqltmpl/validate
+	github.com/arcgolabs/dbx/sqltmpl/validate/mysqlparser v0.1.0 => ./sqltmpl/validate/mysqlparser
+	github.com/arcgolabs/dbx/sqltmpl/validate/postgresparser v0.1.0 => ./sqltmpl/validate/postgresparser
+	github.com/arcgolabs/dbx/sqltmpl/validate/sqliteparser v0.1.0 => ./sqltmpl/validate/sqliteparser
 )

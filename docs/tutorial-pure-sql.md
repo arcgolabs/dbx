@@ -1,13 +1,13 @@
 ---
 title: 'Pure SQL Tutorial'
 linkTitle: 'tutorial-pure-sql'
-description: 'Use dbx SQL helpers with sqltmplx statements'
+description: 'Use dbx SQL helpers with sqltmpl statements'
 weight: 16
 ---
 
 ## Pure SQL Tutorial
 
-This tutorial shows how to execute `.sql` templates with `sqltmplx` and `dbx.SQL*` helpers.
+This tutorial shows how to execute `.sql` templates with `sqltmpl` and `dbx.SQL*` helpers.
 
 ## When to Use
 
@@ -55,7 +55,7 @@ import (
 	"github.com/arcgolabs/dbx/dialect/sqlite"
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/sqlexec"
-	"github.com/arcgolabs/dbx/sqltmplx"
+	"github.com/arcgolabs/dbx/sqltmpl"
 
 	_ "modernc.org/sqlite"
 )
@@ -82,16 +82,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
+	registry := sqltmpl.NewRegistry(sqlFS, core.Dialect())
 	stmt := registry.MustStatement("sql/user/find_active.sql")
 
 	items, err := sqlexec.List[UserSummary](
 		ctx,
 		core,
 		stmt,
-		sqltmplx.WithPage(struct {
+		sqltmpl.WithPage(struct {
 			Status int `dbx:"status"`
-		}{Status: 1}, sqltmplx.Page(1, 20)),
+		}{Status: 1}, sqltmpl.Page(1, 20)),
 		mapperx.MustStructMapper[UserSummary](),
 	)
 	if err != nil {
@@ -107,22 +107,22 @@ func main() {
 For embedded SQL files, load and check templates once during startup or CI:
 
 ```go
-registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
+registry := sqltmpl.NewRegistry(sqlFS, core.Dialect())
 
 if _, err := registry.PreloadAll(); err != nil {
 	return err
 }
 
 reports, err := registry.CheckAll(map[string]any{
-	"sql/user/find_active.sql": sqltmplx.WithPage(struct {
+	"sql/user/find_active.sql": sqltmpl.WithPage(struct {
 		Status int `dbx:"status"`
-	}{Status: 1}, sqltmplx.Page(1, 20)),
+	}{Status: 1}, sqltmpl.Page(1, 20)),
 })
 if err != nil {
 	return err
 }
 
-reports.Range(func(_ int, report sqltmplx.CheckReport) bool {
+reports.Range(func(_ int, report sqltmpl.CheckReport) bool {
 	if report.Err != nil {
 		log.Printf("sql template %s failed at %s: %v", report.Name, report.Stage, report.Err)
 	}
@@ -139,6 +139,6 @@ reports.Range(func(_ int, report sqltmplx.CheckReport) bool {
 ## Verify
 
 ```bash
-go test ./sqltmplx/...
+go test ./sqltmpl/...
 go run .
 ```
