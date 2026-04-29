@@ -4,9 +4,9 @@ go 1.26.2
 
 require (
 	ariga.io/atlas v1.2.0
-	github.com/arcgolabs/collectionx/list v0.5.0
-	github.com/arcgolabs/collectionx/mapping v0.5.0
-	github.com/arcgolabs/collectionx/set v0.5.0
+	github.com/arcgolabs/collectionx/list v0.6.0
+	github.com/arcgolabs/collectionx/mapping v0.6.0
+	github.com/arcgolabs/collectionx/set v0.6.0
 	github.com/arcgolabs/pkg/option v0.0.3
 	github.com/google/uuid v1.6.0
 	github.com/oklog/ulid/v2 v2.1.1
@@ -24,7 +24,7 @@ require (
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
-	github.com/arcgolabs/collectionx/internal v0.5.0 // indirect
+	github.com/arcgolabs/collectionx/internal v0.6.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

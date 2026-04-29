@@ -3,14 +3,12 @@ module github.com/arcgolabs/dbx/sqltmpl/validate/sqliteparser
 go 1.26.2
 
 require (
-	github.com/arcgolabs/dbx/sqltmpl/validate v0.1.0
 	github.com/rqlite/sql v0.0.0-20260224021119-1b2524a41372
 	modernc.org/sqlite v1.48.1
 )
 
 require (
 	github.com/arcgolabs/collectionx v0.4.0 // indirect
-	github.com/arcgolabs/dbx v0.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/mattn/go-isatty v0.0.21 // indirect

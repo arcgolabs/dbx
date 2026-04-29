@@ -8,9 +8,6 @@ require (
 )
 
 require (
-	github.com/arcgolabs/dbx v0.1.1
-	github.com/arcgolabs/dbx/migrate v0.1.0
-	github.com/arcgolabs/dbx/sqltmpl v0.1.0
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83 // indirect
 	github.com/google/uuid v1.6.0 // indirect
