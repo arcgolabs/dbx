@@ -39,7 +39,7 @@ type expressionOrder struct {
 	Descending bool
 }
 
-func CaseWhen[T any](predicate Predicate, value any) *CaseBuilder[T] {
+func CaseWhen[T any](predicate Predicate, value T) *CaseBuilder[T] {
 	return (&CaseBuilder[T]{}).When(predicate, value)
 }
 
@@ -55,19 +55,19 @@ func CountDistinct(expr Operand) Aggregate[int64] {
 	return Aggregate[int64]{Function: AggCount, Expr: expr, Distinct: true}
 }
 
-func Sum[T any](expr Operand) Aggregate[T] {
+func Sum[T any](expr TypedColumn[T]) Aggregate[T] {
 	return Aggregate[T]{Function: AggSum, Expr: expr}
 }
 
-func Avg(expr Operand) Aggregate[float64] {
+func Avg[T any](expr TypedColumn[T]) Aggregate[float64] {
 	return Aggregate[float64]{Function: AggAvg, Expr: expr}
 }
 
-func Min[T any](expr Operand) Aggregate[T] {
+func Min[T any](expr TypedColumn[T]) Aggregate[T] {
 	return Aggregate[T]{Function: AggMin, Expr: expr}
 }
 
-func Max[T any](expr Operand) Aggregate[T] {
+func Max[T any](expr TypedColumn[T]) Aggregate[T] {
 	return Aggregate[T]{Function: AggMax, Expr: expr}
 }
 
@@ -75,7 +75,7 @@ func Alias(item SelectItem, alias string) SelectItem {
 	return aliasedSelectItem{Item: item, Alias: alias}
 }
 
-func (b *CaseBuilder[T]) When(predicate Predicate, value any) *CaseBuilder[T] {
+func (b *CaseBuilder[T]) When(predicate Predicate, value T) *CaseBuilder[T] {
 	if b == nil {
 		b = &CaseBuilder[T]{}
 	}
@@ -83,7 +83,7 @@ func (b *CaseBuilder[T]) When(predicate Predicate, value any) *CaseBuilder[T] {
 	return b
 }
 
-func (b *CaseBuilder[T]) Else(value any) CaseExpression[T] {
+func (b *CaseBuilder[T]) Else(value T) CaseExpression[T] {
 	if b == nil {
 		return CaseExpression[T]{Else: value}
 	}

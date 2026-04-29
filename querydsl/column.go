@@ -47,6 +47,7 @@ func Result[T any](name string) Column[T] {
 func (c Column[T]) QueryExpression()              {}
 func (c Column[T]) QuerySelectItem()              {}
 func (c Column[T]) ColumnRef() schemax.ColumnMeta { return c.meta }
+func (c Column[T]) ColumnType(T)                  {}
 
 func (Column[T]) ValueType() reflect.Type {
 	return reflect.TypeFor[T]()
@@ -95,8 +96,28 @@ func (c Column[T]) Ge(value T) Predicate { return Compare(c, OpGe, Value(value))
 func (c Column[T]) Lt(value T) Predicate { return Compare(c, OpLt, Value(value)) }
 func (c Column[T]) Le(value T) Predicate { return Compare(c, OpLe, Value(value)) }
 
-func (c Column[T]) EqColumn(other Operand) Predicate {
+func (c Column[T]) EqColumn(other TypedColumn[T]) Predicate {
 	return Compare(c, OpEq, other)
+}
+
+func (c Column[T]) NeColumn(other TypedColumn[T]) Predicate {
+	return Compare(c, OpNe, other)
+}
+
+func (c Column[T]) GtColumn(other TypedColumn[T]) Predicate {
+	return Compare(c, OpGt, other)
+}
+
+func (c Column[T]) GeColumn(other TypedColumn[T]) Predicate {
+	return Compare(c, OpGe, other)
+}
+
+func (c Column[T]) LtColumn(other TypedColumn[T]) Predicate {
+	return Compare(c, OpLt, other)
+}
+
+func (c Column[T]) LeColumn(other TypedColumn[T]) Predicate {
+	return Compare(c, OpLe, other)
 }
 
 func (c Column[T]) In(values ...T) Predicate {

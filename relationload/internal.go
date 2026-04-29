@@ -165,13 +165,10 @@ func buildRelationTargetsBoundQuery[E any](session dbx.Session, rt *relationrunt
 		return sqlstmt.Bound{SQL: cachedSQL, Args: keys.Clone()}, nil
 	}
 	dbx.LogRuntimeNode(session, "relation.targets.bound.cache_miss", "table", tableName, "target_column", targetColumn.Name, "keys", keys.Len())
+	target := relationColumn(targetColumn)
 	query := querydsl.SelectList(allSelectItems(spec.Columns)).
 		From(schema).
-		Where(columnPredicate{
-			left:  targetColumn,
-			op:    querydsl.OpIn,
-			right: keys.Values(),
-		}).
+		Where(target.In(keys.Values()...)).
 		OrderByList(relationTargetOrders(spec, targetColumn))
 	bound, err := dbx.Build(session, query)
 	if err != nil {

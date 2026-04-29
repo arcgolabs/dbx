@@ -16,6 +16,8 @@ func (Column[E, T]) ValueType() reflect.Type {
 	return reflect.TypeFor[T]()
 }
 
+func (Column[E, T]) ColumnType(T) {}
+
 func (c Column[E, T]) Name() string {
 	return c.meta.Name
 }
@@ -80,6 +82,26 @@ func (c Column[E, T]) Eq(value T) querydsl.Predicate {
 
 func (c Column[E, T]) EqColumn(other Typed[T]) querydsl.Predicate {
 	return querydsl.Compare(c, querydsl.OpEq, columnOperand[T]{Column: other})
+}
+
+func (c Column[E, T]) NeColumn(other Typed[T]) querydsl.Predicate {
+	return querydsl.Compare(c, querydsl.OpNe, columnOperand[T]{Column: other})
+}
+
+func (c Column[E, T]) GtColumn(other Typed[T]) querydsl.Predicate {
+	return querydsl.Compare(c, querydsl.OpGt, columnOperand[T]{Column: other})
+}
+
+func (c Column[E, T]) GeColumn(other Typed[T]) querydsl.Predicate {
+	return querydsl.Compare(c, querydsl.OpGe, columnOperand[T]{Column: other})
+}
+
+func (c Column[E, T]) LtColumn(other Typed[T]) querydsl.Predicate {
+	return querydsl.Compare(c, querydsl.OpLt, columnOperand[T]{Column: other})
+}
+
+func (c Column[E, T]) LeColumn(other Typed[T]) querydsl.Predicate {
+	return querydsl.Compare(c, querydsl.OpLe, columnOperand[T]{Column: other})
 }
 
 func (c Column[E, T]) Ne(value T) querydsl.Predicate {

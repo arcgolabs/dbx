@@ -20,6 +20,12 @@ type ColumnAccessor interface {
 	ColumnRef() schemax.ColumnMeta
 }
 
+type TypedColumn[T any] interface {
+	Operand
+	ColumnAccessor
+	ColumnType(T)
+}
+
 type Predicate interface {
 	Expression
 	QueryPredicate()
@@ -126,7 +132,7 @@ func Not(predicate Predicate) Predicate {
 	return notPredicate{Predicate: predicate}
 }
 
-func Like(left Operand, pattern string) Predicate {
+func Like(left TypedColumn[string], pattern string) Predicate {
 	return Compare(left, OpLike, Value(pattern))
 }
 

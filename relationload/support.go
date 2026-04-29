@@ -12,21 +12,6 @@ import (
 	schemax "github.com/arcgolabs/dbx/schema"
 )
 
-type columnSelectItem struct {
-	meta schemax.ColumnMeta
-}
-
-type columnPredicate struct {
-	left  schemax.ColumnMeta
-	op    querydsl.ComparisonOperator
-	right any
-}
-
-type columnOrder struct {
-	meta       schemax.ColumnMeta
-	descending bool
-}
-
 func sourceColumnFromSpec(spec schemax.TableSpec, meta schemax.RelationMeta) (schemax.ColumnMeta, error) {
 	name := meta.LocalColumn
 	if name == "" {
@@ -61,20 +46,24 @@ func columnFromSpec(spec schemax.TableSpec, name, role, relationName string) (sc
 
 func allSelectItems(columns *collectionx.List[schemax.ColumnMeta]) *collectionx.List[querydsl.SelectItem] {
 	return collectionx.MapList[schemax.ColumnMeta, querydsl.SelectItem](columns, func(_ int, column schemax.ColumnMeta) querydsl.SelectItem {
-		return columnSelectItem{meta: column}
+		return relationColumn(column)
 	})
 }
 
 func relationTargetOrders(spec schemax.TableSpec, targetColumn schemax.ColumnMeta) *collectionx.List[querydsl.Order] {
-	orders := collectionx.NewList[querydsl.Order](columnOrder{meta: targetColumn})
+	orders := collectionx.NewList[querydsl.Order](relationColumn(targetColumn).Asc())
 	if spec.PrimaryKey != nil && spec.PrimaryKey.Columns.Len() == 1 {
 		if column, ok := spec.PrimaryKey.Columns.GetFirst(); ok && column != targetColumn.Name {
 			if meta, ok := columnMetaByName(spec.Columns, column); ok {
-				orders.Add(columnOrder{meta: meta})
+				orders.Add(relationColumn(meta).Asc())
 			}
 		}
 	}
 	return orders
+}
+
+func relationColumn(meta schemax.ColumnMeta) querydsl.Column[any] {
+	return querydsl.Col[any](querydsl.NewTableRef(meta.Table, meta.Alias, nil, nil), meta.Name)
 }
 
 func columnMetaByName(columns *collectionx.List[schemax.ColumnMeta], name string) (schemax.ColumnMeta, bool) {
@@ -177,60 +166,4 @@ func closeRows(rows *sql.Rows) error {
 		return nil
 	}
 	return wrapRelationLoadError("close rows", rows.Close())
-}
-
-func (s columnSelectItem) QueryExpression() {}
-func (s columnSelectItem) QuerySelectItem() {}
-
-func (s columnSelectItem) RenderOperand(state *querydsl.State) (string, error) {
-	return renderColumnOperand(state, s.meta)
-}
-
-func (s columnSelectItem) RenderSelectItem(state *querydsl.State) error {
-	operand, err := s.RenderOperand(state)
-	if err != nil {
-		return err
-	}
-	state.WriteString(operand)
-	return nil
-}
-
-func (columnPredicate) QueryExpression() {}
-func (columnPredicate) QueryPredicate()  {}
-
-func (p columnPredicate) RenderPredicate(state *querydsl.State) error {
-	state.RenderColumn(p.left)
-	operand, err := querydsl.RenderOperandValue(state, p.right)
-	if err != nil {
-		return wrapRelationLoadError("render relation predicate operand", err)
-	}
-	state.WriteRawByte(' ')
-	state.WriteString(string(p.op))
-	state.WriteRawByte(' ')
-	state.WriteString(operand)
-	return nil
-}
-
-func (columnOrder) QueryOrder() {}
-
-func (o columnOrder) RenderOrder(state *querydsl.State) error {
-	state.RenderColumn(o.meta)
-	if o.descending {
-		state.WriteString(" DESC")
-		return nil
-	}
-	state.WriteString(" ASC")
-	return nil
-}
-
-func renderColumnOperand(state *querydsl.State, meta schemax.ColumnMeta) (string, error) {
-	var builder querydsl.Buffer
-	table := meta.Table
-	if meta.Alias != "" {
-		table = meta.Alias
-	}
-	builder.WriteString(state.Dialect().QuoteIdent(table))
-	builder.WriteRawByte('.')
-	builder.WriteString(state.Dialect().QuoteIdent(meta.Name))
-	return builder.String(), builder.Err("render relationload column operand")
 }

@@ -3,8 +3,8 @@ module github.com/arcgolabs/dbx/migrate
 go 1.26.2
 
 require (
-	github.com/arcgolabs/collectionx/list v0.4.0
-	github.com/arcgolabs/collectionx/mapping v0.4.0
+	github.com/arcgolabs/collectionx/list v0.5.0
+	github.com/arcgolabs/collectionx/mapping v0.5.0
 	github.com/arcgolabs/dbx v0.1.1
 	github.com/pressly/goose/v3 v3.27.0
 	github.com/stretchr/testify v1.11.1
@@ -12,7 +12,7 @@ require (
 )
 
 require (
-	github.com/arcgolabs/collectionx/internal v0.4.0 // indirect
+	github.com/arcgolabs/collectionx/internal v0.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect

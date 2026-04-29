@@ -21,7 +21,7 @@ func Alias[S querydsl.TableSource](schema S, alias string) S {
 	return schemax.Alias(schema, alias)
 }
 
-func CaseWhen[T any](predicate querydsl.Predicate, value any) *CaseBuilder[T] {
+func CaseWhen[T any](predicate querydsl.Predicate, value T) *CaseBuilder[T] {
 	return querydsl.CaseWhen[T](predicate, value)
 }
 

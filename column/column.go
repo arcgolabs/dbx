@@ -25,6 +25,7 @@ type TypeReporter interface {
 
 type Typed[T any] interface {
 	ColumnRef() schemax.ColumnMeta
+	ColumnType(T)
 }
 
 type Column[E any, T any] struct {

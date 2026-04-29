@@ -78,18 +78,14 @@ func buildManyToManyPairsBoundQuery(session dbx.Session, rt *relationruntime.Run
 	dbx.LogRuntimeNode(session, "relation.m2m.bound.cache_miss", "relation", meta.Name, "through", meta.ThroughTable, "keys", sourceKeys.Len())
 
 	through := querydsl.NamedTable(meta.ThroughTable)
-	localColumn := schemax.ColumnMeta{Name: meta.ThroughLocalColumn, Table: through.Name()}
-	targetColumn := schemax.ColumnMeta{Name: meta.ThroughTargetColumn, Table: through.Name()}
+	localColumn := querydsl.Col[any](through, meta.ThroughLocalColumn)
+	targetColumn := querydsl.Col[any](through, meta.ThroughTargetColumn)
 	query := querydsl.Select(
-		columnSelectItem{meta: localColumn},
-		columnSelectItem{meta: targetColumn},
-	).From(through).Where(columnPredicate{
-		left:  localColumn,
-		op:    querydsl.OpIn,
-		right: sourceKeys.Values(),
-	}).OrderBy(
-		columnOrder{meta: localColumn},
-		columnOrder{meta: targetColumn},
+		localColumn,
+		targetColumn,
+	).From(through).Where(localColumn.In(sourceKeys.Values()...)).OrderBy(
+		localColumn.Asc(),
+		targetColumn.Asc(),
 	)
 
 	bound, err := dbx.Build(session, query)
