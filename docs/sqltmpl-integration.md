@@ -107,6 +107,23 @@ func main() {
 }
 ```
 
+Use `sqlstmt.For[P]` when a template has a stable parameter struct and you want typed call sites:
+
+```go
+type FindActiveParams struct {
+	Status int `dbx:"status"`
+}
+
+stmt := sqlstmt.For[FindActiveParams](registry.MustStatement("sql/user/find_active.sql"))
+items, err := sqlexec.ListTyped[FindActiveParams, UserSummary](
+	ctx,
+	core,
+	stmt,
+	sqltmpl.WithPage(FindActiveParams{Status: 1}, sqltmpl.Page(1, 20)),
+	mapperx.MustStructMapper[UserSummary](),
+)
+```
+
 ## When to Use It
 
 - SQL is complex and easier to maintain as `.sql` files.

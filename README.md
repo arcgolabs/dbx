@@ -270,12 +270,26 @@ items, err := sqlexec.List[UserSummary](
 if err != nil {
 	panic(err)
 }
+
+type FindActiveParams struct {
+	Status int `dbx:"status"`
+}
+
+typedStmt := sqlstmt.For[FindActiveParams](registry.MustStatement("sql/user/find_active.sql"))
+items, err = sqlexec.ListTyped[FindActiveParams, UserSummary](
+	ctx,
+	core,
+	typedStmt,
+	sqltmpl.WithPage(FindActiveParams{Status: 1}, sqltmpl.Page(1, 20)),
+	mapperx.MustStructMapper[UserSummary](),
+)
 ```
 
 Pure SQL helpers:
 
 - `db.SQL().Exec(...)` / `tx.SQL().Exec(...)`
 - `sqlexec.List[T](...)`
+- `sqlexec.ListTyped[P, T](...)`
 - `sqlexec.Get[T](...)`
 - `sqlexec.Find[T](...)`
 - `sqlexec.Scalar[T](...)`

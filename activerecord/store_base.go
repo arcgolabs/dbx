@@ -18,7 +18,12 @@ type Store[E any, S repository.EntitySchema[E]] struct {
 
 // New returns a Store backed by the provided database and schema.
 func New[E any, S repository.EntitySchema[E]](db *dbx.DB, schema S) *Store[E, S] {
-	return &Store[E, S]{repository: repository.New[E](db, schema)}
+	return NewWithOptions[E](db, schema)
+}
+
+// NewWithOptions returns a Store backed by a repository configured with options.
+func NewWithOptions[E any, S repository.EntitySchema[E]](db *dbx.DB, schema S, opts ...repository.Option) *Store[E, S] {
+	return &Store[E, S]{repository: repository.NewWithOptions[E](db, schema, opts...)}
 }
 
 // Repository returns the underlying repository.

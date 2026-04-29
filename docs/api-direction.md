@@ -88,7 +88,7 @@ The package owns:
 - parameter binding
 - conditional blocks and spread parameters
 - validation hooks
-- typed execution helpers for handwritten SQL
+- typed execution helpers for handwritten SQL through `sqlstmt.For[P]` and `sqlexec.*Typed`
 
 The package should not duplicate querydsl. Querydsl builds SQL ASTs. Sqltmpl executes authored SQL files or strings with controlled parameter binding.
 

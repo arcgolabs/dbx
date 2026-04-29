@@ -104,6 +104,24 @@ func TestStoreTypedKeyAPIs(t *testing.T) {
 	require.Equal(t, model.Entity().ID, foundByName.Entity().ID)
 }
 
+func TestStoreNewWithOptions(t *testing.T) {
+	ctx := context.Background()
+	raw, err := sql.Open("sqlite", "file:activerecord_options_test?mode=memory&cache=shared")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, raw.Close())
+	})
+
+	core := dbx.MustNewWithOptions(raw, sqlitedialect.New())
+	users := schemax.MustSchema("users", UserSchema{})
+	_, err = schemamigrate.AutoMigrate(ctx, core, users)
+	require.NoError(t, err)
+
+	store := activerecord.NewWithOptions[User](core, users, repository.WithByIDNotFoundAsError(true))
+	_, err = store.Repository().DeleteByID(ctx, int64(404))
+	require.ErrorIs(t, err, repository.ErrNotFound)
+}
+
 func TestStoreListPageBy(t *testing.T) {
 	ctx, store := openUserStore(t, "file:activerecord_page_test?mode=memory&cache=shared")
 	users := store.Repository().Schema()

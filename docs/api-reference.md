@@ -65,6 +65,7 @@ weight: 18
 - `sqltmpl.WithPage(params, request)`
 - `template.RenderPage(params, request)` / `template.BindPage(params, request)`
 - `sqlexec.List[T]` / `Get[T]` / `Find[T]` / `Scalar[T]` / `ScalarOption[T]`
+- `sqlstmt.For[P](statement)` + `sqlexec.ListTyped[P, T]` / `GetTyped[P, T]` / `FindTyped[P, T]` / `ScalarTyped[P, T]` / `ScalarOptionTyped[P, T]`
 
 ## Common Error Sentinels and Types
 

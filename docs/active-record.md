@@ -19,6 +19,7 @@ Package: `github.com/arcgolabs/dbx/activerecord`.
 ## `Store` and `Model`
 
 - `activerecord.New[E](db *dbx.DB, schema S) *Store[E, S]` — holds an internal `*repository.Base[E, S]`.
+- `activerecord.NewWithOptions[E](db *dbx.DB, schema S, opts ...repository.Option) *Store[E, S]` — passes repository options through at construction.
 - `Store.Repository() *repository.Base[E, S]` — escape hatch for bulk ops, specs, transactions, etc.
 - `Store.Wrap(entity *E) *Model[E, S]` — attach an entity pointer to the store.
 - `Store.FindByID`, `Store.FindByKey`, `Store.List` — return `*Model` (errors include `repository.ErrNotFound` when applicable).
