@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/arcgolabs/dbx"
 	"github.com/arcgolabs/dbx/querydsl"
 	repository "github.com/arcgolabs/dbx/repository"
 	schemax "github.com/arcgolabs/dbx/schema"
@@ -108,6 +109,56 @@ func TestBaseOptionAPIs(t *testing.T) {
 	noneBySpec, err := repo.FirstSpecOption(ctx, repository.Where(users.Name.Eq("nobody")))
 	require.NoError(t, err)
 	require.False(t, noneBySpec.IsPresent())
+}
+
+func TestTypedKeyAPIs(t *testing.T) {
+	repo, users, ctx := newSeededUserRepo(t, "file:repository_typed_key_api_test?mode=memory&cache=shared", "alice", "bob")
+	alice, err := repo.FirstSpec(ctx, repository.Where(users.Name.Eq("alice")))
+	require.NoError(t, err)
+
+	byID := repository.By(repo, users.ID)
+	exists, err := byID.Exists(ctx, alice.ID)
+	require.NoError(t, err)
+	require.True(t, exists)
+
+	got, err := byID.Get(ctx, alice.ID)
+	require.NoError(t, err)
+	require.Equal(t, "alice", got.Name)
+
+	optional, err := byID.GetOption(ctx, int64(404))
+	require.NoError(t, err)
+	require.False(t, optional.IsPresent())
+
+	_, err = byID.Update(ctx, alice.ID, users.Name.Set("alice-v2"))
+	require.NoError(t, err)
+	updated, err := byID.Get(ctx, alice.ID)
+	require.NoError(t, err)
+	require.Equal(t, "alice-v2", updated.Name)
+
+	_, err = byID.Delete(ctx, alice.ID)
+	require.NoError(t, err)
+	exists, err = byID.Exists(ctx, alice.ID)
+	require.NoError(t, err)
+	require.False(t, exists)
+
+	byName := repository.By(repo, users.Name)
+	bob, err := byName.Get(ctx, "bob")
+	require.NoError(t, err)
+	require.Equal(t, "bob", bob.Name)
+}
+
+func TestTypedKeyNilRepository(t *testing.T) {
+	users := schemax.MustSchema("users", UserSchema{})
+	byID := repository.By((*repository.Base[User, UserSchema])(nil), users.ID)
+
+	_, err := byID.Get(context.Background(), int64(1))
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	_, err = byID.Exists(context.Background(), int64(1))
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	_, err = byID.Update(context.Background(), int64(1), users.Name.Set("alice"))
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	_, err = byID.Delete(context.Background(), int64(1))
+	require.ErrorIs(t, err, dbx.ErrNilDB)
 }
 
 func TestBaseUpdateByVersion(t *testing.T) {

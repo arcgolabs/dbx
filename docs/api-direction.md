@@ -72,6 +72,7 @@ Preferred direction:
 
 - constructors bind schema and mapper once
 - CRUD methods accept entity values and focused option/spec arguments
+- single-column key lookups should prefer `repository.By(repo, typedColumn)` over `any` IDs
 - relation loading should be exposed through repository/store-level helpers instead of long free-function parameter lists
 - Active Record stays a thin convenience layer over repository and should not own separate persistence rules
 

@@ -67,6 +67,7 @@ func main() {
 
 - CRUD: `Create`, `CreateMany`, `List`, `First`, `Update`, `Delete`
 - PK helpers: `GetByID`, `UpdateByID`, `DeleteByID`
+- Typed key accessor: `repository.By(repo, Users.ID).Get(ctx, id)`
 - Composite key helpers: `GetByKey`, `UpdateByKey`, `DeleteByKey`
 - Pagination: `paging.Request`, `paging.Result`, `ListPage`, `ListPageRequest`, `ListPageSpec`, `ListPageSpecRequest`
 - Upsert: `Upsert(ctx, entity, conflictColumns...)`
@@ -97,6 +98,32 @@ _ = page.HasNext
 ```
 
 `ListPage(ctx, query, page, pageSize)` and `ListPageSpec(ctx, page, pageSize, specs...)` remain available for direct page/size calls. The `*Request` variants are preferred when the page request is passed through service boundaries or reused by `sqltmpl`.
+
+## Typed key access
+
+For single-column keys, prefer binding a typed schema column once instead of passing `any` IDs through every call:
+
+```go
+usersByID := repository.By(repo, Users.ID)
+
+user, err := usersByID.Get(ctx, int64(42))
+if err != nil {
+	return err
+}
+
+_, err = usersByID.Update(ctx, user.ID, Users.Name.Set("alice-v2"))
+if err != nil {
+	return err
+}
+
+exists, err := repository.By(repo, Users.Name).Exists(ctx, "alice-v2")
+if err != nil {
+	return err
+}
+_ = exists
+```
+
+`GetByID` and `Key` remain useful for dynamic or composite-key paths. `repository.By` is the preferred public API when the key column is known at compile time.
 
 ## Optional reads (`mo.Option`)
 

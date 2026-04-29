@@ -78,6 +78,32 @@ func TestStoreFindOptionAPIs(t *testing.T) {
 	require.Equal(t, model.Entity().ID, again.Entity().ID)
 }
 
+func TestStoreTypedKeyAPIs(t *testing.T) {
+	ctx, store := openUserStore(t, "file:activerecord_typed_key_test?mode=memory&cache=shared")
+	users := store.Repository().Schema()
+
+	model := store.Wrap(&User{Name: "alice"})
+	require.NoError(t, model.Save(ctx))
+
+	byID := activerecord.By(store, users.ID)
+	exists, err := byID.Exists(ctx, model.Entity().ID)
+	require.NoError(t, err)
+	require.True(t, exists)
+
+	found, err := byID.Find(ctx, model.Entity().ID)
+	require.NoError(t, err)
+	require.Equal(t, "alice", found.Entity().Name)
+
+	none, err := byID.FindOption(ctx, int64(404))
+	require.NoError(t, err)
+	require.False(t, none.IsPresent())
+
+	byName := activerecord.By(store, users.Name)
+	foundByName, err := byName.Find(ctx, "alice")
+	require.NoError(t, err)
+	require.Equal(t, model.Entity().ID, foundByName.Entity().ID)
+}
+
 func TestStoreListPageBy(t *testing.T) {
 	ctx, store := openUserStore(t, "file:activerecord_page_test?mode=memory&cache=shared")
 	users := store.Repository().Schema()
