@@ -3,7 +3,7 @@ package dbx
 import (
 	"log/slog"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/idgen"
 )
 
@@ -12,7 +12,7 @@ type Option func(*options)
 
 type options struct {
 	logger         *slog.Logger
-	hooks          collectionx.List[Hook]
+	hooks          *collectionx.List[Hook]
 	debug          bool
 	idGenerator    idgen.Generator
 	nodeID         uint16
@@ -35,7 +35,7 @@ func DefaultOptions() []Option {
 }
 
 // DefaultOptionsList returns no options as a collectionx.List.
-func DefaultOptionsList() collectionx.List[Option] {
+func DefaultOptionsList() *collectionx.List[Option] {
 	return collectionx.NewList[Option]()
 }
 
@@ -46,7 +46,7 @@ func ProductionOptions() []Option {
 }
 
 // ProductionOptionsList returns production defaults as a collectionx.List.
-func ProductionOptionsList() collectionx.List[Option] {
+func ProductionOptionsList() *collectionx.List[Option] {
 	return collectionx.NewList[Option](WithDebug(false))
 }
 
@@ -56,7 +56,7 @@ func TestOptions() []Option {
 }
 
 // TestOptionsList returns test defaults as a collectionx.List.
-func TestOptionsList() collectionx.List[Option] {
+func TestOptionsList() *collectionx.List[Option] {
 	return collectionx.NewList[Option](WithDebug(true))
 }
 
@@ -77,7 +77,7 @@ func WithHooks(hooks ...Hook) Option {
 }
 
 // WithHooksList appends hooks from a collectionx.List.
-func WithHooksList(hooks collectionx.List[Hook]) Option {
+func WithHooksList(hooks *collectionx.List[Hook]) Option {
 	filtered := collectionx.FilterList[Hook](hooks, func(_ int, hook Hook) bool {
 		return hook != nil
 	})
@@ -119,7 +119,7 @@ func applyOptions(opts ...Option) (options, error) {
 	return applyOptionsList(collectionx.NewList[Option](opts...))
 }
 
-func applyOptionsList(opts collectionx.List[Option]) (options, error) {
+func applyOptionsList(opts *collectionx.List[Option]) (options, error) {
 	config := defaultOptions()
 	filtered := collectionx.FilterList[Option](opts, func(_ int, opt Option) bool {
 		return opt != nil
@@ -139,7 +139,7 @@ func applyOptionsList(opts collectionx.List[Option]) (options, error) {
 	return config, nil
 }
 
-func mergeList[T any](current, next collectionx.List[T]) collectionx.List[T] {
+func mergeList[T any](current, next *collectionx.List[T]) *collectionx.List[T] {
 	if current == nil {
 		return next.Clone()
 	}

@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	"github.com/arcgolabs/dbx"
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/querydsl"
@@ -15,7 +16,7 @@ import (
 	"github.com/arcgolabs/dbx/sqlstmt"
 )
 
-func queryManyToManyPairs(ctx context.Context, session dbx.Session, rt *relationruntime.Runtime, meta schemax.RelationMeta, sourceKeys collectionx.List[any], sourceType, targetType reflect.Type) (collectionx.List[relationKeyPair], error) {
+func queryManyToManyPairs(ctx context.Context, session dbx.Session, rt *relationruntime.Runtime, meta schemax.RelationMeta, sourceKeys *collectionx.List[any], sourceType, targetType reflect.Type) (*collectionx.List[relationKeyPair], error) {
 	if meta.ThroughTable == "" {
 		return nil, fmt.Errorf("dbx/relationload: many-to-many relation %s requires join table", meta.Name)
 	}
@@ -27,7 +28,7 @@ func queryManyToManyPairs(ctx context.Context, session dbx.Session, rt *relation
 	chunks := chunkRelationKeys(sourceKeys, relationChunkSize(session))
 	dbx.LogRuntimeNode(session, "relation.m2m.pairs.start", "relation", meta.Name, "keys", sourceKeys.Len(), "chunks", chunks.Len())
 	var resultErr error
-	chunks.Range(func(index int, chunk collectionx.List[any]) bool {
+	chunks.Range(func(index int, chunk *collectionx.List[any]) bool {
 		dbx.LogRuntimeNode(session, "relation.m2m.pairs.chunk", "relation", meta.Name, "index", index, "size", chunk.Len())
 		bound, err := buildManyToManyPairsBoundQuery(session, rt, meta, chunk)
 		if err != nil {
@@ -51,7 +52,7 @@ func queryManyToManyPairs(ctx context.Context, session dbx.Session, rt *relation
 	return pairs, nil
 }
 
-func queryManyToManyPairChunk(ctx context.Context, session dbx.Session, bound sqlstmt.Bound, sourceType, targetType reflect.Type) (_ collectionx.List[relationKeyPair], err error) {
+func queryManyToManyPairChunk(ctx context.Context, session dbx.Session, bound sqlstmt.Bound, sourceType, targetType reflect.Type) (_ *collectionx.List[relationKeyPair], err error) {
 	rows, err := session.QueryBoundContext(ctx, bound)
 	if err != nil {
 		return nil, wrapRelationLoadError("query many-to-many rows", err)
@@ -63,7 +64,7 @@ func queryManyToManyPairChunk(ctx context.Context, session dbx.Session, bound sq
 	return scanRelationPairs(rows, sourceType, targetType)
 }
 
-func buildManyToManyPairsBoundQuery(session dbx.Session, rt *relationruntime.Runtime, meta schemax.RelationMeta, sourceKeys collectionx.List[any]) (sqlstmt.Bound, error) {
+func buildManyToManyPairsBoundQuery(session dbx.Session, rt *relationruntime.Runtime, meta schemax.RelationMeta, sourceKeys *collectionx.List[any]) (sqlstmt.Bound, error) {
 	dialectName := session.Dialect().Name()
 	cacheKey := fmt.Sprintf("m2m:%s:%s:%s:%s:%d", dialectName, meta.ThroughTable, meta.ThroughLocalColumn, meta.ThroughTargetColumn, sourceKeys.Len())
 	cachedSQL, ok, err := rt.CachedQuery(cacheKey)
@@ -100,7 +101,7 @@ func buildManyToManyPairsBoundQuery(session dbx.Session, rt *relationruntime.Run
 	return bound, nil
 }
 
-func uniqueRelationKeysFromPairs(rt *relationruntime.Runtime, pairs collectionx.List[relationKeyPair], useSource bool) collectionx.List[any] {
+func uniqueRelationKeysFromPairs(rt *relationruntime.Runtime, pairs *collectionx.List[relationKeyPair], useSource bool) *collectionx.List[any] {
 	keys := collectionx.NewListWithCapacity[any](pairs.Len())
 	seen, err := rt.AcquireSeenSet()
 	if err != nil {
@@ -113,20 +114,20 @@ func uniqueRelationKeysFromPairs(rt *relationruntime.Runtime, pairs collectionx.
 		if useSource {
 			key = pair.source
 		}
-		if _, ok := seen.Get(key); ok {
+		if seen.Contains(key) {
 			return true
 		}
-		seen.Set(key, struct{}{})
+		seen.Add(key)
 		keys.Add(key)
 		return true
 	})
 	return keys
 }
 
-func groupManyToManyTargets[E any](pairs collectionx.List[relationKeyPair], indexed map[any]E) collectionx.MultiMap[any, E] {
-	grouped := collectionx.NewMultiMapWithCapacity[any, E](pairs.Len())
+func groupManyToManyTargets[E any](pairs *collectionx.List[relationKeyPair], indexed *mappingx.Map[any, E]) *mappingx.MultiMap[any, E] {
+	grouped := mappingx.NewMultiMapWithCapacity[any, E](pairs.Len())
 	pairs.Range(func(_ int, pair relationKeyPair) bool {
-		target, ok := indexed[pair.target]
+		target, ok := indexed.Get(pair.target)
 		if !ok {
 			return true
 		}

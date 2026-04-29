@@ -4,25 +4,26 @@ package projection
 import (
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	listx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/querydsl"
 	schemax "github.com/arcgolabs/dbx/schema"
 )
 
 type Mapper interface {
-	Fields() collectionx.List[mapperx.MappedField]
+	Fields() *listx.List[mapperx.MappedField]
 }
 
 type columnSelectItem struct {
 	meta schemax.ColumnMeta
 }
 
-func Of(schema schemax.Resource, mapper Mapper) (collectionx.List[querydsl.SelectItem], error) {
+func Of(schema schemax.Resource, mapper Mapper) (*listx.List[querydsl.SelectItem], error) {
 	return ofSpec(schema.Spec(), mapper)
 }
 
-func Must(schema schemax.Resource, mapper Mapper) collectionx.List[querydsl.SelectItem] {
+func Must(schema schemax.Resource, mapper Mapper) *listx.List[querydsl.SelectItem] {
 	items, err := Of(schema, mapper)
 	if err != nil {
 		panic(err)
@@ -46,20 +47,20 @@ func MustSelect(schema schemax.Resource, mapper Mapper) *querydsl.SelectQuery {
 	return query
 }
 
-func ofSpec(spec schemax.TableSpec, mapper Mapper) (collectionx.List[querydsl.SelectItem], error) {
+func ofSpec(spec schemax.TableSpec, mapper Mapper) (*listx.List[querydsl.SelectItem], error) {
 	fields := mapper.Fields()
-	columnsByName := collectionx.AssociateList[schemax.ColumnMeta, string, schemax.ColumnMeta](spec.Columns, func(_ int, column schemax.ColumnMeta) (string, schemax.ColumnMeta) {
+	columnsByName := mappingx.AssociateList[schemax.ColumnMeta, string, schemax.ColumnMeta](spec.Columns, func(_ int, column schemax.ColumnMeta) (string, schemax.ColumnMeta) {
 		return column.Name, column
 	})
 
-	if unmapped, ok := collectionx.FindList[mapperx.MappedField](fields, func(_ int, field mapperx.MappedField) bool {
+	if unmapped, ok := listx.FindList[mapperx.MappedField](fields, func(_ int, field mapperx.MappedField) bool {
 		_, ok := columnsByName.Get(field.Column)
 		return !ok
 	}); ok {
 		return nil, &mapperx.UnmappedColumnError{Column: unmapped.Column}
 	}
 
-	return collectionx.FilterMapList[mapperx.MappedField, querydsl.SelectItem](fields, func(_ int, field mapperx.MappedField) (querydsl.SelectItem, bool) {
+	return listx.FilterMapList[mapperx.MappedField, querydsl.SelectItem](fields, func(_ int, field mapperx.MappedField) (querydsl.SelectItem, bool) {
 		column, ok := columnsByName.Get(field.Column)
 		if !ok {
 			return nil, false

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 type constraintBinder interface {

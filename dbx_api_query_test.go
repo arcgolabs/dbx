@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	dbx "github.com/arcgolabs/dbx"
 	codecx "github.com/arcgolabs/dbx/codec"
 	columnx "github.com/arcgolabs/dbx/column"
@@ -33,7 +33,7 @@ func Like[E any](column Column[E, string], pattern string) querydsl.Predicate {
 	return querydsl.Like(column, pattern)
 }
 
-func AllColumns(schema SchemaResource) collectionx.List[querydsl.SelectItem] {
+func AllColumns(schema SchemaResource) *collectionx.List[querydsl.SelectItem] {
 	return collectionx.MapList[schemax.ColumnMeta, querydsl.SelectItem](schema.Spec().Columns, func(_ int, column schemax.ColumnMeta) querydsl.SelectItem {
 		return columnx.Named[any](schema, column.Name)
 	})
@@ -77,7 +77,7 @@ func NewStructMapperWithOptions[E any](opts ...MapperOption) (StructMapper[E], e
 	return mapper, nil
 }
 
-func NewPageResult[E any](items collectionx.List[E], total int64, request PageRequest) PageResult[E] {
+func NewPageResult[E any](items *collectionx.List[E], total int64, request PageRequest) PageResult[E] {
 	return paging.NewResult[E](items, total, request)
 }
 
@@ -85,7 +85,7 @@ func MapPageResult[E any, R any](result PageResult[E], mapper func(index int, it
 	return paging.MapResult[E, R](result, mapper)
 }
 
-func QueryAll[E any](ctx context.Context, session Session, query querydsl.Builder, mapper RowsScanner[E]) (collectionx.List[E], error) {
+func QueryAll[E any](ctx context.Context, session Session, query querydsl.Builder, mapper RowsScanner[E]) (*collectionx.List[E], error) {
 	items, err := dbx.QueryAll[E](ctx, session, query, mapper)
 	if err != nil {
 		return nil, fmt.Errorf("query all: %w", err)
@@ -93,7 +93,7 @@ func QueryAll[E any](ctx context.Context, session Session, query querydsl.Builde
 	return items, nil
 }
 
-func QueryAllList[E any](ctx context.Context, session Session, query querydsl.Builder, mapper RowsScanner[E]) (collectionx.List[E], error) {
+func QueryAllList[E any](ctx context.Context, session Session, query querydsl.Builder, mapper RowsScanner[E]) (*collectionx.List[E], error) {
 	items, err := dbx.QueryAllList[E](ctx, session, query, mapper)
 	if err != nil {
 		return nil, fmt.Errorf("query all list: %w", err)
@@ -101,7 +101,7 @@ func QueryAllList[E any](ctx context.Context, session Session, query querydsl.Bu
 	return items, nil
 }
 
-func QueryAllBound[E any](ctx context.Context, session Session, bound sqlstmt.Bound, mapper RowsScanner[E]) (collectionx.List[E], error) {
+func QueryAllBound[E any](ctx context.Context, session Session, bound sqlstmt.Bound, mapper RowsScanner[E]) (*collectionx.List[E], error) {
 	items, err := dbx.QueryAllBound[E](ctx, session, bound, mapper)
 	if err != nil {
 		return nil, fmt.Errorf("query all bound: %w", err)
@@ -109,7 +109,7 @@ func QueryAllBound[E any](ctx context.Context, session Session, bound sqlstmt.Bo
 	return items, nil
 }
 
-func QueryAllBoundList[E any](ctx context.Context, session Session, bound sqlstmt.Bound, mapper RowsScanner[E]) (collectionx.List[E], error) {
+func QueryAllBoundList[E any](ctx context.Context, session Session, bound sqlstmt.Bound, mapper RowsScanner[E]) (*collectionx.List[E], error) {
 	items, err := dbx.QueryAllBoundList[E](ctx, session, bound, mapper)
 	if err != nil {
 		return nil, fmt.Errorf("query all bound list: %w", err)
@@ -162,7 +162,7 @@ func SQLGet[E any](ctx context.Context, session Session, statement sqlstmt.Sourc
 	return item, nil
 }
 
-func SQLList[E any](ctx context.Context, session Session, statement sqlstmt.Source, params any, mapper RowsScanner[E]) (collectionx.List[E], error) {
+func SQLList[E any](ctx context.Context, session Session, statement sqlstmt.Source, params any, mapper RowsScanner[E]) (*collectionx.List[E], error) {
 	items, err := sqlexec.List[E](ctx, session, statement, params, mapper)
 	if err != nil {
 		return nil, fmt.Errorf("sql list: %w", err)
@@ -170,7 +170,7 @@ func SQLList[E any](ctx context.Context, session Session, statement sqlstmt.Sour
 	return items, nil
 }
 
-func SQLQueryList[E any](ctx context.Context, session Session, statement sqlstmt.Source, params any, mapper RowsScanner[E]) (collectionx.List[E], error) {
+func SQLQueryList[E any](ctx context.Context, session Session, statement sqlstmt.Source, params any, mapper RowsScanner[E]) (*collectionx.List[E], error) {
 	items, err := sqlexec.QueryList[E](ctx, session, statement, params, mapper)
 	if err != nil {
 		return nil, fmt.Errorf("sql query list: %w", err)

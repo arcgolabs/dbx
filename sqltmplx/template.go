@@ -3,7 +3,7 @@ package sqltmplx
 import (
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/dialect"
 	"github.com/arcgolabs/dbx/sqlstmt"
 	"github.com/arcgolabs/dbx/sqltmplx/parse"
@@ -15,7 +15,7 @@ import (
 // Template stores a compiled SQL template.
 type Template struct {
 	name      string
-	nodes     collectionx.List[parse.Node]
+	nodes     *collectionx.List[parse.Node]
 	metadata  TemplateMetadata
 	dialect   dialect.Contract
 	validator validate.Validator

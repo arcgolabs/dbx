@@ -6,7 +6,7 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	"github.com/arcgolabs/dbx/examples/internal/shared"
 	mapperx "github.com/arcgolabs/dbx/mapper"
@@ -56,7 +56,7 @@ func preparePureSQLData(ctx context.Context, core *dbx.DB, catalog shared.Catalo
 	}
 }
 
-func runActiveUserQuery(ctx context.Context, core *dbx.DB, registry *sqltmplx.Registry) collectionx.List[shared.UserSummary] {
+func runActiveUserQuery(ctx context.Context, core *dbx.DB, registry *sqltmplx.Registry) *collectionx.List[shared.UserSummary] {
 	users, err := sqlexec.List[shared.UserSummary](
 		ctx,
 		core,
@@ -73,7 +73,7 @@ func runActiveUserQuery(ctx context.Context, core *dbx.DB, registry *sqltmplx.Re
 	return users
 }
 
-func printActiveUsers(users collectionx.List[shared.UserSummary]) {
+func printActiveUsers(users *collectionx.List[shared.UserSummary]) {
 	printLine("active users from pure sql:")
 	users.Range(func(_ int, user shared.UserSummary) bool {
 		printFormat("- id=%d username=%s email=%s\n", user.ID, user.Username, user.Email)

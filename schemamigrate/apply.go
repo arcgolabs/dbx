@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	schemax "github.com/arcgolabs/dbx/schema"
 )
@@ -79,7 +79,7 @@ func rollbackPendingMigration(session dbx.Session, rollback func() error, commit
 	}
 }
 
-func executeMigrationActions(ctx context.Context, session, execSession dbx.Session, actions collectionx.List[schemax.MigrationAction]) error {
+func executeMigrationActions(ctx context.Context, session, execSession dbx.Session, actions *collectionx.List[schemax.MigrationAction]) error {
 	var execErr error
 	actions.Range(func(_ int, action schemax.MigrationAction) bool {
 		if !action.Executable {

@@ -9,7 +9,7 @@ import (
 	"github.com/arcgolabs/dbx/sqlexec"
 	"github.com/arcgolabs/dbx/sqlstmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/samber/oops"
 )
 
@@ -21,11 +21,11 @@ type Cursor[T any] interface {
 }
 
 type sliceCursor[E any] struct {
-	items collectionx.List[E]
+	items *collectionx.List[E]
 	index int
 }
 
-func newSliceCursor[E any](items collectionx.List[E]) Cursor[E] {
+func newSliceCursor[E any](items *collectionx.List[E]) Cursor[E] {
 	return &sliceCursor[E]{items: items, index: -1}
 }
 

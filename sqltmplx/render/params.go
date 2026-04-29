@@ -3,7 +3,7 @@ package render
 import (
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/mapping"
 )
 
 type paramLookup interface {
@@ -21,7 +21,7 @@ type overlayParam struct {
 
 type paramOverlay struct {
 	base   any
-	values collectionx.Map[string, overlayParam]
+	values *collectionx.Map[string, overlayParam]
 }
 
 // WithParam overlays one top-level parameter onto an existing template parameter object.
@@ -36,7 +36,7 @@ func WithParam(params any, name string, value any) any {
 }
 
 // WithParams overlays top-level parameters onto an existing template parameter object.
-func WithParams(params any, values collectionx.Map[string, any]) any {
+func WithParams(params any, values *collectionx.Map[string, any]) any {
 	filtered := collectionx.NewMapWithCapacity[string, overlayParam](values.Len())
 	values.Range(func(name string, value any) bool {
 		key := normalizeParamName(name)

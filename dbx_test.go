@@ -7,7 +7,7 @@ import (
 	relationx "github.com/arcgolabs/dbx/relation"
 	"testing"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 type Role struct {

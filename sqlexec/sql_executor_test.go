@@ -8,7 +8,7 @@ import (
 	"github.com/arcgolabs/dbx/sqlstmt"
 	"testing"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 func TestSQLListScansStructMapperAndPropagatesStatementName(t *testing.T) {

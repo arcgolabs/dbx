@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	schemax "github.com/arcgolabs/dbx/schema"
 	"github.com/arcgolabs/dbx/sqlstmt"
 )
@@ -74,7 +74,7 @@ func toColumnState(column schemax.ColumnMeta) schemax.ColumnState {
 	}
 }
 
-func toIndexStates(indexes collectionx.List[schemax.IndexMeta]) collectionx.List[schemax.IndexState] {
+func toIndexStates(indexes *collectionx.List[schemax.IndexMeta]) *collectionx.List[schemax.IndexState] {
 	items := collectionx.NewListWithCapacity[schemax.IndexState](indexes.Len())
 	indexes.Range(func(_ int, index schemax.IndexMeta) bool {
 		items.Add(schemax.IndexState{Name: index.Name, Columns: index.Columns.Clone(), Unique: index.Unique})
@@ -83,7 +83,7 @@ func toIndexStates(indexes collectionx.List[schemax.IndexMeta]) collectionx.List
 	return items
 }
 
-func toForeignKeyStates(foreignKeys collectionx.List[schemax.ForeignKeyMeta]) collectionx.List[schemax.ForeignKeyState] {
+func toForeignKeyStates(foreignKeys *collectionx.List[schemax.ForeignKeyMeta]) *collectionx.List[schemax.ForeignKeyState] {
 	items := collectionx.NewListWithCapacity[schemax.ForeignKeyState](foreignKeys.Len())
 	foreignKeys.Range(func(_ int, foreignKey schemax.ForeignKeyMeta) bool {
 		items.Add(schemax.ForeignKeyState{

@@ -15,7 +15,8 @@ import (
 	atlaspostgres "ariga.io/atlas/sql/postgres"
 	atlasschema "ariga.io/atlas/sql/schema"
 	atlassqlite "ariga.io/atlas/sql/sqlite"
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	"github.com/samber/hot"
 )
 
@@ -23,21 +24,21 @@ var compiledSchemaCache = hot.NewHotCache[string, *atlasCompiledSchema](hot.LRU,
 
 type atlasCompiledSchema struct {
 	schema    *atlasschema.Schema
-	tables    collectionx.Map[string, *atlasCompiledTable]
-	externals collectionx.Map[string, *atlasschema.Table]
-	order     collectionx.List[string]
+	tables    *mappingx.Map[string, *atlasCompiledTable]
+	externals *mappingx.Map[string, *atlasschema.Table]
+	order     *collectionx.List[string]
 }
 
 type atlasCompiledTable struct {
 	spec              schemax.TableSpec
 	table             *atlasschema.Table
-	columnsByName     collectionx.Map[string, schemax.ColumnMeta]
-	indexesByName     collectionx.Map[string, schemax.IndexMeta]
-	indexesByKey      collectionx.Map[string, schemax.IndexMeta]
-	foreignKeysByName collectionx.Map[string, schemax.ForeignKeyMeta]
-	foreignKeysByKey  collectionx.Map[string, schemax.ForeignKeyMeta]
-	checksByName      collectionx.Map[string, schemax.CheckMeta]
-	checksByExpr      collectionx.Map[string, schemax.CheckMeta]
+	columnsByName     *mappingx.Map[string, schemax.ColumnMeta]
+	indexesByName     *mappingx.Map[string, schemax.IndexMeta]
+	indexesByKey      *mappingx.Map[string, schemax.IndexMeta]
+	foreignKeysByName *mappingx.Map[string, schemax.ForeignKeyMeta]
+	foreignKeysByKey  *mappingx.Map[string, schemax.ForeignKeyMeta]
+	checksByName      *mappingx.Map[string, schemax.CheckMeta]
+	checksByExpr      *mappingx.Map[string, schemax.CheckMeta]
 }
 
 func schemaFingerprint(schemas []Resource) string {

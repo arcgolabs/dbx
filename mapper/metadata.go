@@ -5,16 +5,17 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	listx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	codecx "github.com/arcgolabs/dbx/codec"
 	"github.com/samber/hot"
 )
 
 type mapperMetadata struct {
 	entityType         reflect.Type
-	fields             collectionx.List[MappedField]
-	byColumn           collectionx.Map[string, MappedField]
-	byNormalizedColumn collectionx.Map[string, MappedField]
+	fields             *listx.List[MappedField]
+	byColumn           *mappingx.Map[string, MappedField]
+	byNormalizedColumn *mappingx.Map[string, MappedField]
 	scanPlans          *hot.HotCache[string, *scanPlan]
 }
 
@@ -23,9 +24,9 @@ func buildMapperMetadata(entityType reflect.Type, codecs *codecx.Registry) (*map
 		return nil, ErrUnsupportedEntity
 	}
 
-	fields := collectionx.NewListWithCapacity[MappedField](entityType.NumField())
-	byColumn := collectionx.NewMapWithCapacity[string, MappedField](entityType.NumField())
-	byNormalizedColumn := collectionx.NewMapWithCapacity[string, MappedField](entityType.NumField())
+	fields := listx.NewListWithCapacity[MappedField](entityType.NumField())
+	byColumn := mappingx.NewMapWithCapacity[string, MappedField](entityType.NumField())
+	byNormalizedColumn := mappingx.NewMapWithCapacity[string, MappedField](entityType.NumField())
 	if err := collectMappedFields(entityType, nil, fields, byColumn, byNormalizedColumn, codecs); err != nil {
 		return nil, err
 	}
@@ -56,7 +57,7 @@ func resolveEntityColumn(field reflect.StructField) (string, map[string]string) 
 	return name, associateTagOptions(parts[1:])
 }
 
-func collectMappedFields(entityType reflect.Type, prefix []int, fields collectionx.List[MappedField], byColumn, byNormalizedColumn collectionx.Map[string, MappedField], codecs *codecx.Registry) error {
+func collectMappedFields(entityType reflect.Type, prefix []int, fields *listx.List[MappedField], byColumn, byNormalizedColumn *mappingx.Map[string, MappedField], codecs *codecx.Registry) error {
 	for fieldIndex := range entityType.NumField() {
 		field := entityType.Field(fieldIndex)
 		path := appendIndexPath(prefix, fieldIndex)
@@ -67,7 +68,7 @@ func collectMappedFields(entityType reflect.Type, prefix []int, fields collectio
 	return nil
 }
 
-func processField(field reflect.StructField, path []int, fields collectionx.List[MappedField], byColumn, byNormalizedColumn collectionx.Map[string, MappedField], codecs *codecx.Registry) error {
+func processField(field reflect.StructField, path []int, fields *listx.List[MappedField], byColumn, byNormalizedColumn *mappingx.Map[string, MappedField], codecs *codecx.Registry) error {
 	if !field.IsExported() {
 		return nil
 	}
@@ -99,7 +100,7 @@ func processField(field reflect.StructField, path []int, fields collectionx.List
 	return addMappedField(field, columnName, options, path, fields, byColumn, byNormalizedColumn, codecs)
 }
 
-func addMappedField(field reflect.StructField, columnName string, options map[string]string, path []int, fields collectionx.List[MappedField], byColumn, byNormalizedColumn collectionx.Map[string, MappedField], codecs *codecx.Registry) error {
+func addMappedField(field reflect.StructField, columnName string, options map[string]string, path []int, fields *listx.List[MappedField], byColumn, byNormalizedColumn *mappingx.Map[string, MappedField], codecs *codecx.Registry) error {
 	codecName := codecx.NormalizeName(optionValue(options, "codec"))
 	codec, err := resolveMappedFieldCodec(codecs, codecName)
 	if err != nil {
@@ -111,7 +112,7 @@ func addMappedField(field reflect.StructField, columnName string, options map[st
 		Column:     columnName,
 		Codec:      codecName,
 		Index:      path[0],
-		Path:       collectionx.NewList[int](path...),
+		Path:       listx.NewList[int](path...),
 		Type:       field.Type,
 		Insertable: !optionEnabled(options, "readonly") && !optionEnabled(options, "-insert") && !optionEnabled(options, "noinsert"),
 		Updatable:  !optionEnabled(options, "readonly") && !optionEnabled(options, "-update") && !optionEnabled(options, "noupdate"),

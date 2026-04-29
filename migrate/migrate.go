@@ -11,7 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	"github.com/arcgolabs/dbx/dialect"
 )
 
@@ -188,13 +189,13 @@ func ParseVersionedFilename(name string) (VersionedFile, error) {
 }
 
 // List returns the SQL migrations discovered in s.
-func (s FileSource) List() (collectionx.List[SQLMigration], error) {
+func (s FileSource) List() (*collectionx.List[SQLMigration], error) {
 	entries, err := s.readEntries()
 	if err != nil {
 		return nil, err
 	}
 
-	items := collectionx.NewMapWithCapacity[string, *SQLMigration](entries.Len())
+	items := mappingx.NewMapWithCapacity[string, *SQLMigration](entries.Len())
 	_, err = collectionx.ReduceErrList[fs.DirEntry, struct{}](
 		collectionx.FilterList[fs.DirEntry](entries, func(_ int, entry fs.DirEntry) bool {
 			return !entry.IsDir()
@@ -211,7 +212,7 @@ func (s FileSource) List() (collectionx.List[SQLMigration], error) {
 	return sortedSQLMigrations(items), nil
 }
 
-func (s FileSource) readEntries() (collectionx.List[fs.DirEntry], error) {
+func (s FileSource) readEntries() (*collectionx.List[fs.DirEntry], error) {
 	entries, err := fs.ReadDir(s.FS, s.Dir)
 	if err != nil {
 		return nil, fmt.Errorf("dbx/migrate: read migration dir %q: %w", s.Dir, err)
@@ -219,7 +220,7 @@ func (s FileSource) readEntries() (collectionx.List[fs.DirEntry], error) {
 	return collectionx.NewList[fs.DirEntry](entries...), nil
 }
 
-func (s FileSource) addEntry(items collectionx.Map[string, *SQLMigration], entry fs.DirEntry) error {
+func (s FileSource) addEntry(items *mappingx.Map[string, *SQLMigration], entry fs.DirEntry) error {
 	fullPath, err := safeJoinPath(s.Dir, entry.Name())
 	if err != nil {
 		return fmt.Errorf("dbx/migrate: resolve migration path %q: %w", entry.Name(), err)
@@ -260,7 +261,7 @@ func setSQLMigrationPath(migration *SQLMigration, direction Direction, fullPath 
 	migration.DownPath = fullPath
 }
 
-func sortedSQLMigrations(items collectionx.Map[string, *SQLMigration]) collectionx.List[SQLMigration] {
+func sortedSQLMigrations(items *mappingx.Map[string, *SQLMigration]) *collectionx.List[SQLMigration] {
 	sorted := collectionx.NewListWithCapacity[SQLMigration](items.Len())
 	items.Range(func(_ string, migration *SQLMigration) bool {
 		sorted.Add(*migration)

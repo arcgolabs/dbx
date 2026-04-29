@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	"github.com/arcgolabs/dbx/dialect"
 	goosedatabase "github.com/pressly/goose/v3/database"
 )
@@ -15,10 +16,10 @@ import (
 type historyStore struct {
 	tableName     string
 	dialect       dialect.Dialect
-	metaByVersion collectionx.Map[int64, AppliedRecord]
+	metaByVersion *mappingx.Map[int64, AppliedRecord]
 }
 
-func newHistoryStore(d dialect.Dialect, tableName string, metaByVersion collectionx.Map[int64, AppliedRecord]) *historyStore {
+func newHistoryStore(d dialect.Dialect, tableName string, metaByVersion *mappingx.Map[int64, AppliedRecord]) *historyStore {
 	return &historyStore{
 		tableName:     tableName,
 		dialect:       d,

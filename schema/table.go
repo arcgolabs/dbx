@@ -4,7 +4,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 )
 
 type SchemaSource[E any] interface {
@@ -21,12 +22,12 @@ type schemaBinder interface {
 
 type schemaDefinition struct {
 	table         schemaTable
-	columns       collectionx.List[ColumnMeta]
-	columnsByName collectionx.Map[string, ColumnMeta]
-	relations     collectionx.List[RelationMeta]
-	indexes       collectionx.List[IndexMeta]
+	columns       *collectionx.List[ColumnMeta]
+	columnsByName *mappingx.Map[string, ColumnMeta]
+	relations     *collectionx.List[RelationMeta]
+	indexes       *collectionx.List[IndexMeta]
 	primaryKey    *PrimaryKeyMeta
-	checks        collectionx.List[CheckMeta]
+	checks        *collectionx.List[CheckMeta]
 }
 
 type schemaTable struct {
@@ -107,15 +108,15 @@ func (s Schema[E]) EntityType() reflect.Type {
 	return s.def.table.EntityType()
 }
 
-func (s Schema[E]) Columns() collectionx.List[ColumnMeta] {
+func (s Schema[E]) Columns() *collectionx.List[ColumnMeta] {
 	return cloneColumnMetas(s.def.columns)
 }
 
-func (s Schema[E]) Relations() collectionx.List[RelationMeta] {
+func (s Schema[E]) Relations() *collectionx.List[RelationMeta] {
 	return s.def.relations.Clone()
 }
 
-func (s Schema[E]) Indexes() collectionx.List[IndexMeta] {
+func (s Schema[E]) Indexes() *collectionx.List[IndexMeta] {
 	return cloneIndexMetas(s.def.indexes)
 }
 
@@ -126,11 +127,11 @@ func (s Schema[E]) PrimaryKey() (PrimaryKeyMeta, bool) {
 	return clonePrimaryKeyMeta(*s.def.primaryKey), true
 }
 
-func (s Schema[E]) Checks() collectionx.List[CheckMeta] {
+func (s Schema[E]) Checks() *collectionx.List[CheckMeta] {
 	return cloneCheckMetas(s.def.checks)
 }
 
-func (s Schema[E]) ForeignKeys() collectionx.List[ForeignKeyMeta] {
+func (s Schema[E]) ForeignKeys() *collectionx.List[ForeignKeyMeta] {
 	items := deriveForeignKeys(s.def)
 	return collectionx.MapList[ForeignKeyMeta, ForeignKeyMeta](collectionx.NewListWithCapacity[ForeignKeyMeta](len(items), items...), func(_ int, item ForeignKeyMeta) ForeignKeyMeta {
 		return cloneForeignKeyMeta(item)
@@ -180,26 +181,26 @@ func (d schemaDefinition) columnByName(name string) (ColumnMeta, bool) {
 	})
 }
 
-func cloneColumnMetas(items collectionx.List[ColumnMeta]) collectionx.List[ColumnMeta] {
+func cloneColumnMetas(items *collectionx.List[ColumnMeta]) *collectionx.List[ColumnMeta] {
 	return collectionx.MapList[ColumnMeta, ColumnMeta](items, func(_ int, column ColumnMeta) ColumnMeta {
 		return cloneColumnMeta(column)
 	})
 }
 
-func cloneIndexMetas(items collectionx.List[IndexMeta]) collectionx.List[IndexMeta] {
+func cloneIndexMetas(items *collectionx.List[IndexMeta]) *collectionx.List[IndexMeta] {
 	return collectionx.MapList[IndexMeta, IndexMeta](items, func(_ int, item IndexMeta) IndexMeta {
 		return cloneIndexMeta(item)
 	})
 }
 
-func cloneCheckMetas(items collectionx.List[CheckMeta]) collectionx.List[CheckMeta] {
+func cloneCheckMetas(items *collectionx.List[CheckMeta]) *collectionx.List[CheckMeta] {
 	return collectionx.MapList[CheckMeta, CheckMeta](items, func(_ int, item CheckMeta) CheckMeta {
 		return cloneCheckMeta(item)
 	})
 }
 
-func indexColumnsByName(columns collectionx.List[ColumnMeta]) collectionx.Map[string, ColumnMeta] {
-	return collectionx.AssociateList[ColumnMeta, string, ColumnMeta](columns, func(_ int, column ColumnMeta) (string, ColumnMeta) {
+func indexColumnsByName(columns *collectionx.List[ColumnMeta]) *mappingx.Map[string, ColumnMeta] {
+	return mappingx.AssociateList[ColumnMeta, string, ColumnMeta](columns, func(_ int, column ColumnMeta) (string, ColumnMeta) {
 		return column.Name, column
 	})
 }

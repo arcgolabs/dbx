@@ -6,7 +6,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/arcgolabs/collectionx"
+	listx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 )
 
 type Operation string
@@ -28,7 +29,7 @@ type HookEvent struct {
 	Operation       Operation
 	Statement       string
 	SQL             string
-	Args            collectionx.List[any]
+	Args            *listx.List[any]
 	Table           string
 	StartedAt       time.Time // Set in Before, use with Duration for slow-query detection.
 	Duration        time.Duration
@@ -39,13 +40,13 @@ type HookEvent struct {
 	// Metadata holds arbitrary key-value pairs (e.g. trace_id, request_id) for observability.
 	// Hooks can set it in Before and read it in After; values are included in logs when present.
 	// Use SetMetadata to initialize and populate it.
-	Metadata collectionx.Map[string, any]
+	Metadata *mappingx.Map[string, any]
 }
 
 // SetMetadata sets a key-value pair in Metadata, initializing the map if needed.
 func (e *HookEvent) SetMetadata(key string, value any) {
 	if e.Metadata == nil {
-		e.Metadata = collectionx.NewMap[string, any]()
+		e.Metadata = mappingx.NewMap[string, any]()
 	}
 	e.Metadata.Set(key, value)
 }
@@ -75,7 +76,7 @@ func (h HookFuncs) After(ctx context.Context, event *HookEvent) {
 
 type runtimeObserver struct {
 	logger *slog.Logger
-	hooks  collectionx.List[Hook]
+	hooks  *listx.List[Hook]
 	debug  bool
 }
 
@@ -149,7 +150,7 @@ func (o runtimeObserver) log(event HookEvent) {
 }
 
 func (o runtimeObserver) buildLogAttrs(event HookEvent) []any {
-	attrs := collectionx.NewListWithCapacity[any](14,
+	attrs := listx.NewListWithCapacity[any](14,
 		"operation", event.Operation,
 		"duration", event.Duration,
 	)

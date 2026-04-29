@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	"github.com/pressly/goose/v3"
 )
 
 // PendingGo returns Go migrations that have not yet been applied.
-func (r *Runner) PendingGo(ctx context.Context, migrations ...Migration) (collectionx.List[Migration], error) {
+func (r *Runner) PendingGo(ctx context.Context, migrations ...Migration) (*collectionx.List[Migration], error) {
 	bundle, err := r.newRunnerEngineForGo(migrations)
 	if err != nil {
 		return nil, err
@@ -35,7 +36,7 @@ func (r *Runner) PendingGo(ctx context.Context, migrations ...Migration) (collec
 }
 
 // PendingSQL returns SQL migrations that should be applied next.
-func (r *Runner) PendingSQL(ctx context.Context, source FileSource) (collectionx.List[SQLMigration], error) {
+func (r *Runner) PendingSQL(ctx context.Context, source FileSource) (*collectionx.List[SQLMigration], error) {
 	bundle, repeatables, err := r.newRunnerEngineForSQL(source)
 	if err != nil {
 		return nil, err
@@ -99,11 +100,11 @@ func indexGoMigrationsByVersion(migrations []Migration) (map[int64]Migration, er
 
 func collectPendingGoMigrations(
 	statuses []*goose.MigrationStatus,
-	metaByVersion collectionx.Map[int64, AppliedRecord],
+	metaByVersion *mappingx.Map[int64, AppliedRecord],
 	indexed map[string]AppliedRecord,
 	byVersion map[int64]Migration,
 	validateHash bool,
-) (collectionx.List[Migration], error) {
+) (*collectionx.List[Migration], error) {
 	return collectPendingMigrations(statuses, metaByVersion, indexed, byVersion, validateHash, "go")
 }
 
@@ -112,7 +113,7 @@ func (r *Runner) pendingVersionedSQL(
 	source FileSource,
 	bundle *runnerEngine,
 	indexed map[string]AppliedRecord,
-) (collectionx.List[SQLMigration], error) {
+) (*collectionx.List[SQLMigration], error) {
 	statuses, err := pendingStatuses(ctx, bundle.engine, "sql")
 	if err != nil {
 		return nil, err
@@ -150,26 +151,26 @@ func indexVersionedSQLMigrations(source FileSource) (map[int64]SQLMigration, err
 
 func collectPendingSQLMigrations(
 	statuses []*goose.MigrationStatus,
-	metaByVersion collectionx.Map[int64, AppliedRecord],
+	metaByVersion *mappingx.Map[int64, AppliedRecord],
 	indexed map[string]AppliedRecord,
 	byVersion map[int64]SQLMigration,
 	validateHash bool,
-) (collectionx.List[SQLMigration], error) {
+) (*collectionx.List[SQLMigration], error) {
 	return collectPendingMigrations(statuses, metaByVersion, indexed, byVersion, validateHash, "sql")
 }
 
 func collectPendingMigrations[T any](
 	statuses []*goose.MigrationStatus,
-	metaByVersion collectionx.Map[int64, AppliedRecord],
+	metaByVersion *mappingx.Map[int64, AppliedRecord],
 	indexed map[string]AppliedRecord,
 	byVersion map[int64]T,
 	validateHash bool,
 	kind string,
-) (collectionx.List[T], error) {
-	pending, err := collectionx.ReduceErrList[*goose.MigrationStatus, collectionx.List[T]](
+) (*collectionx.List[T], error) {
+	pending, err := collectionx.ReduceErrList[*goose.MigrationStatus, *collectionx.List[T]](
 		collectionx.NewList[*goose.MigrationStatus](statuses...),
 		collectionx.NewListWithCapacity[T](len(statuses)),
-		func(result collectionx.List[T], _ int, status *goose.MigrationStatus) (collectionx.List[T], error) {
+		func(result *collectionx.List[T], _ int, status *goose.MigrationStatus) (*collectionx.List[T], error) {
 			migration, ok := byVersion[status.Source.Version]
 			if !ok {
 				return result, nil
@@ -192,7 +193,7 @@ func collectPendingMigrations[T any](
 
 func validatePendingStatus(
 	status *goose.MigrationStatus,
-	metaByVersion collectionx.Map[int64, AppliedRecord],
+	metaByVersion *mappingx.Map[int64, AppliedRecord],
 	indexed map[string]AppliedRecord,
 	validateHash bool,
 ) error {
@@ -211,7 +212,7 @@ func validatePendingStatus(
 	return nil
 }
 
-func pendingRepeatableMigrations(repeatables collectionx.List[loadedSQLMigration], indexed map[string]AppliedRecord) collectionx.List[SQLMigration] {
+func pendingRepeatableMigrations(repeatables *collectionx.List[loadedSQLMigration], indexed map[string]AppliedRecord) *collectionx.List[SQLMigration] {
 	return collectionx.FilterMapList[loadedSQLMigration, SQLMigration](repeatables, func(_ int, migration loadedSQLMigration) (SQLMigration, bool) {
 		key := appliedRecordKey(migration.kind, migration.Version, migration.Description)
 		record, ok := indexed[key]

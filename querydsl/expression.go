@@ -3,7 +3,7 @@ package querydsl
 import (
 	"errors"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	schemax "github.com/arcgolabs/dbx/schema"
 )
 
@@ -64,7 +64,7 @@ type comparisonPredicate struct {
 
 type logicalPredicate struct {
 	Op         LogicalOperator
-	Predicates collectionx.List[Predicate]
+	Predicates *collectionx.List[Predicate]
 }
 
 type notPredicate struct {
@@ -104,7 +104,7 @@ func Or(predicates ...Predicate) Predicate {
 	return OrList(CompactPredicates(predicates))
 }
 
-func AndList(predicates collectionx.List[Predicate]) Predicate {
+func AndList(predicates *collectionx.List[Predicate]) Predicate {
 	items := CompactPredicatesList(predicates)
 	if items.Len() == 1 {
 		predicate, _ := items.GetFirst()
@@ -113,7 +113,7 @@ func AndList(predicates collectionx.List[Predicate]) Predicate {
 	return logicalPredicate{Op: LogicalAnd, Predicates: items}
 }
 
-func OrList(predicates collectionx.List[Predicate]) Predicate {
+func OrList(predicates *collectionx.List[Predicate]) Predicate {
 	items := CompactPredicatesList(predicates)
 	if items.Len() == 1 {
 		predicate, _ := items.GetFirst()
@@ -134,51 +134,51 @@ func Exists(query *SelectQuery) Predicate {
 	return existsPredicate{Query: query}
 }
 
-func CompactExpressions(expressions []Expression) collectionx.List[Expression] {
+func CompactExpressions(expressions []Expression) *collectionx.List[Expression] {
 	return CompactExpressionsList(collectionx.NewList[Expression](expressions...))
 }
 
-func CompactExpressionsList(expressions collectionx.List[Expression]) collectionx.List[Expression] {
+func CompactExpressionsList(expressions *collectionx.List[Expression]) *collectionx.List[Expression] {
 	return collectionx.FilterList[Expression](expressions, func(_ int, expression Expression) bool {
 		return expression != nil
 	})
 }
 
-func CompactPredicates(predicates []Predicate) collectionx.List[Predicate] {
+func CompactPredicates(predicates []Predicate) *collectionx.List[Predicate] {
 	return CompactPredicatesList(collectionx.NewList[Predicate](predicates...))
 }
 
-func CompactPredicatesList(predicates collectionx.List[Predicate]) collectionx.List[Predicate] {
+func CompactPredicatesList(predicates *collectionx.List[Predicate]) *collectionx.List[Predicate] {
 	return collectionx.FilterList[Predicate](predicates, func(_ int, predicate Predicate) bool {
 		return predicate != nil
 	})
 }
 
-func CompactAssignments(assignments []Assignment) collectionx.List[Assignment] {
+func CompactAssignments(assignments []Assignment) *collectionx.List[Assignment] {
 	return CompactAssignmentsList(collectionx.NewList[Assignment](assignments...))
 }
 
-func CompactAssignmentsList(assignments collectionx.List[Assignment]) collectionx.List[Assignment] {
+func CompactAssignmentsList(assignments *collectionx.List[Assignment]) *collectionx.List[Assignment] {
 	return collectionx.FilterList[Assignment](assignments, func(_ int, assignment Assignment) bool {
 		return assignment != nil
 	})
 }
 
-func CompactSelectItems(items []SelectItem) collectionx.List[SelectItem] {
+func CompactSelectItems(items []SelectItem) *collectionx.List[SelectItem] {
 	return CompactSelectItemsList(collectionx.NewList[SelectItem](items...))
 }
 
-func CompactSelectItemsList(items collectionx.List[SelectItem]) collectionx.List[SelectItem] {
+func CompactSelectItemsList(items *collectionx.List[SelectItem]) *collectionx.List[SelectItem] {
 	return collectionx.FilterList[SelectItem](items, func(_ int, item SelectItem) bool {
 		return item != nil
 	})
 }
 
-func CompactOrders(orders []Order) collectionx.List[Order] {
+func CompactOrders(orders []Order) *collectionx.List[Order] {
 	return CompactOrdersList(collectionx.NewList[Order](orders...))
 }
 
-func CompactOrdersList(orders collectionx.List[Order]) collectionx.List[Order] {
+func CompactOrdersList(orders *collectionx.List[Order]) *collectionx.List[Order] {
 	return collectionx.FilterList[Order](orders, func(_ int, order Order) bool {
 		return order != nil
 	})

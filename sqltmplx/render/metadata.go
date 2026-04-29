@@ -4,15 +4,17 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
+	setx "github.com/arcgolabs/collectionx/set"
 	"github.com/samber/hot"
 )
 
 var structMetadataCache = hot.NewHotCache[reflect.Type, *structMetadata](hot.LRU, 256).Build()
 
 type structMetadata struct {
-	fields      collectionx.List[structFieldMetadata]
-	lookup      collectionx.Map[string, structFieldMetadata]
+	fields      *collectionx.List[structFieldMetadata]
+	lookup      *mappingx.Map[string, structFieldMetadata]
 	envKeyCount int
 }
 
@@ -20,12 +22,12 @@ type structFieldMetadata struct {
 	index      int
 	name       string
 	foldedName string
-	aliases    collectionx.List[string]
-	envKeys    collectionx.List[string]
+	aliases    *collectionx.List[string]
+	envKeys    *collectionx.List[string]
 }
 
 type methodMetadata struct {
-	lookup collectionx.Map[string, int]
+	lookup *mappingx.Map[string, int]
 }
 
 func cachedStructMetadata(t reflect.Type) *structMetadata {
@@ -60,7 +62,7 @@ func buildStructMetadata(t reflect.Type) *structMetadata {
 	}
 
 	envKeyCount := 0
-	lookup := collectionx.NewMapWithCapacity[string, structFieldMetadata](fields.Len() * 3)
+	lookup := mappingx.NewMapWithCapacity[string, structFieldMetadata](fields.Len() * 3)
 	fields.Range(func(_ int, field structFieldMetadata) bool {
 		lookup.Set(field.name, field)
 		lookup.Set(field.foldedName, field)
@@ -80,9 +82,9 @@ func buildStructMetadata(t reflect.Type) *structMetadata {
 	}
 }
 
-func fieldEnvKeys(name string, aliases collectionx.List[string]) collectionx.List[string] {
+func fieldEnvKeys(name string, aliases *collectionx.List[string]) *collectionx.List[string] {
 	keys := collectionx.NewListWithCapacity[string](aliases.Len() + 2)
-	seen := collectionx.NewSetWithCapacity[string](aliases.Len() + 2)
+	seen := setx.NewSetWithCapacity[string](aliases.Len() + 2)
 	addEnvKey(keys, seen, name)
 	addEnvKey(keys, seen, strings.ToLower(name))
 	aliases.Range(func(_ int, alias string) bool {
@@ -92,7 +94,7 @@ func fieldEnvKeys(name string, aliases collectionx.List[string]) collectionx.Lis
 	return keys
 }
 
-func addEnvKey(keys collectionx.List[string], seen collectionx.Set[string], key string) {
+func addEnvKey(keys *collectionx.List[string], seen *setx.Set[string], key string) {
 	if key == "" || seen.Contains(key) {
 		return
 	}
@@ -116,7 +118,7 @@ func cachedMethodMetadata(t reflect.Type) *methodMetadata {
 }
 
 func buildMethodMetadata(t reflect.Type) *methodMetadata {
-	lookup := collectionx.NewMapWithCapacity[string, int](t.NumMethod() * 2)
+	lookup := mappingx.NewMapWithCapacity[string, int](t.NumMethod() * 2)
 	for index := range t.NumMethod() {
 		method := t.Method(index)
 		if method.Type.NumIn() != 1 || method.Type.NumOut() != 1 {

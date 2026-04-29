@@ -2,7 +2,7 @@ package relationload_test
 
 import (
 	"context"
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	relationx "github.com/arcgolabs/dbx/relation"
 	"testing"
 
@@ -192,7 +192,7 @@ func TestLoadHasManyBatchesAndAttaches(t *testing.T) {
 		users.Posts,
 		posts,
 		MustMapper[relationPost](posts),
-		func(index int, user relationUser, value collectionx.List[relationPost]) relationUser {
+		func(index int, user relationUser, value *collectionx.List[relationPost]) relationUser {
 			loaded[index] = value.Values()
 			return user
 		},
@@ -234,7 +234,7 @@ func TestLoadManyToManyBatchesAndAttaches(t *testing.T) {
 		users.Tags,
 		tags,
 		MustMapper[relationTag](tags),
-		func(index int, user relationUser, value collectionx.List[relationTag]) relationUser {
+		func(index int, user relationUser, value *collectionx.List[relationTag]) relationUser {
 			loaded[index] = value.Values()
 			return user
 		},

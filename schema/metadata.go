@@ -3,7 +3,7 @@ package schema
 import (
 	"reflect"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/idgen"
 )
 
@@ -45,22 +45,22 @@ type ColumnMeta struct {
 type IndexMeta struct {
 	Name    string
 	Table   string
-	Columns collectionx.List[string]
+	Columns *collectionx.List[string]
 	Unique  bool
 }
 
 type PrimaryKeyMeta struct {
 	Name    string
 	Table   string
-	Columns collectionx.List[string]
+	Columns *collectionx.List[string]
 }
 
 type ForeignKeyMeta struct {
 	Name          string
 	Table         string
-	Columns       collectionx.List[string]
+	Columns       *collectionx.List[string]
 	TargetTable   string
-	TargetColumns collectionx.List[string]
+	TargetColumns *collectionx.List[string]
 	OnDelete      ReferentialAction
 	OnUpdate      ReferentialAction
 }

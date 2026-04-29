@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	"github.com/arcgolabs/dbx/paging"
 	"github.com/arcgolabs/dbx/repository"
@@ -70,7 +70,7 @@ func (s *Store[E, S]) FindByKeyOption(ctx context.Context, key repository.Key) (
 }
 
 // List returns models matching the provided repository specifications.
-func (s *Store[E, S]) List(ctx context.Context, specs ...repository.Spec) (collectionx.List[*Model[E, S]], error) {
+func (s *Store[E, S]) List(ctx context.Context, specs ...repository.Spec) (*collectionx.List[*Model[E, S]], error) {
 	items, err := s.repository.ListSpec(ctx, specs...)
 	if err != nil {
 		return nil, fmt.Errorf("list entities: %w", err)

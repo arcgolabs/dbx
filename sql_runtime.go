@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/samber/oops"
 )
 

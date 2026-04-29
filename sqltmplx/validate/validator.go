@@ -3,7 +3,7 @@ package validate
 import (
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/mapping"
 	"github.com/arcgolabs/dbx/dialect"
 )
 

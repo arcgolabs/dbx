@@ -3,7 +3,7 @@ package mapper
 import (
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	codecx "github.com/arcgolabs/dbx/codec"
 	"github.com/arcgolabs/pkg/option"
 )

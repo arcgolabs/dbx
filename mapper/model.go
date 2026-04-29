@@ -5,20 +5,21 @@ import (
 	schemax "github.com/arcgolabs/dbx/schema"
 	"reflect"
 
-	"github.com/arcgolabs/collectionx"
+	listx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	codecx "github.com/arcgolabs/dbx/codec"
 )
 
 // RowsScanner is the schema-less contract for mapping query result rows to entities.
 // Used by sqlexec.List, sqlexec.Get, QueryAll, QueryCursor, etc. Both StructMapper and Mapper implement it.
 type RowsScanner[E any] interface {
-	ScanRows(rows *sql.Rows) (collectionx.List[E], error)
+	ScanRows(rows *sql.Rows) (*listx.List[E], error)
 }
 
 // CapacityHintScanner is an optional extension. When implemented and sqlstmt.Bound.CapacityHint > 0,
 // QueryAllBound uses ScanRowsWithCapacity to pre-allocate the result slice (reduces append growth).
 type CapacityHintScanner[E any] interface {
-	ScanRowsWithCapacity(rows *sql.Rows, capacityHint int) (collectionx.List[E], error)
+	ScanRowsWithCapacity(rows *sql.Rows, capacityHint int) (*listx.List[E], error)
 }
 
 // StructMapper provides schema-less pure DTO mapping. It infers fields from struct tags (e.g. dbx)
@@ -33,8 +34,8 @@ type StructMapper[E any] struct {
 // schema-aware operations. Dependency: Mapper depends on Schema (created via NewMapper(schema)).
 type Mapper[E any] struct {
 	StructMapper[E]
-	fields   collectionx.List[MappedField]
-	byColumn collectionx.Map[string, MappedField]
+	fields   *listx.List[MappedField]
+	byColumn *mappingx.Map[string, MappedField]
 }
 
 type MappedField struct {
@@ -42,7 +43,7 @@ type MappedField struct {
 	Column     string
 	Codec      string
 	Index      int
-	Path       collectionx.List[int]
+	Path       *listx.List[int]
 	Type       reflect.Type
 	Insertable bool
 	Updatable  bool
@@ -109,10 +110,10 @@ func NewMapperWithOptions[E any](schema schemax.Resource, opts ...MapperOption) 
 		return Mapper[E]{}, err
 	}
 
-	mappedFields := collectionx.FilterMapList[schemax.ColumnMeta, MappedField](schema.Spec().Columns, func(_ int, column schemax.ColumnMeta) (MappedField, bool) {
+	mappedFields := listx.FilterMapList[schemax.ColumnMeta, MappedField](schema.Spec().Columns, func(_ int, column schemax.ColumnMeta) (MappedField, bool) {
 		return structMapper.meta.byColumn.Get(column.Name)
 	})
-	byColumn := collectionx.AssociateList[MappedField, string, MappedField](mappedFields, func(_ int, field MappedField) (string, MappedField) {
+	byColumn := mappingx.AssociateList[MappedField, string, MappedField](mappedFields, func(_ int, field MappedField) (string, MappedField) {
 		return field.Column, field
 	})
 
@@ -123,9 +124,9 @@ func NewMapperWithOptions[E any](schema schemax.Resource, opts ...MapperOption) 
 	}, nil
 }
 
-func (m Mapper[E]) Fields() collectionx.List[MappedField] {
+func (m Mapper[E]) Fields() *listx.List[MappedField] {
 	if m.byColumn.Len() == 0 {
-		return collectionx.NewList[MappedField]()
+		return listx.NewList[MappedField]()
 	}
 	return m.fields.Clone()
 }
@@ -165,9 +166,9 @@ func (m Mapper[E]) FieldType(column string) (reflect.Type, bool) {
 	return field.Type, true
 }
 
-func (m StructMapper[E]) Fields() collectionx.List[MappedField] {
+func (m StructMapper[E]) Fields() *listx.List[MappedField] {
 	if m.meta == nil {
-		return collectionx.NewList[MappedField]()
+		return listx.NewList[MappedField]()
 	}
 	return m.meta.fields.Clone()
 }

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 func TestInsertBuildWithMultipleRows(t *testing.T) {
@@ -31,7 +31,7 @@ func TestInsertBuildWithMultipleRows(t *testing.T) {
 func TestInsertBuildWithValuesRowsList(t *testing.T) {
 	users := MustSchema("users", UserSchema{})
 
-	rows := collectionx.NewList[collectionx.List[querydsl.Assignment]](
+	rows := collectionx.NewList[*collectionx.List[querydsl.Assignment]](
 		collectionx.NewList[querydsl.Assignment](
 			users.Username.Set("alice"),
 			users.Status.Set(1),
@@ -194,13 +194,12 @@ func TestMutationBuildWithUnsupportedReturning(t *testing.T) {
 
 func TestSelectBuildWithCTE(t *testing.T) {
 	users := MustSchema("users", UserSchema{})
-	activeUsers := NamedTable("active_users")
-	activeID := NamedColumn[int64](activeUsers, "id")
-	activeUsername := NamedColumn[string](activeUsers, "username")
+	activeUsers := View("active_users")
+	activeID := querydsl.Col[int64](activeUsers, "id")
+	activeUsername := querydsl.Col[string](activeUsers, "username")
 
-	query := Select(activeID, activeUsername).
-		With("active_users", Select(users.ID, users.Username).From(users).Where(users.Status.Eq(1))).
-		From(activeUsers).
+	query := SelectFrom(activeUsers, activeID, activeUsername).
+		With("active_users", SelectFrom(users, users.ID, users.Username).Where(users.Status.Eq(1))).
 		OrderBy(activeID.Asc())
 
 	bound, err := query.Build(testPostgresDialect{})
@@ -220,7 +219,7 @@ func TestSelectBuildWithCTE(t *testing.T) {
 func TestSelectBuildWithUnionAllAndOuterOrder(t *testing.T) {
 	users := MustSchema("users", UserSchema{})
 	roles := MustSchema("roles", RoleSchema{})
-	label := ResultColumn[string]("label")
+	label := querydsl.Result[string]("label")
 
 	query := Select(users.Username.As("label")).
 		From(users).

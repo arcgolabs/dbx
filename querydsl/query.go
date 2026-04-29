@@ -1,7 +1,7 @@
 package querydsl
 
 import (
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/paging"
 )
 
@@ -22,18 +22,18 @@ type UnionClause struct {
 }
 
 type SelectQuery struct {
-	Items     collectionx.List[SelectItem]
+	Items     *collectionx.List[SelectItem]
 	FromItem  Table
-	Joins     collectionx.List[Join]
+	Joins     *collectionx.List[Join]
 	WhereExp  Predicate
-	Groups    collectionx.List[Expression]
+	Groups    *collectionx.List[Expression]
 	HavingExp Predicate
-	Orders    collectionx.List[Order]
+	Orders    *collectionx.List[Order]
 	LimitN    *int
 	OffsetN   *int
 	Distinct  bool
-	CTEs      collectionx.List[CTE]
-	Unions    collectionx.List[UnionClause]
+	CTEs      *collectionx.List[CTE]
+	Unions    *collectionx.List[UnionClause]
 }
 
 type JoinBuilder struct {
@@ -45,8 +45,18 @@ func Select(items ...SelectItem) *SelectQuery {
 	return &SelectQuery{Items: CompactSelectItems(items)}
 }
 
-func SelectList(items collectionx.List[SelectItem]) *SelectQuery {
+func SelectList(items *collectionx.List[SelectItem]) *SelectQuery {
 	return &SelectQuery{Items: CompactSelectItemsList(items)}
+}
+
+// From starts a SELECT query from source before selecting items.
+func From(source TableSource) *SelectQuery {
+	return Select().From(source)
+}
+
+// SelectFrom starts a SELECT query from source with selected items.
+func SelectFrom(source TableSource, items ...SelectItem) *SelectQuery {
+	return Select(items...).From(source)
 }
 
 func (q *SelectQuery) Clone() *SelectQuery {
@@ -80,6 +90,24 @@ func (q *SelectQuery) With(name string, query *SelectQuery) *SelectQuery {
 	return q
 }
 
+// Select replaces the query's select list.
+func (q *SelectQuery) Select(items ...SelectItem) *SelectQuery {
+	if q == nil {
+		return Select(items...)
+	}
+	q.Items = CompactSelectItems(items)
+	return q
+}
+
+// SelectList replaces the query's select list from a collectionx.List.
+func (q *SelectQuery) SelectList(items *collectionx.List[SelectItem]) *SelectQuery {
+	if q == nil {
+		return SelectList(items)
+	}
+	q.Items = CompactSelectItemsList(items)
+	return q
+}
+
 func (q *SelectQuery) From(source TableSource) *SelectQuery {
 	q.FromItem = TableRef(source)
 	return q
@@ -94,7 +122,7 @@ func (q *SelectQuery) GroupBy(expressions ...Expression) *SelectQuery {
 	return q.GroupByList(CompactExpressions(expressions))
 }
 
-func (q *SelectQuery) GroupByList(expressions collectionx.List[Expression]) *SelectQuery {
+func (q *SelectQuery) GroupByList(expressions *collectionx.List[Expression]) *SelectQuery {
 	q.Groups = mergeList(q.Groups, CompactExpressionsList(expressions))
 	return q
 }
@@ -108,7 +136,7 @@ func (q *SelectQuery) OrderBy(orders ...Order) *SelectQuery {
 	return q.OrderByList(CompactOrders(orders))
 }
 
-func (q *SelectQuery) OrderByList(orders collectionx.List[Order]) *SelectQuery {
+func (q *SelectQuery) OrderByList(orders *collectionx.List[Order]) *SelectQuery {
 	q.Orders = mergeList(q.Orders, CompactOrdersList(orders))
 	return q
 }
@@ -171,13 +199,13 @@ func (b *JoinBuilder) On(predicate Predicate) *SelectQuery {
 	return b.query
 }
 
-func cloneCTEs(items collectionx.List[CTE]) collectionx.List[CTE] {
+func cloneCTEs(items *collectionx.List[CTE]) *collectionx.List[CTE] {
 	return collectionx.MapList[CTE, CTE](items, func(_ int, item CTE) CTE {
 		return CTE{Name: item.Name, Query: item.Query.Clone()}
 	})
 }
 
-func cloneUnionClauses(items collectionx.List[UnionClause]) collectionx.List[UnionClause] {
+func cloneUnionClauses(items *collectionx.List[UnionClause]) *collectionx.List[UnionClause] {
 	return collectionx.MapList[UnionClause, UnionClause](items, func(_ int, item UnionClause) UnionClause {
 		return UnionClause{All: item.All, Query: item.Query.Clone()}
 	})
@@ -191,7 +219,7 @@ func cloneInt(value *int) *int {
 	return &cloned
 }
 
-func mergeList[T any](current, next collectionx.List[T]) collectionx.List[T] {
+func mergeList[T any](current, next *collectionx.List[T]) *collectionx.List[T] {
 	if next == nil {
 		if current == nil {
 			return collectionx.NewList[T]()
@@ -205,7 +233,7 @@ func mergeList[T any](current, next collectionx.List[T]) collectionx.List[T] {
 	return current
 }
 
-func appendListItem[T any](current collectionx.List[T], item T) collectionx.List[T] {
+func appendListItem[T any](current *collectionx.List[T], item T) *collectionx.List[T] {
 	if current == nil {
 		return collectionx.NewList[T](item)
 	}

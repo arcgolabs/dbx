@@ -4,7 +4,7 @@ import (
 	"context"
 	schemax "github.com/arcgolabs/dbx/schema"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	"github.com/arcgolabs/dbx/dialect"
 	"github.com/arcgolabs/dbx/sqlstmt"

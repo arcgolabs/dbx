@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	columnx "github.com/arcgolabs/dbx/column"
 	"github.com/arcgolabs/dbx/examples/internal/shared"
@@ -80,7 +80,7 @@ func prepareMutationData(ctx context.Context, core *dbx.DB, catalog shared.Catal
 	}
 }
 
-func queryStatusSummaries(ctx context.Context, core *dbx.DB, catalog shared.Catalog) collectionx.List[statusSummary] {
+func queryStatusSummaries(ctx context.Context, core *dbx.DB, catalog shared.Catalog) *collectionx.List[statusSummary] {
 	rows, err := dbx.QueryAll[statusSummary](
 		ctx,
 		core,
@@ -101,7 +101,7 @@ func queryStatusSummaries(ctx context.Context, core *dbx.DB, catalog shared.Cata
 	return rows
 }
 
-func queryAdminUsers(ctx context.Context, core *dbx.DB, catalog shared.Catalog) collectionx.List[userNameRow] {
+func queryAdminUsers(ctx context.Context, core *dbx.DB, catalog shared.Catalog) *collectionx.List[userNameRow] {
 	adminRoleIDs := querydsl.Select(catalog.Roles.ID).
 		From(catalog.Roles).
 		Where(catalog.Roles.Name.Eq("admin"))
@@ -135,7 +135,7 @@ func insertArchiveFromSelect(
 	catalog shared.Catalog,
 	archive userArchiveSchema,
 	archiveMapper mapperx.Mapper[userArchive],
-) collectionx.List[userArchive] {
+) *collectionx.List[userArchive] {
 	rows, err := dbx.QueryAll[userArchive](
 		ctx,
 		core,
@@ -162,7 +162,7 @@ func batchInsertArchive(
 	core *dbx.DB,
 	archive userArchiveSchema,
 	archiveMapper mapperx.Mapper[userArchive],
-) collectionx.List[userArchive] {
+) *collectionx.List[userArchive] {
 	rows, err := dbx.QueryAll[userArchive](
 		ctx,
 		core,
@@ -190,7 +190,7 @@ func upsertArchive(
 	core *dbx.DB,
 	archive userArchiveSchema,
 	archiveMapper mapperx.Mapper[userArchive],
-) collectionx.List[userArchive] {
+) *collectionx.List[userArchive] {
 	rows, err := dbx.QueryAll[userArchive](
 		ctx,
 		core,
@@ -211,7 +211,7 @@ func upsertArchive(
 	return rows
 }
 
-func printStatusSummaries(rows collectionx.List[statusSummary]) {
+func printStatusSummaries(rows *collectionx.List[statusSummary]) {
 	printLine("aggregate status counts:")
 	rows.Range(func(_ int, row statusSummary) bool {
 		printFormat("- status=%d count=%d\n", row.Status, row.UserCount)
@@ -219,7 +219,7 @@ func printStatusSummaries(rows collectionx.List[statusSummary]) {
 	})
 }
 
-func printUserNameRows(title string, rows collectionx.List[userNameRow]) {
+func printUserNameRows(title string, rows *collectionx.List[userNameRow]) {
 	printLine(title)
 	rows.Range(func(_ int, row userNameRow) bool {
 		printFormat("- username=%s\n", row.Username)
@@ -227,7 +227,7 @@ func printUserNameRows(title string, rows collectionx.List[userNameRow]) {
 	})
 }
 
-func printArchiveRows(title string, rows collectionx.List[userArchive]) {
+func printArchiveRows(title string, rows *collectionx.List[userArchive]) {
 	printLine(title)
 	rows.Range(func(_ int, row userArchive) bool {
 		printFormat("- id=%d username=%s status=%d\n", row.ID, row.Username, row.Status)

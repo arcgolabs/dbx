@@ -9,7 +9,7 @@ import (
 
 	atlasmigrate "ariga.io/atlas/sql/migrate"
 	atlasschema "ariga.io/atlas/sql/schema"
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 func atlasSplitChanges(changes []atlasschema.Change) ([]atlasschema.Change, []schemax.MigrationAction) {
@@ -64,10 +64,10 @@ func atlasIsExecutableTableChange(change atlasschema.Change) bool {
 }
 
 func atlasPlanActions(ctx context.Context, driver atlasmigrate.Driver, changes []atlasschema.Change) ([]schemax.MigrationAction, error) {
-	actions, err := collectionx.ReduceErrList[atlasschema.Change, collectionx.List[schemax.MigrationAction]](
+	actions, err := collectionx.ReduceErrList[atlasschema.Change, *collectionx.List[schemax.MigrationAction]](
 		collectionx.NewListWithCapacity[atlasschema.Change](len(changes), changes...),
 		collectionx.NewListWithCapacity[schemax.MigrationAction](len(changes)),
-		func(result collectionx.List[schemax.MigrationAction], _ int, change atlasschema.Change) (collectionx.List[schemax.MigrationAction], error) {
+		func(result *collectionx.List[schemax.MigrationAction], _ int, change atlasschema.Change) (*collectionx.List[schemax.MigrationAction], error) {
 			plannedActions, planErr := atlasPlanChangeActions(ctx, driver, change)
 			if planErr != nil {
 				return nil, planErr

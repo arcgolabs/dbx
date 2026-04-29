@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	schemax "github.com/arcgolabs/dbx/schema"
 )
@@ -91,7 +91,7 @@ func logLegacyDiffSummary(session dbx.Session, diff schemax.TableDiff) {
 	)
 }
 
-func buildLegacyMigrationActions(schemaDialect Dialect, schema Resource, diff schemax.TableDiff) collectionx.List[schemax.MigrationAction] {
+func buildLegacyMigrationActions(schemaDialect Dialect, schema Resource, diff schemax.TableDiff) *collectionx.List[schemax.MigrationAction] {
 	spec := schema.Spec()
 	if diff.MissingTable {
 		return buildMissingTableActions(schemaDialect, spec)
@@ -99,7 +99,7 @@ func buildLegacyMigrationActions(schemaDialect Dialect, schema Resource, diff sc
 	return buildExistingTableActions(schemaDialect, diff)
 }
 
-func buildMissingTableActions(schemaDialect Dialect, spec schemax.TableSpec) collectionx.List[schemax.MigrationAction] {
+func buildMissingTableActions(schemaDialect Dialect, spec schemax.TableSpec) *collectionx.List[schemax.MigrationAction] {
 	actions := collectionx.NewList[schemax.MigrationAction](buildCreateTableAction(schemaDialect, spec))
 	actions.Merge(mappedMigrationActions(spec.Indexes, func(index schemax.IndexMeta) schemax.MigrationAction {
 		return buildCreateIndexAction(schemaDialect, index)
@@ -107,7 +107,7 @@ func buildMissingTableActions(schemaDialect Dialect, spec schemax.TableSpec) col
 	return actions
 }
 
-func buildExistingTableActions(schemaDialect Dialect, diff schemax.TableDiff) collectionx.List[schemax.MigrationAction] {
+func buildExistingTableActions(schemaDialect Dialect, diff schemax.TableDiff) *collectionx.List[schemax.MigrationAction] {
 	actions := collectionx.NewListWithCapacity[schemax.MigrationAction](
 		diff.MissingColumns.Len() +
 			diff.MissingIndexes.Len() +
@@ -176,7 +176,7 @@ func schemaNames(schemas []Resource) string {
 	}).Join(",")
 }
 
-func primaryKeyManualActions(diff schemax.TableDiff) collectionx.List[schemax.MigrationAction] {
+func primaryKeyManualActions(diff schemax.TableDiff) *collectionx.List[schemax.MigrationAction] {
 	if diff.PrimaryKeyDiff == nil {
 		return collectionx.NewList[schemax.MigrationAction]()
 	}
@@ -188,6 +188,6 @@ func primaryKeyManualActions(diff schemax.TableDiff) collectionx.List[schemax.Mi
 }
 
 type legacyPlanState struct {
-	reportTables collectionx.List[schemax.TableDiff]
-	actions      collectionx.List[schemax.MigrationAction]
+	reportTables *collectionx.List[schemax.TableDiff]
+	actions      *collectionx.List[schemax.MigrationAction]
 }

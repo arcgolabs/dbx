@@ -6,18 +6,19 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 )
 
 type schemaBindingState struct {
 	binder        schemaBinder
 	binderField   reflect.Value
 	defTable      schemaTable
-	columns       collectionx.List[ColumnMeta]
-	columnsByName collectionx.Map[string, ColumnMeta]
-	relations     collectionx.List[RelationMeta]
-	indexes       collectionx.List[IndexMeta]
-	checks        collectionx.List[CheckMeta]
+	columns       *collectionx.List[ColumnMeta]
+	columnsByName *mappingx.Map[string, ColumnMeta]
+	relations     *collectionx.List[RelationMeta]
+	indexes       *collectionx.List[IndexMeta]
+	checks        *collectionx.List[CheckMeta]
 	primaryKey    *PrimaryKeyMeta
 }
 
@@ -47,7 +48,7 @@ func newSchemaBindingState(schemaType reflect.Type, name, alias string, fieldCou
 	return schemaBindingState{
 		defTable:      newSchemaTable(strings.TrimSpace(name), strings.TrimSpace(alias), schemaType),
 		columns:       collectionx.NewListWithCapacity[ColumnMeta](fieldCount),
-		columnsByName: collectionx.NewMapWithCapacity[string, ColumnMeta](fieldCount),
+		columnsByName: mappingx.NewMapWithCapacity[string, ColumnMeta](fieldCount),
 		relations:     collectionx.NewListWithCapacity[RelationMeta](fieldCount),
 		indexes:       collectionx.NewListWithCapacity[IndexMeta](fieldCount),
 		checks:        collectionx.NewListWithCapacity[CheckMeta](fieldCount),

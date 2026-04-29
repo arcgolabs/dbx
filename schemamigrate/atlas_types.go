@@ -9,7 +9,7 @@ import (
 	atlaspostgres "ariga.io/atlas/sql/postgres"
 	atlasschema "ariga.io/atlas/sql/schema"
 	atlassqlite "ariga.io/atlas/sql/sqlite"
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 func atlasFallbackType(rawType string, column schemax.ColumnMeta) atlasschema.Type {
@@ -182,7 +182,7 @@ func atlasIndexForSpec(table *atlasschema.Table, index schemax.IndexMeta) *atlas
 	return atlasschema.NewIndex(index.Name).SetUnique(index.Unique).AddColumns(columns...)
 }
 
-func atlasColumnsByName(table *atlasschema.Table, names collectionx.List[string]) []*atlasschema.Column {
+func atlasColumnsByName(table *atlasschema.Table, names *collectionx.List[string]) []*atlasschema.Column {
 	return collectionx.FilterMapList[string, *atlasschema.Column](names, func(_ int, name string) (*atlasschema.Column, bool) {
 		column, ok := table.Column(name)
 		return column, ok

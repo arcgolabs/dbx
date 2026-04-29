@@ -1,7 +1,7 @@
 package schema
 
 import (
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 func (s Schema[E]) PrimaryColumn() (ColumnMeta, bool) {

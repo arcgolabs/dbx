@@ -5,7 +5,7 @@ import (
 	"fmt"
 	schemax "github.com/arcgolabs/dbx/schema"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/mapping"
 	"github.com/arcgolabs/dbx"
 )
 

@@ -6,7 +6,8 @@ import (
 
 	atlasmigrate "ariga.io/atlas/sql/migrate"
 	atlasschema "ariga.io/atlas/sql/schema"
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 )
 
 func compileAtlasSchema(dialectName string, driver atlasmigrate.Driver, schemaName string, schemas []Resource) *atlasCompiledSchema {
@@ -26,8 +27,8 @@ func newAtlasCompiledSchema(schemaName string, schemas []Resource) *atlasCompile
 	})
 	return &atlasCompiledSchema{
 		schema:    atlasSchema,
-		tables:    collectionx.NewMapWithCapacity[string, *atlasCompiledTable](len(schemas)),
-		externals: collectionx.NewMap[string, *atlasschema.Table](),
+		tables:    mappingx.NewMapWithCapacity[string, *atlasCompiledTable](len(schemas)),
+		externals: mappingx.NewMap[string, *atlasschema.Table](),
 		order:     order,
 	}
 }
@@ -46,13 +47,13 @@ func newAtlasCompiledTable(spec schemax.TableSpec, table *atlasschema.Table) *at
 	return &atlasCompiledTable{
 		spec:              spec,
 		table:             table,
-		columnsByName:     collectionx.NewMapWithCapacity[string, schemax.ColumnMeta](spec.Columns.Len()),
-		indexesByName:     collectionx.NewMapWithCapacity[string, schemax.IndexMeta](spec.Indexes.Len()),
-		indexesByKey:      collectionx.NewMapWithCapacity[string, schemax.IndexMeta](spec.Indexes.Len()),
-		foreignKeysByName: collectionx.NewMapWithCapacity[string, schemax.ForeignKeyMeta](spec.ForeignKeys.Len()),
-		foreignKeysByKey:  collectionx.NewMapWithCapacity[string, schemax.ForeignKeyMeta](spec.ForeignKeys.Len()),
-		checksByName:      collectionx.NewMapWithCapacity[string, schemax.CheckMeta](spec.Checks.Len()),
-		checksByExpr:      collectionx.NewMapWithCapacity[string, schemax.CheckMeta](spec.Checks.Len()),
+		columnsByName:     mappingx.NewMapWithCapacity[string, schemax.ColumnMeta](spec.Columns.Len()),
+		indexesByName:     mappingx.NewMapWithCapacity[string, schemax.IndexMeta](spec.Indexes.Len()),
+		indexesByKey:      mappingx.NewMapWithCapacity[string, schemax.IndexMeta](spec.Indexes.Len()),
+		foreignKeysByName: mappingx.NewMapWithCapacity[string, schemax.ForeignKeyMeta](spec.ForeignKeys.Len()),
+		foreignKeysByKey:  mappingx.NewMapWithCapacity[string, schemax.ForeignKeyMeta](spec.ForeignKeys.Len()),
+		checksByName:      mappingx.NewMapWithCapacity[string, schemax.CheckMeta](spec.Checks.Len()),
+		checksByExpr:      mappingx.NewMapWithCapacity[string, schemax.CheckMeta](spec.Checks.Len()),
 	}
 }
 
@@ -184,7 +185,7 @@ func (c *atlasCompiledSchema) atlasForeignKeyForSpec(table *atlasschema.Table, f
 		SetOnUpdate(atlasReferenceAction(foreignKey.OnUpdate))
 }
 
-func (c *atlasCompiledSchema) referenceTable(schema *atlasschema.Schema, tableName string, targetColumns collectionx.List[string]) *atlasschema.Table {
+func (c *atlasCompiledSchema) referenceTable(schema *atlasschema.Schema, tableName string, targetColumns *collectionx.List[string]) *atlasschema.Table {
 	if compiled, ok := c.tables.Get(tableName); ok {
 		return compiled.table
 	}

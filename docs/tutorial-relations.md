@@ -96,7 +96,7 @@ func main() {
 	userMapper := mapperx.MustMapper[User](Users)
 	roleMapper := mapperx.MustMapper[Role](Roles)
 
-	items, err := dbx.QueryAll[User](ctx, core, querydsl.Select(querydsl.AllColumns(Users).Values()...).From(Users), userMapper)
+items, err := dbx.QueryAll[User](ctx, core, querydsl.SelectFrom(Users, querydsl.AllColumns(Users).Values()...), userMapper)
 	if err != nil {
 		log.Fatal(err)
 	}

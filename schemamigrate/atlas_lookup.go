@@ -5,7 +5,7 @@ import (
 	schemax "github.com/arcgolabs/dbx/schema"
 
 	atlasschema "ariga.io/atlas/sql/schema"
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 func atlasFindIndexMeta(compiled *atlasCompiledTable, index *atlasschema.Index) (schemax.IndexMeta, bool) {
@@ -61,7 +61,7 @@ func atlasForeignKeyKey(foreignKey *atlasschema.ForeignKey) string {
 	return foreignKeyKey(meta)
 }
 
-func atlasIndexColumns(index *atlasschema.Index) collectionx.List[string] {
+func atlasIndexColumns(index *atlasschema.Index) *collectionx.List[string] {
 	return collectionx.FilterMapList[*atlasschema.IndexPart, string](collectionx.NewListWithCapacity[*atlasschema.IndexPart](len(index.Parts), index.Parts...), func(_ int, part *atlasschema.IndexPart) (string, bool) {
 		if part == nil || part.C == nil {
 			return "", false

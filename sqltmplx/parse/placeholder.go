@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/sqltmplx/scan"
 )
 
@@ -18,7 +18,7 @@ var (
 	errEmptyScalarLiteral     = errors.New("empty scalar literal")
 )
 
-func compileTextToken(tok scan.Token) (collectionx.List[Node], error) {
+func compileTextToken(tok scan.Token) (*collectionx.List[Node], error) {
 	nodes := collectionx.NewList[Node]()
 	input := tok.Value
 	textStart := 0
@@ -42,7 +42,7 @@ func compileTextToken(tok scan.Token) (collectionx.List[Node], error) {
 	return nodes, nil
 }
 
-func appendTextFragment(nodes collectionx.List[Node], input string, start, end int, base scan.Position) {
+func appendTextFragment(nodes *collectionx.List[Node], input string, start, end int, base scan.Position) {
 	if start >= end {
 		return
 	}

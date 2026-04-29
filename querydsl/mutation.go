@@ -1,28 +1,28 @@
 package querydsl
 
-import "github.com/arcgolabs/collectionx"
+import collectionx "github.com/arcgolabs/collectionx/list"
 
 type InsertQuery struct {
 	Into           Table
-	TargetColumns  collectionx.List[Expression]
-	Assignments    collectionx.List[Assignment]
-	Rows           collectionx.Grid[Assignment]
+	TargetColumns  *collectionx.List[Expression]
+	Assignments    *collectionx.List[Assignment]
+	Rows           *collectionx.Grid[Assignment]
 	Source         *SelectQuery
 	Upsert         *UpsertClause
-	ReturningItems collectionx.List[SelectItem]
+	ReturningItems *collectionx.List[SelectItem]
 }
 
 type UpdateQuery struct {
 	Table          Table
-	Assignments    collectionx.List[Assignment]
+	Assignments    *collectionx.List[Assignment]
 	WhereExp       Predicate
-	ReturningItems collectionx.List[SelectItem]
+	ReturningItems *collectionx.List[SelectItem]
 }
 
 type DeleteQuery struct {
 	From           Table
 	WhereExp       Predicate
-	ReturningItems collectionx.List[SelectItem]
+	ReturningItems *collectionx.List[SelectItem]
 }
 
 type ConflictBuilder struct {
@@ -30,9 +30,9 @@ type ConflictBuilder struct {
 }
 
 type UpsertClause struct {
-	Targets     collectionx.List[Expression]
+	Targets     *collectionx.List[Expression]
 	DoNothing   bool
-	Assignments collectionx.List[Assignment]
+	Assignments *collectionx.List[Assignment]
 }
 
 func InsertInto(source TableSource) *InsertQuery {
@@ -43,7 +43,7 @@ func (q *InsertQuery) Columns(columns ...Expression) *InsertQuery {
 	return q.ColumnsList(CompactExpressions(columns))
 }
 
-func (q *InsertQuery) ColumnsList(columns collectionx.List[Expression]) *InsertQuery {
+func (q *InsertQuery) ColumnsList(columns *collectionx.List[Expression]) *InsertQuery {
 	q.TargetColumns = mergeList(q.TargetColumns, CompactExpressionsList(columns))
 	return q
 }
@@ -52,24 +52,24 @@ func (q *InsertQuery) Values(assignments ...Assignment) *InsertQuery {
 	return q.ValuesList(CompactAssignments(assignments))
 }
 
-func (q *InsertQuery) ValuesList(assignments collectionx.List[Assignment]) *InsertQuery {
+func (q *InsertQuery) ValuesList(assignments *collectionx.List[Assignment]) *InsertQuery {
 	grid := collectionx.NewGridWithCapacity[Assignment](1)
 	grid.AddRowList(CompactAssignmentsList(assignments))
 	return q.ValuesGrid(grid)
 }
 
-func (q *InsertQuery) ValuesRowsList(rows collectionx.List[collectionx.List[Assignment]]) *InsertQuery {
+func (q *InsertQuery) ValuesRowsList(rows *collectionx.List[*collectionx.List[Assignment]]) *InsertQuery {
 	if rows == nil || rows.Len() == 0 {
 		return q
 	}
 	grid := collectionx.NewGridWithCapacity[Assignment](rows.Len())
-	rows.Each(func(_ int, row collectionx.List[Assignment]) {
+	rows.Each(func(_ int, row *collectionx.List[Assignment]) {
 		grid.AddRowList(row)
 	})
 	return q.ValuesGrid(grid)
 }
 
-func (q *InsertQuery) ValuesGrid(rows collectionx.Grid[Assignment]) *InsertQuery {
+func (q *InsertQuery) ValuesGrid(rows *collectionx.Grid[Assignment]) *InsertQuery {
 	q.Rows = mergeGrid(q.Rows, rows)
 	if q.Rows.RowCount() == 1 {
 		row, _ := q.Rows.GetRowList(0)
@@ -89,7 +89,7 @@ func (q *InsertQuery) Returning(items ...SelectItem) *InsertQuery {
 	return q.ReturningList(CompactSelectItems(items))
 }
 
-func (q *InsertQuery) ReturningList(items collectionx.List[SelectItem]) *InsertQuery {
+func (q *InsertQuery) ReturningList(items *collectionx.List[SelectItem]) *InsertQuery {
 	q.ReturningItems = mergeList(q.ReturningItems, CompactSelectItemsList(items))
 	return q
 }
@@ -98,7 +98,7 @@ func (q *InsertQuery) OnConflict(targets ...Expression) *ConflictBuilder {
 	return q.OnConflictList(CompactExpressions(targets))
 }
 
-func (q *InsertQuery) OnConflictList(targets collectionx.List[Expression]) *ConflictBuilder {
+func (q *InsertQuery) OnConflictList(targets *collectionx.List[Expression]) *ConflictBuilder {
 	q.Upsert = &UpsertClause{Targets: CompactExpressionsList(targets)}
 	return &ConflictBuilder{query: q}
 }
@@ -115,7 +115,7 @@ func (b *ConflictBuilder) DoUpdateSet(assignments ...Assignment) *InsertQuery {
 	return b.DoUpdateSetList(CompactAssignments(assignments))
 }
 
-func (b *ConflictBuilder) DoUpdateSetList(assignments collectionx.List[Assignment]) *InsertQuery {
+func (b *ConflictBuilder) DoUpdateSetList(assignments *collectionx.List[Assignment]) *InsertQuery {
 	b.query.Upsert = &UpsertClause{
 		Targets:     b.query.Upsert.Targets.Clone(),
 		Assignments: CompactAssignmentsList(assignments),
@@ -131,7 +131,7 @@ func (q *UpdateQuery) Set(assignments ...Assignment) *UpdateQuery {
 	return q.SetList(CompactAssignments(assignments))
 }
 
-func (q *UpdateQuery) SetList(assignments collectionx.List[Assignment]) *UpdateQuery {
+func (q *UpdateQuery) SetList(assignments *collectionx.List[Assignment]) *UpdateQuery {
 	q.Assignments = mergeList(q.Assignments, CompactAssignmentsList(assignments))
 	return q
 }
@@ -145,7 +145,7 @@ func (q *UpdateQuery) Returning(items ...SelectItem) *UpdateQuery {
 	return q.ReturningList(CompactSelectItems(items))
 }
 
-func (q *UpdateQuery) ReturningList(items collectionx.List[SelectItem]) *UpdateQuery {
+func (q *UpdateQuery) ReturningList(items *collectionx.List[SelectItem]) *UpdateQuery {
 	q.ReturningItems = mergeList(q.ReturningItems, CompactSelectItemsList(items))
 	return q
 }
@@ -163,12 +163,12 @@ func (q *DeleteQuery) Returning(items ...SelectItem) *DeleteQuery {
 	return q.ReturningList(CompactSelectItems(items))
 }
 
-func (q *DeleteQuery) ReturningList(items collectionx.List[SelectItem]) *DeleteQuery {
+func (q *DeleteQuery) ReturningList(items *collectionx.List[SelectItem]) *DeleteQuery {
 	q.ReturningItems = mergeList(q.ReturningItems, CompactSelectItemsList(items))
 	return q
 }
 
-func mergeGrid[T any](current, next collectionx.Grid[T]) collectionx.Grid[T] {
+func mergeGrid[T any](current, next *collectionx.Grid[T]) *collectionx.Grid[T] {
 	if current == nil {
 		return next.Clone()
 	}

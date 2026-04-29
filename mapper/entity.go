@@ -7,12 +7,12 @@ import (
 	schemax "github.com/arcgolabs/dbx/schema"
 	"reflect"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/idgen"
 	"github.com/arcgolabs/dbx/querydsl"
 )
 
-func (m Mapper[E]) InsertAssignments(session any, schema schemax.Resource, entity *E) (collectionx.List[querydsl.Assignment], error) {
+func (m Mapper[E]) InsertAssignments(session any, schema schemax.Resource, entity *E) (*collectionx.List[querydsl.Assignment], error) {
 	if session == nil {
 		return nil, ErrNilSession
 	}
@@ -23,7 +23,7 @@ func (m Mapper[E]) InsertAssignments(session any, schema schemax.Resource, entit
 	return m.InsertAssignmentsWithID(context.Background(), schema, entity, carrier.IDGenerator())
 }
 
-func (m Mapper[E]) InsertAssignmentsWithID(ctx context.Context, schema schemax.Resource, entity *E, generator idgen.Generator) (collectionx.List[querydsl.Assignment], error) {
+func (m Mapper[E]) InsertAssignmentsWithID(ctx context.Context, schema schemax.Resource, entity *E, generator idgen.Generator) (*collectionx.List[querydsl.Assignment], error) {
 	return m.entityAssignments(ctx, schema, entity, generator, func(column schemax.ColumnMeta, field MappedField) bool {
 		if !field.Insertable {
 			return false
@@ -35,7 +35,7 @@ func (m Mapper[E]) InsertAssignmentsWithID(ctx context.Context, schema schemax.R
 	})
 }
 
-func (m Mapper[E]) UpdateAssignments(schema schemax.Resource, entity *E) (collectionx.List[querydsl.Assignment], error) {
+func (m Mapper[E]) UpdateAssignments(schema schemax.Resource, entity *E) (*collectionx.List[querydsl.Assignment], error) {
 	return m.entityAssignments(context.Background(), schema, entity, nil, func(column schemax.ColumnMeta, field MappedField) bool {
 		if !field.Updatable {
 			return false
@@ -93,7 +93,7 @@ func (m Mapper[E]) primaryColumnPredicate(value reflect.Value, column schemax.Co
 	}, nil
 }
 
-func (m Mapper[E]) entityAssignments(ctx context.Context, schema schemax.Resource, entity *E, generator idgen.Generator, include func(column schemax.ColumnMeta, field MappedField) bool) (collectionx.List[querydsl.Assignment], error) {
+func (m Mapper[E]) entityAssignments(ctx context.Context, schema schemax.Resource, entity *E, generator idgen.Generator, include func(column schemax.ColumnMeta, field MappedField) bool) (*collectionx.List[querydsl.Assignment], error) {
 	value, err := m.entityValue(entity)
 	if err != nil {
 		return nil, err

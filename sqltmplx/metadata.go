@@ -3,21 +3,22 @@ package sqltmplx
 import (
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	setx "github.com/arcgolabs/collectionx/set"
 	"github.com/arcgolabs/dbx/sqltmplx/parse"
 )
 
 // TemplateMetadata describes static properties extracted from a compiled template.
 type TemplateMetadata struct {
 	StatementType    string
-	Parameters       collectionx.List[string]
-	SpreadParameters collectionx.List[string]
-	Conditions       collectionx.List[string]
+	Parameters       *collectionx.List[string]
+	SpreadParameters *collectionx.List[string]
+	Conditions       *collectionx.List[string]
 	HasWhereBlock    bool
 	HasSetBlock      bool
 }
 
-func buildTemplateMetadata(nodes collectionx.List[parse.Node]) TemplateMetadata {
+func buildTemplateMetadata(nodes *collectionx.List[parse.Node]) TemplateMetadata {
 	metadata := TemplateMetadata{
 		StatementType:    detectTemplateStatementType(templatePreviewSQL(nodes)),
 		Parameters:       collectionx.NewList[string](),
@@ -25,9 +26,9 @@ func buildTemplateMetadata(nodes collectionx.List[parse.Node]) TemplateMetadata 
 		Conditions:       collectionx.NewList[string](),
 	}
 
-	seenParams := collectionx.NewSet[string]()
-	seenSpread := collectionx.NewSet[string]()
-	seenConditions := collectionx.NewSet[string]()
+	seenParams := setx.NewSet[string]()
+	seenSpread := setx.NewSet[string]()
+	seenConditions := setx.NewSet[string]()
 	collectTemplateMetadata(metadataCollector{
 		metadata:       &metadata,
 		seenParams:     seenParams,
@@ -39,12 +40,12 @@ func buildTemplateMetadata(nodes collectionx.List[parse.Node]) TemplateMetadata 
 
 type metadataCollector struct {
 	metadata       *TemplateMetadata
-	seenParams     collectionx.Set[string]
-	seenSpread     collectionx.Set[string]
-	seenConditions collectionx.Set[string]
+	seenParams     *setx.Set[string]
+	seenSpread     *setx.Set[string]
+	seenConditions *setx.Set[string]
 }
 
-func collectTemplateMetadata(collector metadataCollector, nodes collectionx.List[parse.Node]) {
+func collectTemplateMetadata(collector metadataCollector, nodes *collectionx.List[parse.Node]) {
 	nodes.Range(func(_ int, node parse.Node) bool {
 		switch typed := node.(type) {
 		case parse.ParamNode:
@@ -86,13 +87,13 @@ func addTemplateCondition(collector metadataCollector, expr string) {
 	collector.metadata.Conditions.Add(expr)
 }
 
-func templatePreviewSQL(nodes collectionx.List[parse.Node]) string {
+func templatePreviewSQL(nodes *collectionx.List[parse.Node]) string {
 	var builder strings.Builder
 	writeTemplatePreview(&builder, nodes)
 	return builder.String()
 }
 
-func writeTemplatePreview(builder *strings.Builder, nodes collectionx.List[parse.Node]) {
+func writeTemplatePreview(builder *strings.Builder, nodes *collectionx.List[parse.Node]) {
 	nodes.Range(func(_ int, node parse.Node) bool {
 		switch typed := node.(type) {
 		case parse.TextNode:

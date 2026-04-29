@@ -4,7 +4,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	setx "github.com/arcgolabs/collectionx/set"
 )
 
 func lookupValue(params any, name string) (any, bool) {
@@ -129,9 +130,9 @@ func reflectMapStringValue(v reflect.Value, key string) (any, bool) {
 	return mv.Interface(), true
 }
 
-func fieldAliases(f reflect.StructField) collectionx.List[string] {
+func fieldAliases(f reflect.StructField) *collectionx.List[string] {
 	aliases := collectionx.NewListWithCapacity[string](3)
-	seen := collectionx.NewSetWithCapacity[string](3)
+	seen := setx.NewSetWithCapacity[string](3)
 	collectionx.NewList[string]("sqltmpl", "db", "json").Range(func(_ int, tagKey string) bool {
 		raw := strings.TrimSpace(f.Tag.Get(tagKey))
 		if raw == "" || raw == "-" {

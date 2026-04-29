@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	"github.com/arcgolabs/dbx/querydsl"
 	schemax "github.com/arcgolabs/dbx/schema"
@@ -59,13 +59,13 @@ func columnFromSpec(spec schemax.TableSpec, name, role, relationName string) (sc
 	return column, nil
 }
 
-func allSelectItems(columns collectionx.List[schemax.ColumnMeta]) collectionx.List[querydsl.SelectItem] {
+func allSelectItems(columns *collectionx.List[schemax.ColumnMeta]) *collectionx.List[querydsl.SelectItem] {
 	return collectionx.MapList[schemax.ColumnMeta, querydsl.SelectItem](columns, func(_ int, column schemax.ColumnMeta) querydsl.SelectItem {
 		return columnSelectItem{meta: column}
 	})
 }
 
-func relationTargetOrders(spec schemax.TableSpec, targetColumn schemax.ColumnMeta) collectionx.List[querydsl.Order] {
+func relationTargetOrders(spec schemax.TableSpec, targetColumn schemax.ColumnMeta) *collectionx.List[querydsl.Order] {
 	orders := collectionx.NewList[querydsl.Order](columnOrder{meta: targetColumn})
 	if spec.PrimaryKey != nil && spec.PrimaryKey.Columns.Len() == 1 {
 		if column, ok := spec.PrimaryKey.Columns.GetFirst(); ok && column != targetColumn.Name {
@@ -77,7 +77,7 @@ func relationTargetOrders(spec schemax.TableSpec, targetColumn schemax.ColumnMet
 	return orders
 }
 
-func columnMetaByName(columns collectionx.List[schemax.ColumnMeta], name string) (schemax.ColumnMeta, bool) {
+func columnMetaByName(columns *collectionx.List[schemax.ColumnMeta], name string) (schemax.ColumnMeta, bool) {
 	return collectionx.FindList[schemax.ColumnMeta](columns, func(_ int, column schemax.ColumnMeta) bool {
 		return column.Name == name
 	})
@@ -97,32 +97,17 @@ func relationChunkSize(session dbx.Session) int {
 	}
 }
 
-func chunkRelationKeys(keys collectionx.List[any], chunkSize int) collectionx.List[collectionx.List[any]] {
+func chunkRelationKeys(keys *collectionx.List[any], chunkSize int) *collectionx.List[*collectionx.List[any]] {
 	if keys.Len() == 0 {
-		return collectionx.NewList[collectionx.List[any]]()
+		return collectionx.NewList[*collectionx.List[any]]()
 	}
-	if chunkSize <= 0 || keys.Len() <= chunkSize {
-		return collectionx.NewList[collectionx.List[any]](keys.Clone())
+	if chunkSize <= 0 {
+		chunkSize = keys.Len()
 	}
-
-	chunks := collectionx.NewListWithCapacity[collectionx.List[any]]((keys.Len() + chunkSize - 1) / chunkSize)
-	current := collectionx.NewListWithCapacity[any](chunkSize)
-	keys.Range(func(_ int, key any) bool {
-		current.Add(key)
-		if current.Len() < chunkSize {
-			return true
-		}
-		chunks.Add(current)
-		current = collectionx.NewListWithCapacity[any](chunkSize)
-		return true
-	})
-	if current.Len() > 0 {
-		chunks.Add(current)
-	}
-	return chunks
+	return collectionx.NewList[*collectionx.List[any]](keys.Chunk(chunkSize)...)
 }
 
-func scanRelationPairs(rows *sql.Rows, sourceType, targetType reflect.Type) (collectionx.List[relationKeyPair], error) {
+func scanRelationPairs(rows *sql.Rows, sourceType, targetType reflect.Type) (*collectionx.List[relationKeyPair], error) {
 	pairs := collectionx.NewList[relationKeyPair]()
 	for rows.Next() {
 		pair, ok, err := scanRelationPairRow(rows, sourceType, targetType)

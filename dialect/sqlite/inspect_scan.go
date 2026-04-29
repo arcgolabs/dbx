@@ -8,7 +8,8 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	"github.com/arcgolabs/dbx"
 )
 
@@ -103,7 +104,7 @@ func sqlitePrimaryKeyState(positions map[int]string) *schemax.PrimaryKeyState {
 	return &schemax.PrimaryKeyState{Columns: columns}
 }
 
-func appendSQLiteForeignKey(groups collectionx.OrderedMap[int, schemax.ForeignKeyState], id int, state schemax.ForeignKeyState) {
+func appendSQLiteForeignKey(groups *mappingx.OrderedMap[int, schemax.ForeignKeyState], id int, state schemax.ForeignKeyState) {
 	current, ok := groups.Get(id)
 	if !ok {
 		groups.Set(id, state)

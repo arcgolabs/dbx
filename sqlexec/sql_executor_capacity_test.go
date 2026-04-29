@@ -8,7 +8,7 @@ import (
 	"github.com/arcgolabs/dbx/sqlstmt"
 	"testing"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 func TestSQLListUsesStatementCapacityHint(t *testing.T) {
@@ -48,7 +48,7 @@ type capacityHintUserSummaryMapper struct {
 	scanRowsCalled bool
 }
 
-func (m *capacityHintUserSummaryMapper) ScanRows(rows *sql.Rows) (collectionx.List[UserSummary], error) {
+func (m *capacityHintUserSummaryMapper) ScanRows(rows *sql.Rows) (*collectionx.List[UserSummary], error) {
 	m.scanRowsCalled = true
 	items, err := m.base.ScanRows(rows)
 	if err != nil {
@@ -57,7 +57,7 @@ func (m *capacityHintUserSummaryMapper) ScanRows(rows *sql.Rows) (collectionx.Li
 	return items, nil
 }
 
-func (m *capacityHintUserSummaryMapper) ScanRowsWithCapacity(rows *sql.Rows, capacityHint int) (collectionx.List[UserSummary], error) {
+func (m *capacityHintUserSummaryMapper) ScanRowsWithCapacity(rows *sql.Rows, capacityHint int) (*collectionx.List[UserSummary], error) {
 	m.capacityHint = capacityHint
 	items, err := m.base.ScanRowsWithCapacity(rows, capacityHint)
 	if err != nil {

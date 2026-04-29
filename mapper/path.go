@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 func appendIndexPath(prefix []int, index int) []int {
@@ -24,7 +24,7 @@ func indirectStructType(typ reflect.Type) (reflect.Type, bool) {
 	return typ, true
 }
 
-func fieldPath(field MappedField) collectionx.List[int] {
+func fieldPath(field MappedField) *collectionx.List[int] {
 	if field.Path.Len() > 0 {
 		return field.Path
 	}
@@ -63,7 +63,7 @@ func walkFieldValue(root reflect.Value, field MappedField, createPointers bool) 
 	return reflect.Value{}, fmt.Errorf("dbx: field path for %s is empty", field.Name)
 }
 
-func descendFieldValue(current reflect.Value, field MappedField, path collectionx.List[int], depth int, createPointers bool) (reflect.Value, bool, error) {
+func descendFieldValue(current reflect.Value, field MappedField, path *collectionx.List[int], depth int, createPointers bool) (reflect.Value, bool, error) {
 	descended, ok, err := descendPointerValue(current, field, createPointers)
 	if err != nil || !ok {
 		return reflect.Value{}, ok, err

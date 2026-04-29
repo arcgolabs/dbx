@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	setx "github.com/arcgolabs/collectionx/set"
 	"github.com/arcgolabs/dbx"
 	columnx "github.com/arcgolabs/dbx/column"
 	"github.com/arcgolabs/dbx/idgen"
@@ -114,7 +115,7 @@ func (r *Base[E, S]) Upsert(ctx context.Context, entity *E, conflictColumns ...s
 	return nil
 }
 
-func (r *Base[E, S]) insertAssignments(ctx context.Context, entity *E) (collectionx.List[querydsl.Assignment], error) {
+func (r *Base[E, S]) insertAssignments(ctx context.Context, entity *E) (*collectionx.List[querydsl.Assignment], error) {
 	type idGeneratorCarrier interface {
 		IDGenerator() idgen.Generator
 	}
@@ -130,12 +131,12 @@ func (r *Base[E, S]) insertAssignments(ctx context.Context, entity *E) (collecti
 	return assignments, nil
 }
 
-func normalizeConflictColumns(columns, fallback collectionx.List[string]) collectionx.List[string] {
+func normalizeConflictColumns(columns, fallback *collectionx.List[string]) *collectionx.List[string] {
 	items := columns
 	if items == nil || items.Len() == 0 {
 		items = fallback
 	}
-	ordered := collectionx.NewOrderedSet[string]()
+	ordered := setx.NewOrderedSet[string]()
 	items.Range(func(_ int, column string) bool {
 		if name := strings.TrimSpace(column); name != "" {
 			ordered.Add(name)
@@ -150,8 +151,8 @@ func normalizeConflictColumns(columns, fallback collectionx.List[string]) collec
 	return result
 }
 
-func upsertUpdateAssignments[S querydsl.TableSource](schema S, fields collectionx.List[mapperx.MappedField], conflictColumns collectionx.List[string]) collectionx.List[querydsl.Assignment] {
-	conflictSet := collectionx.NewSetWithCapacity[string](conflictColumns.Len())
+func upsertUpdateAssignments[S querydsl.TableSource](schema S, fields *collectionx.List[mapperx.MappedField], conflictColumns *collectionx.List[string]) *collectionx.List[querydsl.Assignment] {
+	conflictSet := setx.NewSetWithCapacity[string](conflictColumns.Len())
 	conflictColumns.Range(func(_ int, column string) bool {
 		conflictSet.Add(column)
 		return true

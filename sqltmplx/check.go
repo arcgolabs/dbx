@@ -3,7 +3,7 @@ package sqltmplx
 import (
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/dialect"
 	"github.com/arcgolabs/dbx/sqlstmt"
 	"github.com/arcgolabs/dbx/sqltmplx/validate"
@@ -28,7 +28,7 @@ type CheckReport struct {
 	SampleProvided bool
 	Metadata       TemplateMetadata
 	SQL            string
-	Args           collectionx.List[any]
+	Args           *collectionx.List[any]
 	Analysis       *validate.Analysis
 	Err            error
 }

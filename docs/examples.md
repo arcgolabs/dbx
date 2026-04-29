@@ -74,7 +74,7 @@ mapper := mapperx.MustStructMapperWithOptions[shared.Account](
 items, err := dbx.QueryAll[shared.Account](
     ctx,
     core,
-    querydsl.Select(querydsl.AllColumns(catalog.Accounts).Values()...).From(catalog.Accounts),
+    querydsl.SelectFrom(catalog.Accounts, querydsl.AllColumns(catalog.Accounts).Values()...),
     mapper,
 )
 if err != nil {
@@ -89,17 +89,15 @@ statusLabel := querydsl.CaseWhen[string](catalog.Users.Status.Eq(1), "active").
     Else("inactive").
     As("status_label")
 
-activeUsers := querydsl.NamedTable("active_users")
-activeID := columnx.Named[int64](activeUsers, "id")
-activeName := columnx.Named[string](activeUsers, "username")
+activeUsers := querydsl.View("active_users")
+activeID := querydsl.Col[int64](activeUsers, "id")
+activeName := querydsl.Col[string](activeUsers, "username")
 
-query := querydsl.Select(activeID, activeName, statusLabel).
+query := querydsl.SelectFrom(activeUsers, activeID, activeName, statusLabel).
     With("active_users",
-        querydsl.Select(catalog.Users.ID, catalog.Users.Username).
-            From(catalog.Users).
+        querydsl.SelectFrom(catalog.Users, catalog.Users.ID, catalog.Users.Username).
             Where(catalog.Users.Status.Eq(1)),
-    ).
-    From(activeUsers)
+    )
 ```
 
 ## Example: Relation Loading

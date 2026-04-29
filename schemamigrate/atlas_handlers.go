@@ -4,7 +4,7 @@ import (
 	atlasschema "ariga.io/atlas/sql/schema"
 	schemax "github.com/arcgolabs/dbx/schema"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 type atlasTableChangeHandler func(*schemax.TableDiff, *atlasCompiledTable, *atlasschema.Table, atlasschema.Change) bool

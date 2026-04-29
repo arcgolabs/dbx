@@ -5,9 +5,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
-	columnx "github.com/arcgolabs/dbx/column"
 	"github.com/arcgolabs/dbx/examples/internal/shared"
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/querydsl"
@@ -48,16 +47,14 @@ func main() {
 		panic(err)
 	}
 
-	activeUsers := querydsl.NamedTable("active_users")
-	activeID := columnx.Named[int64](activeUsers, "id")
-	activeUsername := columnx.Named[string](activeUsers, "username")
-	activeQuery := querydsl.Select(activeID, activeUsername).
+	activeUsers := querydsl.View("active_users")
+	activeID := querydsl.Col[int64](activeUsers, "id")
+	activeUsername := querydsl.Col[string](activeUsers, "username")
+	activeQuery := querydsl.SelectFrom(activeUsers, activeID, activeUsername).
 		With("active_users",
-			querydsl.Select(catalog.Users.ID, catalog.Users.Username).
-				From(catalog.Users).
+			querydsl.SelectFrom(catalog.Users, catalog.Users.ID, catalog.Users.Username).
 				Where(catalog.Users.Status.Eq(1)),
 		).
-		From(activeUsers).
 		OrderBy(activeID.Asc())
 
 	activeRows, err := dbx.QueryAll[activeUserRow](ctx, core, activeQuery, mapperx.MustStructMapper[activeUserRow]())
@@ -69,13 +66,12 @@ func main() {
 	statusLabel := querydsl.CaseWhen[string](catalog.Users.Status.Eq(1), "active").
 		When(catalog.Users.Status.Eq(0), "inactive").
 		Else("unknown")
-	labeledQuery := querydsl.Select(
+	labeledQuery := querydsl.SelectFrom(
+		catalog.Users,
 		catalog.Users.ID,
 		catalog.Users.Username,
 		statusLabel.As("status_label"),
-	).
-		From(catalog.Users).
-		OrderBy(catalog.Users.ID.Asc())
+	).OrderBy(catalog.Users.ID.Asc())
 
 	labeledRows, err := dbx.QueryAll[labeledUserRow](ctx, core, labeledQuery, mapperx.MustStructMapper[labeledUserRow]())
 	if err != nil {
@@ -83,13 +79,11 @@ func main() {
 	}
 	printLabeledRows(labeledRows)
 
-	label := columnx.Result[string]("label")
-	unionQuery := querydsl.Select(catalog.Users.Username.As("label")).
-		From(catalog.Users).
+	label := querydsl.Result[string]("label")
+	unionQuery := querydsl.SelectFrom(catalog.Users, catalog.Users.Username.As("label")).
 		Where(catalog.Users.Status.Eq(1)).
 		UnionAll(
-			querydsl.Select(catalog.Roles.Name.As("label")).
-				From(catalog.Roles),
+			querydsl.SelectFrom(catalog.Roles, catalog.Roles.Name.As("label")),
 		).
 		OrderBy(label.Asc())
 
@@ -100,7 +94,7 @@ func main() {
 	printUnionRows(unionRows)
 }
 
-func printActiveRows(rows collectionx.List[activeUserRow]) {
+func printActiveRows(rows *collectionx.List[activeUserRow]) {
 	printLine("cte query:")
 	rows.Range(func(_ int, row activeUserRow) bool {
 		printFormat("- id=%d username=%s\n", row.ID, row.Username)
@@ -108,7 +102,7 @@ func printActiveRows(rows collectionx.List[activeUserRow]) {
 	})
 }
 
-func printLabeledRows(rows collectionx.List[labeledUserRow]) {
+func printLabeledRows(rows *collectionx.List[labeledUserRow]) {
 	printLine("case query:")
 	rows.Range(func(_ int, row labeledUserRow) bool {
 		printFormat("- id=%d username=%s status=%s\n", row.ID, row.Username, row.StatusLabel)
@@ -116,7 +110,7 @@ func printLabeledRows(rows collectionx.List[labeledUserRow]) {
 	})
 }
 
-func printUnionRows(rows collectionx.List[unionLabelRow]) {
+func printUnionRows(rows *collectionx.List[unionLabelRow]) {
 	printLine("union query:")
 	rows.Range(func(_ int, row unionLabelRow) bool {
 		printFormat("- label=%s\n", row.Label)

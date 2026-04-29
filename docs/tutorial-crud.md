@@ -94,7 +94,7 @@ func main() {
 	// Read
 	list, err := dbx.QueryAll[User](
 		ctx, core,
-		querydsl.Select(querydsl.AllColumns(Users).Values()...).From(Users).Where(Users.Username.Eq("alice")),
+		querydsl.SelectFrom(Users, querydsl.AllColumns(Users).Values()...).Where(Users.Username.Eq("alice")),
 		mapper,
 	)
 	if err != nil {

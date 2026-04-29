@@ -3,7 +3,9 @@ package schema
 import (
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
+	setx "github.com/arcgolabs/collectionx/set"
 )
 
 func buildTableSpec(def schemaDefinition) TableSpec {
@@ -21,7 +23,7 @@ func buildTableSpec(def schemaDefinition) TableSpec {
 }
 
 func deriveIndexes(def schemaDefinition) []IndexMeta {
-	indexes := collectionx.NewOrderedMap[string, IndexMeta]()
+	indexes := mappingx.NewOrderedMap[string, IndexMeta]()
 	def.indexes.Range(func(_ int, index IndexMeta) bool {
 		indexes.Set(indexKey(index.Unique, index.Columns), cloneIndexMeta(index))
 		return true
@@ -35,7 +37,7 @@ func deriveIndexes(def schemaDefinition) []IndexMeta {
 	return items
 }
 
-func deriveColumnIndexes(def schemaDefinition, indexes collectionx.OrderedMap[string, IndexMeta]) {
+func deriveColumnIndexes(def schemaDefinition, indexes *mappingx.OrderedMap[string, IndexMeta]) {
 	tableName := def.table.Name()
 	def.columns.Range(func(_ int, column ColumnMeta) bool {
 		if !shouldDeriveColumnIndex(column) {
@@ -91,8 +93,8 @@ func derivePrimaryKey(def schemaDefinition) *PrimaryKeyMeta {
 }
 
 func deriveForeignKeys(def schemaDefinition) []ForeignKeyMeta {
-	foreignKeys := collectionx.NewOrderedMap[string, ForeignKeyMeta]()
-	explicitColumns := collectionx.NewSet[string]()
+	foreignKeys := mappingx.NewOrderedMap[string, ForeignKeyMeta]()
+	explicitColumns := setx.NewSet[string]()
 	deriveExplicitForeignKeys(def, foreignKeys, explicitColumns)
 	deriveRelationForeignKeys(def, foreignKeys, explicitColumns)
 	items := make([]ForeignKeyMeta, 0, foreignKeys.Len())
@@ -103,7 +105,7 @@ func deriveForeignKeys(def schemaDefinition) []ForeignKeyMeta {
 	return items
 }
 
-func deriveExplicitForeignKeys(def schemaDefinition, foreignKeys collectionx.OrderedMap[string, ForeignKeyMeta], explicitColumns collectionx.Set[string]) {
+func deriveExplicitForeignKeys(def schemaDefinition, foreignKeys *mappingx.OrderedMap[string, ForeignKeyMeta], explicitColumns *setx.Set[string]) {
 	tableName := def.table.Name()
 	def.columns.Range(func(_ int, column ColumnMeta) bool {
 		if column.References == nil {
@@ -124,7 +126,7 @@ func deriveExplicitForeignKeys(def schemaDefinition, foreignKeys collectionx.Ord
 	})
 }
 
-func deriveRelationForeignKeys(def schemaDefinition, foreignKeys collectionx.OrderedMap[string, ForeignKeyMeta], explicitColumns collectionx.Set[string]) {
+func deriveRelationForeignKeys(def schemaDefinition, foreignKeys *mappingx.OrderedMap[string, ForeignKeyMeta], explicitColumns *setx.Set[string]) {
 	tableName := def.table.Name()
 	def.relations.Range(func(_ int, relation RelationMeta) bool {
 		if !shouldDeriveRelationForeignKey(def, relation, explicitColumns) {
@@ -145,7 +147,7 @@ func deriveRelationForeignKeys(def schemaDefinition, foreignKeys collectionx.Ord
 	})
 }
 
-func shouldDeriveRelationForeignKey(def schemaDefinition, relation RelationMeta, explicitColumns collectionx.Set[string]) bool {
+func shouldDeriveRelationForeignKey(def schemaDefinition, relation RelationMeta, explicitColumns *setx.Set[string]) bool {
 	if relation.Kind != RelationBelongsTo {
 		return false
 	}
@@ -165,7 +167,7 @@ func deriveChecks(def schemaDefinition) []CheckMeta {
 	}).Values()
 }
 
-func indexKey(unique bool, columns collectionx.List[string]) string {
+func indexKey(unique bool, columns *collectionx.List[string]) string {
 	prefix := "idx:"
 	if unique {
 		prefix = "ux:"
@@ -177,7 +179,7 @@ func foreignKeyKey(meta ForeignKeyMeta) string {
 	return columnsKey(meta.Columns) + "->" + meta.TargetTable + ":" + columnsKey(meta.TargetColumns) + ":" + string(normalizeReferentialAction(meta.OnDelete)) + ":" + string(normalizeReferentialAction(meta.OnUpdate))
 }
 
-func columnsKey(columns collectionx.List[string]) string {
+func columnsKey(columns *collectionx.List[string]) string {
 	return columns.Join(",")
 }
 

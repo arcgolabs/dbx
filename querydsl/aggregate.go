@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 type Aggregate[T any] struct {
@@ -16,11 +16,11 @@ type Aggregate[T any] struct {
 }
 
 type CaseBuilder[T any] struct {
-	branches collectionx.List[caseWhenBranch]
+	branches *collectionx.List[caseWhenBranch]
 }
 
 type CaseExpression[T any] struct {
-	Branches collectionx.List[caseWhenBranch]
+	Branches *collectionx.List[caseWhenBranch]
 	Else     any
 }
 

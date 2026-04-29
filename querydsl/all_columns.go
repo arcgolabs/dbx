@@ -1,7 +1,7 @@
 package querydsl
 
 import (
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	schemax "github.com/arcgolabs/dbx/schema"
 )
 
@@ -10,7 +10,7 @@ type schemaColumnSelectItem struct {
 }
 
 // AllColumns returns a select list for every column exposed by a schema.
-func AllColumns(schema schemax.Resource) collectionx.List[SelectItem] {
+func AllColumns(schema schemax.Resource) *collectionx.List[SelectItem] {
 	return collectionx.MapList[schemax.ColumnMeta, SelectItem](schema.Spec().Columns, func(_ int, column schemax.ColumnMeta) SelectItem {
 		return schemaColumnSelectItem{meta: schemax.CloneColumnMeta(column)}
 	})

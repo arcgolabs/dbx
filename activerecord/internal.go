@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"slices"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/querydsl"
 	"github.com/arcgolabs/dbx/repository"
@@ -51,7 +51,7 @@ func (s *Store[E, S]) keyOf(entity *E) repository.Key {
 	return key
 }
 
-func primaryKeyColumns[S querydsl.TableSource](schema S) collectionx.List[string] {
+func primaryKeyColumns[S querydsl.TableSource](schema S) *collectionx.List[string] {
 	type primaryKeyProvider interface {
 		PrimaryKey() (schemax.PrimaryKeyMeta, bool)
 	}

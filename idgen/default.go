@@ -5,11 +5,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/mapping"
 )
 
 type defaultGenerator struct {
-	generators collectionx.Map[Strategy, Generator]
+	generators *collectionx.Map[Strategy, Generator]
 }
 
 func NewDefault(nodeID uint16) (Generator, error) {

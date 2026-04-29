@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	"github.com/arcgolabs/dbx/examples/internal/shared"
 	mapperx "github.com/arcgolabs/dbx/mapper"
@@ -53,7 +53,7 @@ func main() {
 type loadedUserRelations struct {
 	Username      string
 	BelongsToRole string
-	ManyToMany    collectionx.List[string]
+	ManyToMany    *collectionx.List[string]
 }
 
 func openRelationsDB() (*dbx.DB, func() error) {
@@ -76,11 +76,11 @@ func prepareRelationsData(ctx context.Context, core *dbx.DB, catalog shared.Cata
 	}
 }
 
-func runBelongsToExample(ctx context.Context, core *dbx.DB, catalog shared.Catalog) (string, collectionx.List[userRoleRow]) {
+func runBelongsToExample(ctx context.Context, core *dbx.DB, catalog shared.Catalog) (string, *collectionx.List[userRoleRow]) {
 	users := schemax.Alias(catalog.Users, "u")
 	roles := schemax.Alias(catalog.Roles, "r")
 
-	query := querydsl.Select(users.ID, users.Username, roles.Name).From(users)
+	query := querydsl.SelectFrom(users, users.ID, users.Username, roles.Name)
 	_, err := relationx.Join(query, users, users.Role, roles)
 	if err != nil {
 		panic(err)
@@ -95,11 +95,11 @@ func runBelongsToExample(ctx context.Context, core *dbx.DB, catalog shared.Catal
 	return bound.SQL, scanUserRoleRows(ctx, core, bound)
 }
 
-func runManyToManyExample(ctx context.Context, core *dbx.DB, catalog shared.Catalog) (string, collectionx.List[userRolePair]) {
+func runManyToManyExample(ctx context.Context, core *dbx.DB, catalog shared.Catalog) (string, *collectionx.List[userRolePair]) {
 	users := schemax.Alias(catalog.Users, "u")
 	roles := schemax.Alias(catalog.Roles, "r")
 
-	query := querydsl.Select(users.Username, roles.Name).From(users)
+	query := querydsl.SelectFrom(users, users.Username, roles.Name)
 	_, err := relationx.Join(query, users, users.Roles, roles)
 	if err != nil {
 		panic(err)
@@ -114,7 +114,7 @@ func runManyToManyExample(ctx context.Context, core *dbx.DB, catalog shared.Cata
 	return bound.SQL, scanUserRolePairs(ctx, core, bound)
 }
 
-func scanUserRoleRows(ctx context.Context, core *dbx.DB, bound sqlstmt.Bound) collectionx.List[userRoleRow] {
+func scanUserRoleRows(ctx context.Context, core *dbx.DB, bound sqlstmt.Bound) *collectionx.List[userRoleRow] {
 	rows, err := core.QueryBoundContext(ctx, bound)
 	if err != nil {
 		panic(err)
@@ -138,7 +138,7 @@ func scanUserRoleRows(ctx context.Context, core *dbx.DB, bound sqlstmt.Bound) co
 	return out
 }
 
-func scanUserRolePairs(ctx context.Context, core *dbx.DB, bound sqlstmt.Bound) collectionx.List[userRolePair] {
+func scanUserRolePairs(ctx context.Context, core *dbx.DB, bound sqlstmt.Bound) *collectionx.List[userRolePair] {
 	rows, err := core.QueryBoundContext(ctx, bound)
 	if err != nil {
 		panic(err)
@@ -162,13 +162,13 @@ func scanUserRolePairs(ctx context.Context, core *dbx.DB, bound sqlstmt.Bound) c
 	return out
 }
 
-func loadRelations(ctx context.Context, core *dbx.DB, catalog shared.Catalog) collectionx.List[loadedUserRelations] {
+func loadRelations(ctx context.Context, core *dbx.DB, catalog shared.Catalog) *collectionx.List[loadedUserRelations] {
 	userMapper := mapperx.MustMapper[shared.User](catalog.Users)
 	roleMapper := mapperx.MustMapper[shared.Role](catalog.Roles)
 	usersToLoad, err := dbx.QueryAll[shared.User](
 		ctx,
 		core,
-		querydsl.Select(querydsl.AllColumns(catalog.Users).Values()...).From(catalog.Users).OrderBy(catalog.Users.ID.Asc()),
+		querydsl.SelectFrom(catalog.Users, querydsl.AllColumns(catalog.Users).Values()...).OrderBy(catalog.Users.ID.Asc()),
 		userMapper,
 	)
 	if err != nil {
@@ -204,7 +204,7 @@ func loadRelations(ctx context.Context, core *dbx.DB, catalog shared.Catalog) co
 		catalog.Users.Roles,
 		catalog.Roles,
 		roleMapper,
-		func(index int, user shared.User, value collectionx.List[shared.Role]) shared.User {
+		func(index int, user shared.User, value *collectionx.List[shared.Role]) shared.User {
 			loadedRoles[index] = value.Values()
 			return user
 		},
@@ -235,7 +235,7 @@ func optionRoleName(value mo.Option[shared.Role]) string {
 	return "<none>"
 }
 
-func roleNames(roles []shared.Role) collectionx.List[string] {
+func roleNames(roles []shared.Role) *collectionx.List[string] {
 	names := collectionx.NewListWithCapacity[string](len(roles))
 	for index := range roles {
 		names.Add(roles[index].Name)
@@ -243,7 +243,7 @@ func roleNames(roles []shared.Role) collectionx.List[string] {
 	return names
 }
 
-func printUserRoleRows(title string, rows collectionx.List[userRoleRow]) {
+func printUserRoleRows(title string, rows *collectionx.List[userRoleRow]) {
 	printLine(title)
 	rows.Range(func(_ int, row userRoleRow) bool {
 		printFormat("- id=%d username=%s role=%s\n", row.ID, row.Username, row.RoleName)
@@ -251,7 +251,7 @@ func printUserRoleRows(title string, rows collectionx.List[userRoleRow]) {
 	})
 }
 
-func printUserRolePairs(title string, rows collectionx.List[userRolePair]) {
+func printUserRolePairs(title string, rows *collectionx.List[userRolePair]) {
 	printLine(title)
 	rows.Range(func(_ int, row userRolePair) bool {
 		printFormat("- username=%s role=%s\n", row.Username, row.RoleName)
@@ -259,7 +259,7 @@ func printUserRolePairs(title string, rows collectionx.List[userRolePair]) {
 	})
 }
 
-func printLoadedRelations(title string, rows collectionx.List[loadedUserRelations]) {
+func printLoadedRelations(title string, rows *collectionx.List[loadedUserRelations]) {
 	printLine(title)
 	rows.Range(func(_ int, row loadedUserRelations) bool {
 		printFormat(

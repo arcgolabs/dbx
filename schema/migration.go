@@ -3,27 +3,27 @@ package schema
 import (
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/sqlstmt"
 )
 
 type TableSpec struct {
 	Name        string
-	Columns     collectionx.List[ColumnMeta]
-	Indexes     collectionx.List[IndexMeta]
+	Columns     *collectionx.List[ColumnMeta]
+	Indexes     *collectionx.List[IndexMeta]
 	PrimaryKey  *PrimaryKeyMeta
-	ForeignKeys collectionx.List[ForeignKeyMeta]
-	Checks      collectionx.List[CheckMeta]
+	ForeignKeys *collectionx.List[ForeignKeyMeta]
+	Checks      *collectionx.List[CheckMeta]
 }
 
 type TableState struct {
 	Exists      bool
 	Name        string
-	Columns     collectionx.List[ColumnState]
-	Indexes     collectionx.List[IndexState]
+	Columns     *collectionx.List[ColumnState]
+	Indexes     *collectionx.List[IndexState]
 	PrimaryKey  *PrimaryKeyState
-	ForeignKeys collectionx.List[ForeignKeyState]
-	Checks      collectionx.List[CheckState]
+	ForeignKeys *collectionx.List[ForeignKeyState]
+	Checks      *collectionx.List[CheckState]
 }
 
 type ColumnState struct {
@@ -37,20 +37,20 @@ type ColumnState struct {
 
 type IndexState struct {
 	Name    string
-	Columns collectionx.List[string]
+	Columns *collectionx.List[string]
 	Unique  bool
 }
 
 type PrimaryKeyState struct {
 	Name    string
-	Columns collectionx.List[string]
+	Columns *collectionx.List[string]
 }
 
 type ForeignKeyState struct {
 	Name          string
-	Columns       collectionx.List[string]
+	Columns       *collectionx.List[string]
 	TargetTable   string
-	TargetColumns collectionx.List[string]
+	TargetColumns *collectionx.List[string]
 	OnDelete      ReferentialAction
 	OnUpdate      ReferentialAction
 }
@@ -61,10 +61,10 @@ type CheckState struct {
 }
 
 type ValidationReport struct {
-	Tables   collectionx.List[TableDiff]
+	Tables   *collectionx.List[TableDiff]
 	Backend  ValidationBackend
 	Complete bool
-	Warnings collectionx.List[string]
+	Warnings *collectionx.List[string]
 }
 
 type ValidationBackend string
@@ -77,23 +77,23 @@ const (
 type TableDiff struct {
 	Table              string
 	MissingTable       bool
-	MissingColumns     collectionx.List[ColumnMeta]
-	MissingIndexes     collectionx.List[IndexMeta]
-	MissingForeignKeys collectionx.List[ForeignKeyMeta]
-	MissingChecks      collectionx.List[CheckMeta]
+	MissingColumns     *collectionx.List[ColumnMeta]
+	MissingIndexes     *collectionx.List[IndexMeta]
+	MissingForeignKeys *collectionx.List[ForeignKeyMeta]
+	MissingChecks      *collectionx.List[CheckMeta]
 	PrimaryKeyDiff     *PrimaryKeyDiff
-	ColumnDiffs        collectionx.List[ColumnDiff]
+	ColumnDiffs        *collectionx.List[ColumnDiff]
 }
 
 type PrimaryKeyDiff struct {
 	Expected *PrimaryKeyMeta
 	Actual   *PrimaryKeyState
-	Issues   collectionx.List[string]
+	Issues   *collectionx.List[string]
 }
 
 type ColumnDiff struct {
 	Column ColumnMeta
-	Issues collectionx.List[string]
+	Issues *collectionx.List[string]
 }
 
 type MigrationActionKind string
@@ -116,7 +116,7 @@ type MigrationAction struct {
 }
 
 type MigrationPlan struct {
-	Actions collectionx.List[MigrationAction]
+	Actions *collectionx.List[MigrationAction]
 	Report  ValidationReport
 }
 
@@ -128,7 +128,7 @@ func (a MigrationAction) SQLPreview() string {
 	return strings.TrimSpace(a.Statement.SQL)
 }
 
-func (p MigrationPlan) Statements() collectionx.List[sqlstmt.Bound] {
+func (p MigrationPlan) Statements() *collectionx.List[sqlstmt.Bound] {
 	statements := collectionx.NewListWithCapacity[sqlstmt.Bound](p.Actions.Len())
 	p.Actions.Range(func(_ int, action MigrationAction) bool {
 		if action.HasStatement() {
@@ -139,7 +139,7 @@ func (p MigrationPlan) Statements() collectionx.List[sqlstmt.Bound] {
 	return statements
 }
 
-func (p MigrationPlan) SQLPreview() collectionx.List[string] {
+func (p MigrationPlan) SQLPreview() *collectionx.List[string] {
 	preview := collectionx.NewListWithCapacity[string](p.Actions.Len())
 	p.Actions.Range(func(_ int, action MigrationAction) bool {
 		if action.HasStatement() {
@@ -208,7 +208,7 @@ func (t TableDiff) Empty() bool {
 		t.ColumnDiffs.Len() == 0
 }
 
-func (p MigrationPlan) ExecutableActions() collectionx.List[MigrationAction] {
+func (p MigrationPlan) ExecutableActions() *collectionx.List[MigrationAction] {
 	actions := collectionx.NewListWithCapacity[MigrationAction](p.Actions.Len())
 	p.Actions.Range(func(_ int, action MigrationAction) bool {
 		if action.Executable {

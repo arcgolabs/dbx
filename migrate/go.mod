@@ -3,21 +3,16 @@ module github.com/arcgolabs/dbx/migrate
 go 1.26.2
 
 require (
-	github.com/arcgolabs/collectionx v0.2.0
+	github.com/arcgolabs/collectionx/list v0.4.0
+	github.com/arcgolabs/collectionx/mapping v0.4.0
+	github.com/arcgolabs/dbx v0.1.1
 	github.com/pressly/goose/v3 v3.27.0
-	github.com/samber/lo v1.53.0
 	github.com/stretchr/testify v1.11.1
 	modernc.org/sqlite v1.48.1
 )
 
 require (
-	github.com/arcgolabs/collectionx/internal v0.2.0 // indirect
-	github.com/arcgolabs/collectionx/interval v0.2.0 // indirect
-	github.com/arcgolabs/collectionx/list v0.2.0 // indirect
-	github.com/arcgolabs/collectionx/mapping v0.2.0 // indirect
-	github.com/arcgolabs/collectionx/prefix v0.2.0 // indirect
-	github.com/arcgolabs/collectionx/set v0.2.0 // indirect
-	github.com/arcgolabs/collectionx/tree v0.2.0 // indirect
+	github.com/arcgolabs/collectionx/internal v0.4.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -26,6 +21,7 @@ require (
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	github.com/samber/lo v1.53.0 // indirect
 	github.com/samber/mo v1.16.0 // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

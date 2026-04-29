@@ -7,7 +7,8 @@ import (
 	schemax "github.com/arcgolabs/dbx/schema"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	"github.com/arcgolabs/dbx"
 )
 
@@ -106,7 +107,7 @@ func postgresPrimaryColumn(columns map[string]struct{}, name string) bool {
 	return ok
 }
 
-func appendPostgresForeignKey(groups collectionx.OrderedMap[string, schemax.ForeignKeyState], name string, state schemax.ForeignKeyState) {
+func appendPostgresForeignKey(groups *mappingx.OrderedMap[string, schemax.ForeignKeyState], name string, state schemax.ForeignKeyState) {
 	current, ok := groups.Get(name)
 	if !ok {
 		groups.Set(name, state)

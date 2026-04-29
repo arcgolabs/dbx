@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/samber/mo"
 )
 
@@ -71,7 +71,7 @@ func BenchmarkLoadHasMany(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for range b.N {
-			if err := LoadHasMany(context.Background(), core, items, users, sourceMapper, users.Posts, posts, targetMapper, func(index int, user relationUser, value collectionx.List[relationPost]) relationUser {
+			if err := LoadHasMany(context.Background(), core, items, users, sourceMapper, users.Posts, posts, targetMapper, func(index int, user relationUser, value *collectionx.List[relationPost]) relationUser {
 				loaded[index] = value.Values()
 				return user
 			}); err != nil {
@@ -116,7 +116,7 @@ func BenchmarkLoadManyToMany(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for range b.N {
-			if err := LoadManyToMany(context.Background(), core, items, users, sourceMapper, users.Tags, tags, targetMapper, func(index int, user relationUser, value collectionx.List[relationTag]) relationUser {
+			if err := LoadManyToMany(context.Background(), core, items, users, sourceMapper, users.Tags, tags, targetMapper, func(index int, user relationUser, value *collectionx.List[relationTag]) relationUser {
 				loaded[index] = value.Values()
 				return user
 			}); err != nil {

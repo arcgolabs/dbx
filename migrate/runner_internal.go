@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	"github.com/arcgolabs/dbx/dialect"
 )
 
@@ -18,8 +19,8 @@ func appliedRecordKey(kind Kind, version, description string) string {
 	return string(kind) + "\x1f" + version + "\x1f" + description
 }
 
-func indexAppliedRecords(records collectionx.List[AppliedRecord]) map[string]AppliedRecord {
-	return collectionx.AssociateList[AppliedRecord, string, AppliedRecord](records, func(_ int, record AppliedRecord) (string, AppliedRecord) {
+func indexAppliedRecords(records *collectionx.List[AppliedRecord]) map[string]AppliedRecord {
+	return mappingx.AssociateList[AppliedRecord, string, AppliedRecord](records, func(_ int, record AppliedRecord) (string, AppliedRecord) {
 		return appliedRecordKey(record.Kind, record.Version, record.Description), record
 	}).All()
 }
@@ -123,7 +124,7 @@ func replaceAppliedRecordOnConn(ctx context.Context, conn interface {
 	return nil
 }
 
-func appliedRecordForVersion(items collectionx.List[AppliedRecord], record AppliedRecord) (AppliedRecord, error) {
+func appliedRecordForVersion(items *collectionx.List[AppliedRecord], record AppliedRecord) (AppliedRecord, error) {
 	found, ok := items.FirstWhere(func(_ int, item AppliedRecord) bool {
 		return item.Kind == record.Kind && item.Version == record.Version && item.Description == record.Description
 	}).Get()

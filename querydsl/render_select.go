@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/dialect"
 	"github.com/arcgolabs/dbx/sqlstmt"
 )
@@ -73,7 +73,7 @@ func renderSelectSet(state *State, q *SelectQuery) error {
 	return renderSelectTail(state, q)
 }
 
-func renderCTEs(state *State, ctes collectionx.List[CTE]) error {
+func renderCTEs(state *State, ctes *collectionx.List[CTE]) error {
 	if ctes.Len() == 0 {
 		return nil
 	}
@@ -241,7 +241,7 @@ func renderSelectTail(state *State, q *SelectQuery) error {
 	return renderSelectLimitOffset(state, q)
 }
 
-func renderSelectOrders(state *State, orders collectionx.List[Order]) error {
+func renderSelectOrders(state *State, orders *collectionx.List[Order]) error {
 	if orders.Len() == 0 {
 		return nil
 	}

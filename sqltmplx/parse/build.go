@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/sqltmplx/scan"
 	"github.com/expr-lang/expr"
 )
@@ -38,9 +38,9 @@ func Build(tokens []scan.Token) ([]Node, error) {
 }
 
 // BuildList converts scanned tokens into a parse tree as a collectionx.List.
-func BuildList(tokens collectionx.List[scan.Token]) (collectionx.List[Node], error) {
+func BuildList(tokens *collectionx.List[scan.Token]) (*collectionx.List[Node], error) {
 	nodes := collectionx.NewList[Node]()
-	stack := collectionx.NewListWithCapacity[frame](4, frame{kind: frameRoot, out: &nodes})
+	stack := collectionx.NewListWithCapacity[frame](4, frame{kind: frameRoot, out: nodes})
 
 	appendNode := func(n Node) {
 		appendFrameNode(stack, n)
@@ -64,7 +64,7 @@ func BuildList(tokens collectionx.List[scan.Token]) (collectionx.List[Node], err
 	return nodes, nil
 }
 
-func consumeToken(tok scan.Token, stack collectionx.List[frame], appendNode func(Node)) error {
+func consumeToken(tok scan.Token, stack *collectionx.List[frame], appendNode func(Node)) error {
 	switch tok.Kind {
 	case scan.Text:
 		nodes, err := compileTextToken(tok)
@@ -83,7 +83,7 @@ func consumeToken(tok scan.Token, stack collectionx.List[frame], appendNode func
 	}
 }
 
-func consumeDirective(tok scan.Token, stack collectionx.List[frame], appendNode func(Node)) error {
+func consumeDirective(tok scan.Token, stack *collectionx.List[frame], appendNode func(Node)) error {
 	directive, err := parseDirective(tok.Value)
 	if err != nil {
 		return wrapParseError(tok.Span.Start, err)
@@ -105,31 +105,31 @@ func consumeDirective(tok scan.Token, stack collectionx.List[frame], appendNode 
 	}
 }
 
-func pushIfNode(directive *IfDirective, span scan.Span, stack collectionx.List[frame], appendNode func(Node)) error {
+func pushIfNode(directive *IfDirective, span scan.Span, stack *collectionx.List[frame], appendNode func(Node)) error {
 	program, err := expr.Compile(directive.Expr)
 	if err != nil {
 		return wrapParseError(span.Start, fmt.Errorf("sqltmplx: compile expr %q: %w", directive.Expr, err))
 	}
 
-	node := &IfNode{RawExpr: directive.Expr, Program: program, Span: span}
+	node := &IfNode{RawExpr: directive.Expr, Program: program, Body: collectionx.NewList[Node](), Span: span}
 	appendNode(node)
-	stack.Add(frame{kind: frameIf, out: &node.Body})
+	stack.Add(frame{kind: frameIf, out: node.Body})
 	return nil
 }
 
-func pushWhereNode(span scan.Span, stack collectionx.List[frame], appendNode func(Node)) {
-	node := &WhereNode{Span: span}
+func pushWhereNode(span scan.Span, stack *collectionx.List[frame], appendNode func(Node)) {
+	node := &WhereNode{Body: collectionx.NewList[Node](), Span: span}
 	appendNode(node)
-	stack.Add(frame{kind: frameWhere, out: &node.Body})
+	stack.Add(frame{kind: frameWhere, out: node.Body})
 }
 
-func pushSetNode(span scan.Span, stack collectionx.List[frame], appendNode func(Node)) {
-	node := &SetNode{Span: span}
+func pushSetNode(span scan.Span, stack *collectionx.List[frame], appendNode func(Node)) {
+	node := &SetNode{Body: collectionx.NewList[Node](), Span: span}
 	appendNode(node)
-	stack.Add(frame{kind: frameSet, out: &node.Body})
+	stack.Add(frame{kind: frameSet, out: node.Body})
 }
 
-func popFrame(position scan.Position, stack collectionx.List[frame]) error {
+func popFrame(position scan.Position, stack *collectionx.List[frame]) error {
 	if stack.Len() == 1 {
 		return wrapParseError(position, errUnexpectedEnd)
 	}
@@ -137,13 +137,12 @@ func popFrame(position scan.Position, stack collectionx.List[frame]) error {
 	return nil
 }
 
-func appendFrameNode(stack collectionx.List[frame], node Node) {
+func appendFrameNode(stack *collectionx.List[frame], node Node) {
 	current, _ := stack.Get(stack.Len() - 1)
-	out := current.out
-	if *out == nil {
-		*out = collectionx.NewList[Node]()
+	if current.out == nil {
+		return
 	}
-	(*out).Add(node)
+	current.out.Add(node)
 }
 
 func wrapParseError(position scan.Position, err error) error {

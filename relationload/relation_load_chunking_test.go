@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/samber/mo"
 )
 
@@ -72,7 +72,7 @@ func TestLoadManyToManyChunksLargePairQueries(t *testing.T) {
 		users.Tags,
 		tags,
 		MustMapper[relationTag](tags),
-		func(index int, user relationUser, value collectionx.List[relationTag]) relationUser {
+		func(index int, user relationUser, value *collectionx.List[relationTag]) relationUser {
 			loaded[index] = value.Values()
 			return user
 		},
@@ -106,7 +106,7 @@ func TestLoadHasManyReturnsDeterministicOrder(t *testing.T) {
 		users.Posts,
 		posts,
 		MustMapper[relationPost](posts),
-		func(index int, user relationUser, value collectionx.List[relationPost]) relationUser {
+		func(index int, user relationUser, value *collectionx.List[relationPost]) relationUser {
 			loaded[index] = value.Values()
 			return user
 		},
@@ -174,7 +174,7 @@ func insertSharedUserAndPair(t *testing.T, sqlDB interface {
 	}
 }
 
-func chunkedRelationUsers(count int) collectionx.List[relationUser] {
+func chunkedRelationUsers(count int) *collectionx.List[relationUser] {
 	items := collectionx.NewListWithCapacity[relationUser](count)
 	for i := 1; i <= count; i++ {
 		items.Add(relationUser{ID: int64(i), Name: fmt.Sprintf("user-%d", i)})

@@ -3,6 +3,8 @@ package querydsl_test
 import (
 	"reflect"
 	"testing"
+
+	"github.com/arcgolabs/dbx/querydsl"
 )
 
 func TestSelectBuildSQLite(t *testing.T) {
@@ -28,6 +30,68 @@ func TestSelectBuildSQLite(t *testing.T) {
 	}
 	if !reflect.DeepEqual(bound.Args.Values(), []any{1, "a%"}) {
 		t.Fatalf("unexpected sqlite select args: %#v", bound.Args.Values())
+	}
+}
+
+func TestSelectFromBuildSQLite(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+
+	query := SelectFrom(users, users.ID, users.Username).
+		Where(users.Status.Eq(1)).
+		OrderBy(users.ID.Asc())
+
+	bound, err := query.Build(testSQLiteDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := `SELECT "users"."id", "users"."username" FROM "users" WHERE "users"."status" = ? ORDER BY "users"."id" ASC`
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected sqlite select-from SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+	if !reflect.DeepEqual(bound.Args.Values(), []any{1}) {
+		t.Fatalf("unexpected sqlite select-from args: %#v", bound.Args.Values())
+	}
+}
+
+func TestFromThenSelectBuildSQLite(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+
+	query := From(users).
+		Select(users.ID, users.Username).
+		Where(users.Status.Eq(1))
+
+	bound, err := query.Build(testSQLiteDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := `SELECT "users"."id", "users"."username" FROM "users" WHERE "users"."status" = ?`
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected sqlite from-select SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+}
+
+func TestViewAndColumnBuildSQLite(t *testing.T) {
+	activeUsers := View("active_users")
+	activeID := querydsl.Col[int64](activeUsers, "id")
+	activeUsername := querydsl.Col[string](activeUsers, "username")
+
+	query := SelectFrom(activeUsers, activeID, activeUsername).
+		Where(activeID.Gt(int64(10))).
+		OrderBy(activeID.Desc())
+
+	bound, err := query.Build(testSQLiteDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := `SELECT "active_users"."id", "active_users"."username" FROM "active_users" WHERE "active_users"."id" > ? ORDER BY "active_users"."id" DESC`
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected sqlite view SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+	if !reflect.DeepEqual(bound.Args.Values(), []any{int64(10)}) {
+		t.Fatalf("unexpected sqlite view args: %#v", bound.Args.Values())
 	}
 }
 

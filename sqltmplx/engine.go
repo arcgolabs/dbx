@@ -3,7 +3,7 @@ package sqltmplx
 import (
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/dialect"
 	"github.com/samber/hot"
 )

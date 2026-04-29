@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 func renderUpsert(state *State, q *InsertQuery) error {
@@ -37,7 +37,7 @@ func renderUpsertOnConflict(state *State, q *InsertQuery) error {
 	return renderUpsertAssignments(state, q.Upsert.Assignments)
 }
 
-func renderUpsertTargets(state *State, targets collectionx.List[Expression]) error {
+func renderUpsertTargets(state *State, targets *collectionx.List[Expression]) error {
 	if targets.Len() == 0 {
 		return nil
 	}
@@ -88,7 +88,7 @@ func renderUpsertOnDuplicateKey(state *State, q *InsertQuery) error {
 	return renderUpsertAssignments(state, q.Upsert.Assignments)
 }
 
-func renderUpsertAssignments(state *State, assignments collectionx.List[Assignment]) error {
+func renderUpsertAssignments(state *State, assignments *collectionx.List[Assignment]) error {
 	var renderErr error
 	assignments.Range(func(index int, assignment Assignment) bool {
 		if index > 0 {
@@ -103,7 +103,7 @@ func renderUpsertAssignments(state *State, assignments collectionx.List[Assignme
 	return renderErr
 }
 
-func renderReturning(state *State, items collectionx.List[SelectItem]) error {
+func renderReturning(state *State, items *collectionx.List[SelectItem]) error {
 	if items.Len() == 0 {
 		return nil
 	}

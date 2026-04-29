@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	columnx "github.com/arcgolabs/dbx/column"
 	sqlitedialect "github.com/arcgolabs/dbx/dialect/sqlite"
@@ -17,7 +17,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func allColumns(schema schemax.Resource) collectionx.List[querydsl.SelectItem] {
+func allColumns(schema schemax.Resource) *collectionx.List[querydsl.SelectItem] {
 	return collectionx.MapList[schemax.ColumnMeta, querydsl.SelectItem](schema.Spec().Columns, func(_ int, column schemax.ColumnMeta) querydsl.SelectItem {
 		return columnx.Named[any](schema, column.Name)
 	})

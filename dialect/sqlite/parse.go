@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 func parseCreateTableChecks(createSQL string) []schemax.CheckState {

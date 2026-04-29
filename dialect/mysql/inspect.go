@@ -7,7 +7,8 @@ import (
 	schemax "github.com/arcgolabs/dbx/schema"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	"github.com/arcgolabs/dbx"
 )
 
@@ -86,7 +87,7 @@ func (d Dialect) inspectIndexes(ctx context.Context, executor dbx.Executor, tabl
 		}
 	}()
 
-	groups := collectionx.NewOrderedMap[string, schemax.IndexState]()
+	groups := mappingx.NewOrderedMap[string, schemax.IndexState]()
 	for rows.Next() {
 		name, state, scanErr := scanMySQLIndex(rows)
 		if scanErr != nil {
@@ -123,7 +124,7 @@ func (d Dialect) inspectForeignKeys(ctx context.Context, executor dbx.Executor, 
 		}
 	}()
 
-	groups := collectionx.NewOrderedMap[string, schemax.ForeignKeyState]()
+	groups := mappingx.NewOrderedMap[string, schemax.ForeignKeyState]()
 	for rows.Next() {
 		name, state, scanErr := scanMySQLForeignKey(rows)
 		if scanErr != nil {
@@ -221,7 +222,7 @@ func scanMySQLIndex(rows *sql.Rows) (string, schemax.IndexState, error) {
 	}, nil
 }
 
-func appendMySQLIndex(groups collectionx.OrderedMap[string, schemax.IndexState], name string, state schemax.IndexState) {
+func appendMySQLIndex(groups *mappingx.OrderedMap[string, schemax.IndexState], name string, state schemax.IndexState) {
 	current, ok := groups.Get(name)
 	if !ok {
 		groups.Set(name, state)
@@ -264,7 +265,7 @@ func scanMySQLCheck(rows *sql.Rows) (schemax.CheckState, error) {
 	return schemax.CheckState{Name: name, Expression: clause}, nil
 }
 
-func mysqlPrimaryKeyState(columns collectionx.List[string]) *schemax.PrimaryKeyState {
+func mysqlPrimaryKeyState(columns *collectionx.List[string]) *schemax.PrimaryKeyState {
 	if columns.Len() == 0 {
 		return nil
 	}

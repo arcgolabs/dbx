@@ -7,7 +7,8 @@ import (
 	"fmt"
 	schemax "github.com/arcgolabs/dbx/schema"
 
-	"github.com/arcgolabs/collectionx"
+	listx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	"github.com/arcgolabs/dbx/dialect"
 	"github.com/arcgolabs/dbx/sqlstmt"
 )
@@ -38,7 +39,7 @@ func (q *InsertQuery) Build(d dialect.Dialect) (sqlstmt.Bound, error) {
 	return state.Bound(), nil
 }
 
-func validateInsertQuery(q *InsertQuery, rows collectionx.Grid[Assignment]) error {
+func validateInsertQuery(q *InsertQuery, rows *listx.Grid[Assignment]) error {
 	switch {
 	case q.Into.Name() == "":
 		return errors.New("dbx/querydsl: insert query requires target table")
@@ -61,7 +62,7 @@ func insertStatementPrefix(d dialect.Dialect, q *InsertQuery) string {
 	return "INSERT INTO "
 }
 
-func renderInsertBody(state *State, q *InsertQuery, rows collectionx.Grid[Assignment]) error {
+func renderInsertBody(state *State, q *InsertQuery, rows *listx.Grid[Assignment]) error {
 	state.RenderTable(q.Into)
 	columns, err := resolveInsertColumns(q, rows)
 	if err != nil {
@@ -73,7 +74,7 @@ func renderInsertBody(state *State, q *InsertQuery, rows collectionx.Grid[Assign
 	return renderInsertSourceOrValues(state, q, columns, rows)
 }
 
-func renderInsertColumns(state *State, columns collectionx.List[schemax.ColumnMeta]) error {
+func renderInsertColumns(state *State, columns *listx.List[schemax.ColumnMeta]) error {
 	if columns.Len() == 0 {
 		return nil
 	}
@@ -89,7 +90,7 @@ func renderInsertColumns(state *State, columns collectionx.List[schemax.ColumnMe
 	return nil
 }
 
-func renderInsertSourceOrValues(state *State, q *InsertQuery, columns collectionx.List[schemax.ColumnMeta], rows collectionx.Grid[Assignment]) error {
+func renderInsertSourceOrValues(state *State, q *InsertQuery, columns *listx.List[schemax.ColumnMeta], rows *listx.Grid[Assignment]) error {
 	if q.Source != nil {
 		state.WriteRawByte(' ')
 		return renderSelectQuery(state, q.Source)
@@ -97,7 +98,7 @@ func renderInsertSourceOrValues(state *State, q *InsertQuery, columns collection
 	return renderInsertValues(state, columns, rows)
 }
 
-func renderInsertValues(state *State, columns collectionx.List[schemax.ColumnMeta], rows collectionx.Grid[Assignment]) error {
+func renderInsertValues(state *State, columns *listx.List[schemax.ColumnMeta], rows *listx.Grid[Assignment]) error {
 	orderedRows, err := orderInsertRows(columns, rows)
 	if err != nil {
 		return err
@@ -120,7 +121,7 @@ func renderInsertValues(state *State, columns collectionx.List[schemax.ColumnMet
 func renderInsertValueRow(state *State, row []Assignment) error {
 	state.WriteRawByte('(')
 	var renderErr error
-	collectionx.NewList[Assignment](row...).Range(func(colIndex int, assignment Assignment) bool {
+	listx.NewList[Assignment](row...).Range(func(colIndex int, assignment Assignment) bool {
 		renderer, ok := assignment.(InsertAssignment)
 		if !ok {
 			renderErr = fmt.Errorf("dbx/querydsl: unsupported insert assignment %T", assignment)
@@ -180,7 +181,7 @@ func validateUpdateQuery(q *UpdateQuery) error {
 	}
 }
 
-func renderUpdateAssignments(state *State, assignments collectionx.List[Assignment]) error {
+func renderUpdateAssignments(state *State, assignments *listx.List[Assignment]) error {
 	var renderErr error
 	assignments.Range(func(index int, assignment Assignment) bool {
 		if index > 0 {
@@ -226,34 +227,34 @@ func (q *DeleteQuery) Build(d dialect.Dialect) (sqlstmt.Bound, error) {
 	return state.Bound(), nil
 }
 
-func normalizedInsertRows(q *InsertQuery) collectionx.Grid[Assignment] {
+func normalizedInsertRows(q *InsertQuery) *listx.Grid[Assignment] {
 	if q.Rows.RowCount() > 0 {
 		return q.Rows
 	}
 	if q.Assignments.Len() > 0 {
-		rows := collectionx.NewGridWithCapacity[Assignment](1)
+		rows := listx.NewGridWithCapacity[Assignment](1)
 		rows.AddRowList(q.Assignments)
 		return rows
 	}
 	return nil
 }
 
-func resolveInsertColumns(q *InsertQuery, rows collectionx.Grid[Assignment]) (collectionx.List[schemax.ColumnMeta], error) {
+func resolveInsertColumns(q *InsertQuery, rows *listx.Grid[Assignment]) (*listx.List[schemax.ColumnMeta], error) {
 	if q.TargetColumns.Len() > 0 {
 		return resolveTargetColumns(q.TargetColumns)
 	}
 	row, ok := rows.FirstRowWhere(func(_ int, _ []Assignment) bool { return true }).Get()
 	if !ok {
-		return collectionx.NewList[schemax.ColumnMeta](), nil
+		return listx.NewList[schemax.ColumnMeta](), nil
 	}
 	return assignmentColumns(row)
 }
 
-func assignmentColumns(assignments []Assignment) (collectionx.List[schemax.ColumnMeta], error) {
-	return collectionx.ReduceErrList[Assignment, collectionx.List[schemax.ColumnMeta]](
-		collectionx.NewList[Assignment](assignments...),
-		collectionx.NewListWithCapacity[schemax.ColumnMeta](len(assignments)),
-		func(columns collectionx.List[schemax.ColumnMeta], _ int, assignment Assignment) (collectionx.List[schemax.ColumnMeta], error) {
+func assignmentColumns(assignments []Assignment) (*listx.List[schemax.ColumnMeta], error) {
+	return listx.ReduceErrList[Assignment, *listx.List[schemax.ColumnMeta]](
+		listx.NewList[Assignment](assignments...),
+		listx.NewListWithCapacity[schemax.ColumnMeta](len(assignments)),
+		func(columns *listx.List[schemax.ColumnMeta], _ int, assignment Assignment) (*listx.List[schemax.ColumnMeta], error) {
 			renderer, ok := assignment.(InsertAssignment)
 			if !ok {
 				return nil, fmt.Errorf("dbx/querydsl: unsupported insert assignment %T", assignment)
@@ -264,8 +265,8 @@ func assignmentColumns(assignments []Assignment) (collectionx.List[schemax.Colum
 	)
 }
 
-func resolveTargetColumns(expressions collectionx.List[Expression]) (collectionx.List[schemax.ColumnMeta], error) {
-	columns := collectionx.NewListWithCapacity[schemax.ColumnMeta](expressions.Len())
+func resolveTargetColumns(expressions *listx.List[Expression]) (*listx.List[schemax.ColumnMeta], error) {
+	columns := listx.NewListWithCapacity[schemax.ColumnMeta](expressions.Len())
 	var resolveErr error
 	expressions.Range(func(_ int, expression Expression) bool {
 		column, ok := expression.(ColumnAccessor)
@@ -282,8 +283,8 @@ func resolveTargetColumns(expressions collectionx.List[Expression]) (collectionx
 	return columns, nil
 }
 
-func orderInsertRows(columns collectionx.List[schemax.ColumnMeta], rows collectionx.Grid[Assignment]) (collectionx.Grid[Assignment], error) {
-	orderedRows := collectionx.NewGridWithCapacity[Assignment](rows.RowCount())
+func orderInsertRows(columns *listx.List[schemax.ColumnMeta], rows *listx.Grid[Assignment]) (*listx.Grid[Assignment], error) {
+	orderedRows := listx.NewGridWithCapacity[Assignment](rows.RowCount())
 	var orderErr error
 	rows.Range(func(_ int, row []Assignment) bool {
 		orderedRow, err := orderInsertRow(columns, row)
@@ -300,11 +301,11 @@ func orderInsertRows(columns collectionx.List[schemax.ColumnMeta], rows collecti
 	return orderedRows, nil
 }
 
-func orderInsertRow(columns collectionx.List[schemax.ColumnMeta], row []Assignment) (collectionx.List[Assignment], error) {
-	assignmentsByColumn, err := collectionx.ReduceErrList[Assignment, collectionx.Map[string, Assignment]](
-		collectionx.NewList[Assignment](row...),
-		collectionx.NewMapWithCapacity[string, Assignment](len(row)),
-		func(result collectionx.Map[string, Assignment], _ int, assignment Assignment) (collectionx.Map[string, Assignment], error) {
+func orderInsertRow(columns *listx.List[schemax.ColumnMeta], row []Assignment) (*listx.List[Assignment], error) {
+	assignmentsByColumn, err := listx.ReduceErrList[Assignment, *mappingx.Map[string, Assignment]](
+		listx.NewList[Assignment](row...),
+		mappingx.NewMapWithCapacity[string, Assignment](len(row)),
+		func(result *mappingx.Map[string, Assignment], _ int, assignment Assignment) (*mappingx.Map[string, Assignment], error) {
 			renderer, ok := assignment.(InsertAssignment)
 			if !ok {
 				return nil, fmt.Errorf("dbx/querydsl: unsupported insert assignment %T", assignment)
@@ -317,7 +318,7 @@ func orderInsertRow(columns collectionx.List[schemax.ColumnMeta], row []Assignme
 		return nil, err
 	}
 
-	orderedRow := collectionx.NewListWithCapacity[Assignment](columns.Len())
+	orderedRow := listx.NewListWithCapacity[Assignment](columns.Len())
 	var orderErr error
 	columns.Range(func(_ int, column schemax.ColumnMeta) bool {
 		assignment, ok := assignmentsByColumn.Get(column.Name)

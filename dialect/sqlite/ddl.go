@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 type columnDDLConfig struct {
@@ -173,7 +173,7 @@ func singlePrimaryKeyColumn(primaryKey *schemax.PrimaryKeyMeta) string {
 	return column
 }
 
-func (d Dialect) joinQuotedIdentifiers(items collectionx.List[string]) string {
+func (d Dialect) joinQuotedIdentifiers(items *collectionx.List[string]) string {
 	if items.Len() == 0 {
 		return ""
 	}
@@ -182,7 +182,7 @@ func (d Dialect) joinQuotedIdentifiers(items collectionx.List[string]) string {
 	}).Join(", ")
 }
 
-func joinSQLiteStrings(items collectionx.List[string], sep string) string {
+func joinSQLiteStrings(items *collectionx.List[string], sep string) string {
 	if items.Len() == 0 {
 		return ""
 	}

@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 var mysqlNormalizedTypes = map[string]string{
@@ -207,7 +207,7 @@ func singlePrimaryKeyColumn(primaryKey *schemax.PrimaryKeyMeta) string {
 	return column
 }
 
-func (d Dialect) joinQuotedIdentifiers(items collectionx.List[string]) string {
+func (d Dialect) joinQuotedIdentifiers(items *collectionx.List[string]) string {
 	if items.Len() == 0 {
 		return ""
 	}
@@ -216,7 +216,7 @@ func (d Dialect) joinQuotedIdentifiers(items collectionx.List[string]) string {
 	}).Join(", ")
 }
 
-func joinMySQLStrings(items collectionx.List[string], sep string) string {
+func joinMySQLStrings(items *collectionx.List[string], sep string) string {
 	if items.Len() == 0 {
 		return ""
 	}

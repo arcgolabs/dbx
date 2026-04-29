@@ -56,24 +56,21 @@ func BenchmarkBuildInsertUpsertReturning(b *testing.B) {
 
 func BenchmarkBuildCTEUnionCase(b *testing.B) {
 	users := MustSchema("users", UserSchema{})
-	activeUsers := NamedTable("active_users")
-	activeID := NamedColumn[int64](activeUsers, "id")
-	activeName := NamedColumn[string](activeUsers, "username")
+	activeUsers := View("active_users")
+	activeID := querydsl.Col[int64](activeUsers, "id")
+	activeName := querydsl.Col[string](activeUsers, "username")
 
 	caseExpr := CaseWhen[string](users.Status.Eq(1), "active").
 		Else("inactive").
 		As("status_label")
 
-	query := Select(activeID, activeName, caseExpr).
+	query := SelectFrom(activeUsers, activeID, activeName, caseExpr).
 		With("active_users",
-			Select(users.ID, users.Username).
-				From(users).
+			SelectFrom(users, users.ID, users.Username).
 				Where(users.Status.Eq(1)),
 		).
-		From(activeUsers).
 		UnionAll(
-			Select(users.ID, users.Username, caseExpr).
-				From(users).
+			SelectFrom(users, users.ID, users.Username, caseExpr).
 				Where(users.Status.Ne(1)),
 		)
 

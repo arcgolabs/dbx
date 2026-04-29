@@ -166,7 +166,7 @@ var Events = schemax.MustSchema("events", EventSchema{})
 `dbx` renders typed queries into `BoundQuery`, then executes them through `DB` or `Tx`. For "build once, execute many" reuse, call `Build` once and use `ExecBound`, `QueryAllBound`, `QueryCursorBound`, or `QueryEachBound` in a loop:
 
 ```go
-query := querydsl.Select(Users.ID, Users.Username).From(Users).Where(Users.Status.Eq(1))
+query := querydsl.SelectFrom(Users, Users.ID, Users.Username).Where(Users.Status.Eq(1))
 bound, _ := dbx.Build(session, query)
 for range batches {
     items, _ := dbx.QueryAllBound[User](ctx, session, bound, mapper)
@@ -180,20 +180,17 @@ statusLabel := querydsl.CaseWhen[string](Users.Status.Eq(1), "active").
     Else("unknown").
     As("status_label")
 
-activeUsers := querydsl.NamedTable("active_users")
-activeID := columnx.Named[int64](activeUsers, "id")
-activeName := columnx.Named[string](activeUsers, "username")
+activeUsers := querydsl.View("active_users")
+activeID := querydsl.Col[int64](activeUsers, "id")
+activeName := querydsl.Col[string](activeUsers, "username")
 
-query := querydsl.Select(activeID, activeName, statusLabel).
+query := querydsl.SelectFrom(activeUsers, activeID, activeName, statusLabel).
     With("active_users",
-        querydsl.Select(Users.ID, Users.Username).
-            From(Users).
+        querydsl.SelectFrom(Users, Users.ID, Users.Username).
             Where(Users.Status.Eq(1)),
     ).
-    From(activeUsers).
     UnionAll(
-        querydsl.Select(Users.ID, Users.Username, statusLabel).
-            From(Users).
+        querydsl.SelectFrom(Users, Users.ID, Users.Username, statusLabel).
             Where(Users.Status.Ne(1)),
     )
 ```

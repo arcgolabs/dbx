@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/sqlstmt"
 	"github.com/samber/mo"
 	"github.com/samber/oops"
@@ -27,11 +27,11 @@ type Session interface {
 }
 
 type RowsScanner[E any] interface {
-	ScanRows(rows *sql.Rows) (collectionx.List[E], error)
+	ScanRows(rows *sql.Rows) (*collectionx.List[E], error)
 }
 
 type CapacityHintScanner[E any] interface {
-	ScanRowsWithCapacity(rows *sql.Rows, capacityHint int) (collectionx.List[E], error)
+	ScanRowsWithCapacity(rows *sql.Rows, capacityHint int) (*collectionx.List[E], error)
 }
 
 type Executor struct {
@@ -109,7 +109,7 @@ func queryBound(ctx context.Context, session Session, bound sqlstmt.Bound) (*sql
 	return rows, wrapError("query sql statement", queryErr)
 }
 
-func List[E any](ctx context.Context, session Session, statement sqlstmt.Source, params any, mapper RowsScanner[E]) (collectionx.List[E], error) {
+func List[E any](ctx context.Context, session Session, statement sqlstmt.Source, params any, mapper RowsScanner[E]) (*collectionx.List[E], error) {
 	if mapper == nil {
 		return nil, oops.In("dbx/sqlexec").
 			With("op", "list", "statement", sqlstmt.Name(statement)).
@@ -130,7 +130,7 @@ func List[E any](ctx context.Context, session Session, statement sqlstmt.Source,
 	return scanRows(rows, mapper)
 }
 
-func QueryList[E any](ctx context.Context, session Session, statement sqlstmt.Source, params any, mapper RowsScanner[E]) (collectionx.List[E], error) {
+func QueryList[E any](ctx context.Context, session Session, statement sqlstmt.Source, params any, mapper RowsScanner[E]) (*collectionx.List[E], error) {
 	return List(ctx, session, statement, params, mapper)
 }
 
@@ -231,7 +231,7 @@ func queryStatementRows(ctx context.Context, executor *Executor, statement sqlst
 	return rows, bound, nil
 }
 
-func scanRows[E any](rows *sql.Rows, mapper RowsScanner[E]) (collectionx.List[E], error) {
+func scanRows[E any](rows *sql.Rows, mapper RowsScanner[E]) (*collectionx.List[E], error) {
 	items, scanErr := mapper.ScanRows(rows)
 	scanErr = errors.Join(wrapError("scan statement rows", scanErr), rowsIterError(rows))
 	closeErr := closeRows(rows)
@@ -244,7 +244,7 @@ func scanRows[E any](rows *sql.Rows, mapper RowsScanner[E]) (collectionx.List[E]
 	return items, nil
 }
 
-func scanRowsWithCapacity[E any](rows *sql.Rows, bound sqlstmt.Bound, mapper CapacityHintScanner[E]) (collectionx.List[E], error) {
+func scanRowsWithCapacity[E any](rows *sql.Rows, bound sqlstmt.Bound, mapper CapacityHintScanner[E]) (*collectionx.List[E], error) {
 	items, scanErr := mapper.ScanRowsWithCapacity(rows, bound.CapacityHint)
 	scanErr = errors.Join(wrapError("scan statement rows with capacity", scanErr), rowsIterError(rows))
 	closeErr := closeRows(rows)

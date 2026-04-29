@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	"github.com/arcgolabs/dbx/examples/internal/shared"
 	mapperx "github.com/arcgolabs/dbx/mapper"
@@ -61,7 +61,7 @@ func prepareBasicData(ctx context.Context, core *dbx.DB, catalog shared.Catalog)
 	}
 }
 
-func queryActiveUsers(ctx context.Context, core *dbx.DB, catalog shared.Catalog) collectionx.List[shared.User] {
+func queryActiveUsers(ctx context.Context, core *dbx.DB, catalog shared.Catalog) *collectionx.List[shared.User] {
 	userMapper := mapperx.MustMapper[shared.User](catalog.Users)
 	users, err := dbx.QueryAll[shared.User](
 		ctx,
@@ -79,7 +79,7 @@ func queryActiveUsers(ctx context.Context, core *dbx.DB, catalog shared.Catalog)
 	return users
 }
 
-func printActiveUsers(users collectionx.List[shared.User]) {
+func printActiveUsers(users *collectionx.List[shared.User]) {
 	printLine("active users:")
 	users.Range(func(_ int, user shared.User) bool {
 		printFormat("- id=%d username=%s email=%s role_id=%d\n", user.ID, user.Username, user.Email, user.RoleID)
@@ -87,7 +87,7 @@ func printActiveUsers(users collectionx.List[shared.User]) {
 	})
 }
 
-func queryUserSummaries(ctx context.Context, core *dbx.DB, catalog shared.Catalog) collectionx.List[shared.UserSummary] {
+func queryUserSummaries(ctx context.Context, core *dbx.DB, catalog shared.Catalog) *collectionx.List[shared.UserSummary] {
 	summaryMapper := mapperx.MustMapper[shared.UserSummary](catalog.Users)
 	summaries, err := dbx.QueryAll[shared.UserSummary](
 		ctx,
@@ -102,7 +102,7 @@ func queryUserSummaries(ctx context.Context, core *dbx.DB, catalog shared.Catalo
 	return summaries
 }
 
-func printUserSummaries(summaries collectionx.List[shared.UserSummary]) {
+func printUserSummaries(summaries *collectionx.List[shared.UserSummary]) {
 	printLine("projected summaries:")
 	summaries.Range(func(_ int, summary shared.UserSummary) bool {
 		printFormat("- id=%d username=%s email=%s\n", summary.ID, summary.Username, summary.Email)
@@ -131,7 +131,7 @@ func updateUserStatus(ctx context.Context, core *dbx.DB, catalog shared.Catalog,
 	commitOrPanic(ctx, tx)
 }
 
-func queryUsersByUsername(ctx context.Context, core *dbx.DB, catalog shared.Catalog, username string) collectionx.List[shared.User] {
+func queryUsersByUsername(ctx context.Context, core *dbx.DB, catalog shared.Catalog, username string) *collectionx.List[shared.User] {
 	userMapper := mapperx.MustMapper[shared.User](catalog.Users)
 	users, err := dbx.QueryAll[shared.User](
 		ctx,
@@ -148,7 +148,7 @@ func queryUsersByUsername(ctx context.Context, core *dbx.DB, catalog shared.Cata
 	return users
 }
 
-func printUpdatedStatus(users collectionx.List[shared.User]) {
+func printUpdatedStatus(users *collectionx.List[shared.User]) {
 	user, ok := users.GetFirst()
 	if !ok {
 		panic("expected updated user")

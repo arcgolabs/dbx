@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/dialect"
 	"github.com/arcgolabs/dbx/sqltmplx/parse"
 	"github.com/arcgolabs/dbx/sqltmplx/scan"
@@ -20,7 +20,7 @@ func Render(nodes []parse.Node, params any, d dialect.Contract) (Result, error) 
 }
 
 // RenderList renders parsed template nodes from a collectionx.List into SQL.
-func RenderList(nodes collectionx.List[parse.Node], params any, d dialect.Contract) (Result, error) {
+func RenderList(nodes *collectionx.List[parse.Node], params any, d dialect.Contract) (Result, error) {
 	st := newState(params, d)
 	query, err := renderNodes(nodes, st)
 	if err != nil {
@@ -29,7 +29,7 @@ func RenderList(nodes collectionx.List[parse.Node], params any, d dialect.Contra
 	return Result{Query: compactWhitespace(query), Args: st.args}, nil
 }
 
-func renderNodes(nodes collectionx.List[parse.Node], st *state) (string, error) {
+func renderNodes(nodes *collectionx.List[parse.Node], st *state) (string, error) {
 	var sb strings.Builder
 	var renderErr error
 	nodes.Range(func(_ int, node parse.Node) bool {
@@ -83,7 +83,7 @@ func renderIfNode(node *parse.IfNode, st *state) (string, error) {
 	return renderNodes(node.Body, st)
 }
 
-func renderCleanedBlock(body collectionx.List[parse.Node], st *state, cleanup func(string) string) (string, error) {
+func renderCleanedBlock(body *collectionx.List[parse.Node], st *state, cleanup func(string) string) (string, error) {
 	text, err := renderNodes(body, st)
 	if err != nil {
 		return "", err

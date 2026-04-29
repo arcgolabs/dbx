@@ -1,6 +1,6 @@
 package paging
 
-import "github.com/arcgolabs/collectionx"
+import collectionx "github.com/arcgolabs/collectionx/list"
 
 const (
 	// DefaultPage is used when a page request has no valid page number.
@@ -59,7 +59,7 @@ func (r Request) Limit() int {
 
 // Result contains the items and metadata for a paginated query.
 type Result[E any] struct {
-	Items       collectionx.List[E]
+	Items       *collectionx.List[E]
 	Total       int64
 	Page        int
 	PageSize    int
@@ -70,7 +70,7 @@ type Result[E any] struct {
 }
 
 // NewResult creates a page result from items, total row count, and request metadata.
-func NewResult[E any](items collectionx.List[E], total int64, request Request) Result[E] {
+func NewResult[E any](items *collectionx.List[E], total int64, request Request) Result[E] {
 	request = request.Normalize()
 	totalPages := totalPages(total, request.PageSize)
 	return Result[E]{

@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	columnx "github.com/arcgolabs/dbx/column"
 	mapperx "github.com/arcgolabs/dbx/mapper"
@@ -161,7 +161,7 @@ func queryExistsBound(ctx context.Context, session dbx.Session, bound sqlstmt.Bo
 	return exists, nil
 }
 
-func firstCount(rows collectionx.List[countRow]) int64 {
+func firstCount(rows *collectionx.List[countRow]) int64 {
 	if rows.IsEmpty() {
 		return 0
 	}
@@ -198,7 +198,7 @@ func (r *Base[E, S]) primaryColumnName() string {
 	return "id"
 }
 
-func (r *Base[E, S]) primaryKeyColumns() collectionx.List[string] {
+func (r *Base[E, S]) primaryKeyColumns() *collectionx.List[string] {
 	type primaryKeyProvider interface {
 		PrimaryKey() (schemax.PrimaryKeyMeta, bool)
 	}

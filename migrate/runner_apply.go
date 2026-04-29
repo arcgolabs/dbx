@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	"github.com/pressly/goose/v3"
 )
 
@@ -56,7 +57,7 @@ func (r *Runner) UpSQL(ctx context.Context, source FileSource) (RunReport, error
 	return report, nil
 }
 
-func (r *Runner) versionedSQLRunReport(ctx context.Context, bundle *runnerEngine) (collectionx.List[AppliedRecord], error) {
+func (r *Runner) versionedSQLRunReport(ctx context.Context, bundle *runnerEngine) (*collectionx.List[AppliedRecord], error) {
 	if bundle == nil || bundle.engine == nil {
 		return collectionx.NewList[AppliedRecord](), nil
 	}
@@ -77,14 +78,14 @@ func (r *Runner) versionedSQLRunReport(ctx context.Context, bundle *runnerEngine
 }
 
 func buildRunReport(
-	applied collectionx.List[AppliedRecord],
-	metaByVersion collectionx.Map[int64, AppliedRecord],
+	applied *collectionx.List[AppliedRecord],
+	metaByVersion *mappingx.Map[int64, AppliedRecord],
 	results []*goose.MigrationResult,
 ) (RunReport, error) {
-	reportApplied, err := collectionx.ReduceErrList[*goose.MigrationResult, collectionx.List[AppliedRecord]](
+	reportApplied, err := collectionx.ReduceErrList[*goose.MigrationResult, *collectionx.List[AppliedRecord]](
 		collectionx.NewList[*goose.MigrationResult](results...),
 		collectionx.NewListWithCapacity[AppliedRecord](len(results)),
-		func(items collectionx.List[AppliedRecord], _ int, result *goose.MigrationResult) (collectionx.List[AppliedRecord], error) {
+		func(items *collectionx.List[AppliedRecord], _ int, result *goose.MigrationResult) (*collectionx.List[AppliedRecord], error) {
 			record, ok := metaByVersion.Get(result.Source.Version)
 			if !ok {
 				return items, nil
@@ -105,13 +106,13 @@ func buildRunReport(
 
 func (r *Runner) applyPendingRepeatables(
 	ctx context.Context,
-	repeatables collectionx.List[loadedSQLMigration],
+	repeatables *collectionx.List[loadedSQLMigration],
 	indexed map[string]AppliedRecord,
-) (collectionx.List[AppliedRecord], error) {
-	applied, err := collectionx.ReduceErrList[loadedSQLMigration, collectionx.List[AppliedRecord]](
+) (*collectionx.List[AppliedRecord], error) {
+	applied, err := collectionx.ReduceErrList[loadedSQLMigration, *collectionx.List[AppliedRecord]](
 		repeatables,
 		collectionx.NewListWithCapacity[AppliedRecord](repeatables.Len()),
-		func(items collectionx.List[AppliedRecord], _ int, migration loadedSQLMigration) (collectionx.List[AppliedRecord], error) {
+		func(items *collectionx.List[AppliedRecord], _ int, migration loadedSQLMigration) (*collectionx.List[AppliedRecord], error) {
 			if !shouldApplyRepeatableMigration(migration, indexed) {
 				return items, nil
 			}

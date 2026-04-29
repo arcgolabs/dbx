@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 func resolveColumnName(field reflect.StructField) string {

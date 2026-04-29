@@ -7,7 +7,7 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	"github.com/arcgolabs/dbx/examples/internal/shared"
 	"github.com/arcgolabs/dbx/migrate"
@@ -144,7 +144,7 @@ func printSQLMigrationReport(report migrate.RunReport) {
 	printFormat("sql migrations applied=%d\n", report.Applied.Len())
 }
 
-func appliedHistory(ctx context.Context, runner *migrate.Runner) collectionx.List[migrate.AppliedRecord] {
+func appliedHistory(ctx context.Context, runner *migrate.Runner) *collectionx.List[migrate.AppliedRecord] {
 	applied, err := runner.Applied(ctx)
 	if err != nil {
 		panic(err)
@@ -153,7 +153,7 @@ func appliedHistory(ctx context.Context, runner *migrate.Runner) collectionx.Lis
 	return applied
 }
 
-func printAppliedHistory(applied collectionx.List[migrate.AppliedRecord]) {
+func printAppliedHistory(applied *collectionx.List[migrate.AppliedRecord]) {
 	printLine("applied history:")
 	applied.Range(func(_ int, record migrate.AppliedRecord) bool {
 		checksum := truncateChecksum(record.Checksum)

@@ -50,13 +50,16 @@ var AllColumns = querydsl.AllColumns
 var CountAll = querydsl.CountAll
 var DeleteFrom = querydsl.DeleteFrom
 var Exists = querydsl.Exists
+var From = querydsl.From
 var InsertInto = querydsl.InsertInto
 var NamedTable = querydsl.NamedTable
 var Select = querydsl.Select
+var SelectFrom = querydsl.SelectFrom
 var Update = querydsl.Update
+var View = querydsl.View
 
 func Alias[S querydsl.TableSource](schema S, alias string) S {
-	return schemax.Alias(schema, alias)
+	return querydsl.As(schema, alias)
 }
 
 func CaseWhen[T any](predicate querydsl.Predicate, value any) *querydsl.CaseBuilder[T] {
@@ -85,10 +88,6 @@ func MustSchema[S any](name string, schema S) S {
 
 func NamedColumn[T any](source querydsl.TableSource, name string) columnx.Column[struct{}, T] {
 	return columnx.Named[T](source, name)
-}
-
-func ResultColumn[T any](name string) columnx.Column[struct{}, T] {
-	return columnx.Result[T](name)
 }
 
 type testSQLiteDialect struct{}

@@ -5,7 +5,8 @@ import (
 	"database/sql"
 	schemax "github.com/arcgolabs/dbx/schema"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	"github.com/arcgolabs/dbx"
 )
 
@@ -165,7 +166,7 @@ func (d Dialect) inspectForeignKeys(ctx context.Context, executor dbx.Executor, 
 		}
 	}()
 
-	groups := collectionx.NewOrderedMap[int, schemax.ForeignKeyState]()
+	groups := mappingx.NewOrderedMap[int, schemax.ForeignKeyState]()
 	for rows.Next() {
 		id, state, scanErr := scanSQLiteForeignKey(rows)
 		if scanErr != nil {

@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"log/slog"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/dialect"
 	"github.com/arcgolabs/dbx/idgen"
 	"github.com/arcgolabs/dbx/relationruntime"
@@ -36,7 +36,7 @@ func NewWithOptions(raw *sql.DB, d dialect.Dialect, opts ...Option) (*DB, error)
 	return NewWithOptionsList(raw, d, collectionx.NewList[Option](opts...))
 }
 
-func NewWithOptionsList(raw *sql.DB, d dialect.Dialect, opts collectionx.List[Option]) (*DB, error) {
+func NewWithOptionsList(raw *sql.DB, d dialect.Dialect, opts *collectionx.List[Option]) (*DB, error) {
 	config, err := applyOptionsList(opts)
 	if err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func MustNewWithOptions(raw *sql.DB, d dialect.Dialect, opts ...Option) *DB {
 	return db
 }
 
-func MustNewWithOptionsList(raw *sql.DB, d dialect.Dialect, opts collectionx.List[Option]) *DB {
+func MustNewWithOptionsList(raw *sql.DB, d dialect.Dialect, opts *collectionx.List[Option]) *DB {
 	db, err := NewWithOptionsList(raw, d, opts)
 	if err != nil {
 		panic(err)
@@ -121,7 +121,7 @@ func (db *DB) Logger() *slog.Logger {
 	return db.observe.logger
 }
 
-func (db *DB) Hooks() collectionx.List[Hook] {
+func (db *DB) Hooks() *collectionx.List[Hook] {
 	return db.observe.hooks.Clone()
 }
 

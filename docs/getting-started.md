@@ -113,7 +113,7 @@ func main() {
 	items, err := dbx.QueryAll[User](
 		ctx,
 		core,
-		querydsl.Select(querydsl.AllColumns(Users).Values()...).From(Users).Where(Users.Status.Eq(1)),
+		querydsl.SelectFrom(Users, querydsl.AllColumns(Users).Values()...).Where(Users.Status.Eq(1)),
 		mapper,
 	)
 	if err != nil {

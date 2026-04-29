@@ -4,14 +4,14 @@ import (
 	"context"
 	"github.com/arcgolabs/dbx/querydsl"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/paging"
 )
 
 // List returns every entity matched by the query.
-func (r *Base[E, S]) List(ctx context.Context, query *querydsl.SelectQuery) (collectionx.List[E], error) {
+func (r *Base[E, S]) List(ctx context.Context, query *querydsl.SelectQuery) (*collectionx.List[E], error) {
 	if r == nil || r.session == nil {
 		return nil, dbx.ErrNilDB
 	}
@@ -27,7 +27,7 @@ func (r *Base[E, S]) List(ctx context.Context, query *querydsl.SelectQuery) (col
 }
 
 // ListSpec returns every entity matched by the provided specs.
-func (r *Base[E, S]) ListSpec(ctx context.Context, specs ...Spec) (collectionx.List[E], error) {
+func (r *Base[E, S]) ListSpec(ctx context.Context, specs ...Spec) (*collectionx.List[E], error) {
 	return r.List(ctx, r.applySpecs(specs...))
 }
 

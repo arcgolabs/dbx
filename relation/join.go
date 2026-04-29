@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/querydsl"
 	schemax "github.com/arcgolabs/dbx/schema"
 )
@@ -82,7 +82,7 @@ func sameTable(left, right querydsl.Table) bool {
 	return left.Name() == right.Name() && left.Alias() == right.Alias()
 }
 
-func buildJoins(joinType querydsl.JoinType, source JoinSource, meta schemax.RelationMeta, target querydsl.Table) (collectionx.List[querydsl.Join], error) {
+func buildJoins(joinType querydsl.JoinType, source JoinSource, meta schemax.RelationMeta, target querydsl.Table) (*collectionx.List[querydsl.Join], error) {
 	joins := collectionx.NewListWithCapacity[querydsl.Join](2)
 
 	switch meta.Kind {
@@ -176,7 +176,7 @@ func targetColumn(target querydsl.Table, meta schemax.RelationMeta) (schemax.Col
 	}, nil
 }
 
-func columnByName(columns collectionx.List[schemax.ColumnMeta], name string) (schemax.ColumnMeta, bool) {
+func columnByName(columns *collectionx.List[schemax.ColumnMeta], name string) (schemax.ColumnMeta, bool) {
 	return collectionx.FindList[schemax.ColumnMeta](columns, func(_ int, column schemax.ColumnMeta) bool {
 		return column.Name == name
 	})
@@ -211,7 +211,7 @@ func (o columnOperand) RenderOperand(state *querydsl.State) (string, error) {
 	return builder.String(), builder.Err("render relation column operand")
 }
 
-func mergeList[T any](current, next collectionx.List[T]) collectionx.List[T] {
+func mergeList[T any](current, next *collectionx.List[T]) *collectionx.List[T] {
 	if current == nil {
 		return next.Clone()
 	}

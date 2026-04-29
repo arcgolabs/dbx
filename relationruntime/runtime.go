@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/set"
 	"github.com/samber/hot"
 )
 
@@ -23,7 +23,7 @@ func New() *Runtime {
 	rt := &Runtime{
 		queryCache: hot.NewHotCache[string, string](hot.LRU, 64).Build(),
 	}
-	rt.seenSetPool = sync.Pool{New: func() any { return collectionx.NewMap[any, struct{}]() }}
+	rt.seenSetPool = sync.Pool{New: func() any { return collectionx.NewSet[any]() }}
 	return rt
 }
 
@@ -40,15 +40,15 @@ func For(session any) *Runtime {
 	return defaultRuntime
 }
 
-func (rt *Runtime) AcquireSeenSet() (collectionx.Map[any, struct{}], error) {
-	seen, ok := rt.seenSetPool.Get().(collectionx.Map[any, struct{}])
+func (rt *Runtime) AcquireSeenSet() (*collectionx.Set[any], error) {
+	seen, ok := rt.seenSetPool.Get().(*collectionx.Set[any])
 	if !ok {
-		return collectionx.NewMap[any, struct{}](), errors.New("dbx/relationruntime: invalid relation seen-set pool value")
+		return collectionx.NewSet[any](), errors.New("dbx/relationruntime: invalid relation seen-set pool value")
 	}
 	return seen, nil
 }
 
-func (rt *Runtime) ReleaseSeenSet(seen collectionx.Map[any, struct{}]) {
+func (rt *Runtime) ReleaseSeenSet(seen *collectionx.Set[any]) {
 	if rt == nil || seen == nil {
 		return
 	}

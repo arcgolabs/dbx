@@ -6,7 +6,7 @@ import (
 	schemax "github.com/arcgolabs/dbx/schema"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/dialect"
 	"github.com/arcgolabs/dbx/sqlstmt"
 )
@@ -18,7 +18,7 @@ type Builder interface {
 type State struct {
 	dialect  dialect.Dialect
 	buf      strings.Builder
-	args     collectionx.List[any]
+	args     *collectionx.List[any]
 	writeErr error
 }
 
@@ -182,7 +182,7 @@ func RenderOperandValue(state *State, value any) (string, error) {
 		}
 		return operand, nil
 	}
-	if values, ok := value.(collectionx.List[any]); ok {
+	if values, ok := value.(*collectionx.List[any]); ok {
 		return renderListOperand(state, values)
 	}
 	if values, ok := value.([]any); ok {
@@ -191,7 +191,7 @@ func RenderOperandValue(state *State, value any) (string, error) {
 	return state.Bind(value), nil
 }
 
-func renderListOperand(state *State, values collectionx.List[any]) (string, error) {
+func renderListOperand(state *State, values *collectionx.List[any]) (string, error) {
 	if values == nil || values.Len() == 0 {
 		return "", errors.New("dbx/querydsl: IN operand cannot be empty")
 	}

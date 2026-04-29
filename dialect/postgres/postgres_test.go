@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	postgres "github.com/arcgolabs/dbx/dialect/postgres"
 	"github.com/stretchr/testify/require"
 )

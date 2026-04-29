@@ -10,13 +10,13 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	scanlib "github.com/stephenafamo/scan"
 )
 
 type scanPlan struct {
-	fields      collectionx.List[MappedField]
-	codecFields collectionx.List[scanCodecField]
+	fields      *collectionx.List[MappedField]
+	codecFields *collectionx.List[scanCodecField]
 }
 
 type scanCodecField struct {
@@ -52,15 +52,15 @@ func (c scanCursor[E]) Err() error {
 	return wrapDBError("read scan cursor error", c.cursor.Err())
 }
 
-func (m StructMapper[E]) ScanRows(rows *sql.Rows) (collectionx.List[E], error) {
+func (m StructMapper[E]) ScanRows(rows *sql.Rows) (*collectionx.List[E], error) {
 	return m.scanRowsWithCapacity(rows, 0)
 }
 
-func (m StructMapper[E]) ScanRowsWithCapacity(rows *sql.Rows, capacityHint int) (collectionx.List[E], error) {
+func (m StructMapper[E]) ScanRowsWithCapacity(rows *sql.Rows, capacityHint int) (*collectionx.List[E], error) {
 	return m.scanRowsWithCapacity(rows, capacityHint)
 }
 
-func (m StructMapper[E]) scanRowsWithCapacity(rows *sql.Rows, capacityHint int) (collectionx.List[E], error) {
+func (m StructMapper[E]) scanRowsWithCapacity(rows *sql.Rows, capacityHint int) (*collectionx.List[E], error) {
 	if m.meta == nil {
 		return nil, ErrNilMapper
 	}
@@ -82,7 +82,7 @@ func (m StructMapper[E]) scanRowsWithCapacity(rows *sql.Rows, capacityHint int) 
 	return m.collectRowsWithCapacity(context.Background(), plan, rows, capacityHint)
 }
 
-func (m StructMapper[E]) collectRowsWithCapacity(ctx context.Context, plan *scanPlan, rows *sql.Rows, capacityHint int) (_ collectionx.List[E], err error) {
+func (m StructMapper[E]) collectRowsWithCapacity(ctx context.Context, plan *scanPlan, rows *sql.Rows, capacityHint int) (_ *collectionx.List[E], err error) {
 	cursor, err := scanlib.CursorFromRows(ctx, m.scanMapper(plan), rows)
 	if err != nil {
 		return nil, wrapDBError("open scan cursor", err)
@@ -157,7 +157,7 @@ func (m StructMapper[E]) scanPlan(columns []string) (*scanPlan, error) {
 	return plan, nil
 }
 
-func newScanPlan(fields collectionx.List[MappedField]) *scanPlan {
+func newScanPlan(fields *collectionx.List[MappedField]) *scanPlan {
 	return &scanPlan{
 		fields: fields,
 		codecFields: collectionx.FilterMapList[MappedField, scanCodecField](fields, func(index int, field MappedField) (scanCodecField, bool) {

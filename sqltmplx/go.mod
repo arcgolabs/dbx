@@ -3,7 +3,9 @@ module github.com/arcgolabs/dbx/sqltmplx
 go 1.26.2
 
 require (
-	github.com/arcgolabs/collectionx v0.2.0
+	github.com/arcgolabs/collectionx/list v0.4.0
+	github.com/arcgolabs/collectionx/mapping v0.4.0
+	github.com/arcgolabs/collectionx/set v0.4.0
 	github.com/arcgolabs/dbx v0.1.1
 	github.com/arcgolabs/dbx/sqltmplx/validate v0.1.0
 	github.com/expr-lang/expr v1.17.8
@@ -17,13 +19,8 @@ require (
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
-	github.com/arcgolabs/collectionx/internal v0.2.0 // indirect
-	github.com/arcgolabs/collectionx/interval v0.2.0 // indirect
-	github.com/arcgolabs/collectionx/list v0.2.0 // indirect
-	github.com/arcgolabs/collectionx/mapping v0.2.0 // indirect
-	github.com/arcgolabs/collectionx/prefix v0.2.0 // indirect
-	github.com/arcgolabs/collectionx/set v0.2.0 // indirect
-	github.com/arcgolabs/collectionx/tree v0.2.0 // indirect
+	github.com/arcgolabs/collectionx v0.4.0 // indirect
+	github.com/arcgolabs/collectionx/internal v0.4.0 // indirect
 	github.com/arcgolabs/pkg/option v0.0.3 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect

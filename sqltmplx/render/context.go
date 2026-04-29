@@ -3,14 +3,14 @@ package render
 import (
 	"reflect"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/dialect"
 )
 
 type state struct {
 	dialect dialect.Contract
 	params  any
-	args    collectionx.List[any]
+	args    *collectionx.List[any]
 	bindN   int
 	env     map[string]any
 }

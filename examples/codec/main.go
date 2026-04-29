@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	codecx "github.com/arcgolabs/dbx/codec"
 	columnx "github.com/arcgolabs/dbx/column"
@@ -179,16 +179,16 @@ func queryAccounts(
 	session dbx.Session,
 	schema accountSchema,
 	mapper mapperx.Mapper[account],
-) (collectionx.List[account], error) {
+) (*collectionx.List[account], error) {
 	return dbx.QueryAll[account](
 		ctx,
 		session,
-		querydsl.Select(querydsl.AllColumns(schema).Values()...).From(schema).OrderBy(schema.ID.Asc()),
+		querydsl.SelectFrom(schema, querydsl.AllColumns(schema).Values()...).OrderBy(schema.ID.Asc()),
 		mapper,
 	)
 }
 
-func printAccounts(items collectionx.List[account]) {
+func printAccounts(items *collectionx.List[account]) {
 	printLine("codec example:")
 	items.Range(func(_ int, item account) bool {
 		printFormat(

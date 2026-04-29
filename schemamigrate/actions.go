@@ -4,16 +4,16 @@ import (
 	schemax "github.com/arcgolabs/dbx/schema"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
-func mappedMigrationActions[T any](items collectionx.List[T], mapper func(T) schemax.MigrationAction) collectionx.List[schemax.MigrationAction] {
+func mappedMigrationActions[T any](items *collectionx.List[T], mapper func(T) schemax.MigrationAction) *collectionx.List[schemax.MigrationAction] {
 	return collectionx.MapList[T, schemax.MigrationAction](items, func(_ int, item T) schemax.MigrationAction {
 		return mapper(item)
 	})
 }
 
-func columnDiffManualActions(diff schemax.TableDiff) collectionx.List[schemax.MigrationAction] {
+func columnDiffManualActions(diff schemax.TableDiff) *collectionx.List[schemax.MigrationAction] {
 	return mappedMigrationActions(diff.ColumnDiffs, func(cd schemax.ColumnDiff) schemax.MigrationAction {
 		return schemax.MigrationAction{
 			Kind:    schemax.MigrationActionManual,
@@ -141,7 +141,7 @@ func primaryKeyIssues(expected *schemax.PrimaryKeyMeta, actual *schemax.PrimaryK
 	}
 }
 
-func indexKey(unique bool, columns collectionx.List[string]) string {
+func indexKey(unique bool, columns *collectionx.List[string]) string {
 	prefix := "idx:"
 	if unique {
 		prefix = "ux:"
@@ -161,7 +161,7 @@ func checkKey(expression string) string {
 	return normalizeCheckExpression(expression)
 }
 
-func columnsKey(columns collectionx.List[string]) string {
+func columnsKey(columns *collectionx.List[string]) string {
 	return columns.Join(",")
 }
 

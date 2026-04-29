@@ -2,7 +2,8 @@ package schemamigrate
 
 import (
 	atlasschema "ariga.io/atlas/sql/schema"
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	schemax "github.com/arcgolabs/dbx/schema"
 )
 
@@ -16,8 +17,8 @@ func atlasReportFromChanges(changes []atlasschema.Change, compiled *atlasCompile
 	return atlasValidationReport(diffs)
 }
 
-func atlasReportDiffMap(order collectionx.List[string]) collectionx.OrderedMap[string, *schemax.TableDiff] {
-	diffs := collectionx.NewOrderedMapWithCapacity[string, *schemax.TableDiff](order.Len())
+func atlasReportDiffMap(order *collectionx.List[string]) *mappingx.OrderedMap[string, *schemax.TableDiff] {
+	diffs := mappingx.NewOrderedMapWithCapacity[string, *schemax.TableDiff](order.Len())
 	order.Range(func(_ int, name string) bool {
 		diffs.Set(name, new(newTableDiff(name)))
 		return true
@@ -25,11 +26,11 @@ func atlasReportDiffMap(order collectionx.List[string]) collectionx.OrderedMap[s
 	return diffs
 }
 
-func atlasCurrentTablesByName(current *atlasschema.Schema) collectionx.Map[string, *atlasschema.Table] {
+func atlasCurrentTablesByName(current *atlasschema.Schema) *mappingx.Map[string, *atlasschema.Table] {
 	if current == nil {
-		return collectionx.NewMap[string, *atlasschema.Table]()
+		return mappingx.NewMap[string, *atlasschema.Table]()
 	}
-	return collectionx.AssociateList[*atlasschema.Table, string, *atlasschema.Table](
+	return mappingx.AssociateList[*atlasschema.Table, string, *atlasschema.Table](
 		collectionx.NewListWithCapacity[*atlasschema.Table](len(current.Tables), current.Tables...),
 		func(_ int, table *atlasschema.Table) (string, *atlasschema.Table) {
 			return table.Name, table
@@ -37,7 +38,7 @@ func atlasCurrentTablesByName(current *atlasschema.Schema) collectionx.Map[strin
 	)
 }
 
-func atlasApplyChangeToReport(diffs collectionx.OrderedMap[string, *schemax.TableDiff], compiled *atlasCompiledSchema, currentTables collectionx.Map[string, *atlasschema.Table], change atlasschema.Change) {
+func atlasApplyChangeToReport(diffs *mappingx.OrderedMap[string, *schemax.TableDiff], compiled *atlasCompiledSchema, currentTables *mappingx.Map[string, *atlasschema.Table], change atlasschema.Change) {
 	switch c := change.(type) {
 	case *atlasschema.AddTable:
 		atlasApplyAddTableChange(diffs, compiled, c)
@@ -46,7 +47,7 @@ func atlasApplyChangeToReport(diffs collectionx.OrderedMap[string, *schemax.Tabl
 	}
 }
 
-func atlasApplyAddTableChange(diffs collectionx.OrderedMap[string, *schemax.TableDiff], compiled *atlasCompiledSchema, change *atlasschema.AddTable) {
+func atlasApplyAddTableChange(diffs *mappingx.OrderedMap[string, *schemax.TableDiff], compiled *atlasCompiledSchema, change *atlasschema.AddTable) {
 	compiledTable, ok := compiled.tables.Get(change.T.Name)
 	if !ok {
 		return
@@ -65,7 +66,7 @@ func atlasApplyAddTableChange(diffs collectionx.OrderedMap[string, *schemax.Tabl
 	}
 }
 
-func atlasApplyModifyTableChange(diffs collectionx.OrderedMap[string, *schemax.TableDiff], compiled *atlasCompiledSchema, currentTables collectionx.Map[string, *atlasschema.Table], change *atlasschema.ModifyTable) {
+func atlasApplyModifyTableChange(diffs *mappingx.OrderedMap[string, *schemax.TableDiff], compiled *atlasCompiledSchema, currentTables *mappingx.Map[string, *atlasschema.Table], change *atlasschema.ModifyTable) {
 	compiledTable, ok := compiled.tables.Get(change.T.Name)
 	if !ok {
 		return
@@ -78,7 +79,7 @@ func atlasApplyModifyTableChange(diffs collectionx.OrderedMap[string, *schemax.T
 	})
 }
 
-func atlasValidationReport(diffs collectionx.OrderedMap[string, *schemax.TableDiff]) schemax.ValidationReport {
+func atlasValidationReport(diffs *mappingx.OrderedMap[string, *schemax.TableDiff]) schemax.ValidationReport {
 	items := collectionx.NewListWithCapacity[schemax.TableDiff](diffs.Len())
 	diffs.Range(func(_ string, diff *schemax.TableDiff) bool {
 		items.Add(*diff)

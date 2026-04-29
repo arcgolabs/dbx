@@ -23,7 +23,8 @@ weight: 18
 
 ## Query and Execute
 
-- `querydsl.Select(...).From(...).Where(...)`
+- `querydsl.SelectFrom(schema, columns...).Where(...)`
+- `querydsl.From(schema).Select(columns...).Where(...)`
 - `querydsl.InsertInto(schema).Values(assignments.Values()...)`
 - `querydsl.Update(schema).Set(...).Where(...)`
 - `querydsl.DeleteFrom(schema).Where(...)`

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	columnx "github.com/arcgolabs/dbx/column"
 	"github.com/arcgolabs/dbx/dialect"
@@ -77,7 +77,7 @@ func ClonePrimaryKeyStateForTest(state schemax.PrimaryKeyState) schemax.PrimaryK
 	return state
 }
 
-func IndexesForTest(schema schemax.Resource) collectionx.List[schemax.IndexMeta] {
+func IndexesForTest(schema schemax.Resource) *collectionx.List[schemax.IndexMeta] {
 	return schema.Spec().Indexes.Clone()
 }
 

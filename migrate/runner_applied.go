@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 )
 
 // EnsureHistory creates the migration history table when it does not yet exist.
@@ -15,11 +16,11 @@ func (r *Runner) EnsureHistory(ctx context.Context) error {
 	if r == nil || r.db == nil {
 		return sql.ErrConnDone
 	}
-	return newHistoryStore(r.dialect, r.options.HistoryTable, collectionx.NewMap[int64, AppliedRecord]()).CreateVersionTable(ctx, r.db)
+	return newHistoryStore(r.dialect, r.options.HistoryTable, mappingx.NewMap[int64, AppliedRecord]()).CreateVersionTable(ctx, r.db)
 }
 
 // Applied returns all applied migration records from the history table.
-func (r *Runner) Applied(ctx context.Context) (_ collectionx.List[AppliedRecord], resultErr error) {
+func (r *Runner) Applied(ctx context.Context) (_ *collectionx.List[AppliedRecord], resultErr error) {
 	if r == nil || r.db == nil {
 		return nil, sql.ErrConnDone
 	}
@@ -67,7 +68,7 @@ func (r *Runner) queryAppliedRows(ctx context.Context) (*sql.Rows, error) {
 	return rows, nil
 }
 
-func collectAppliedRecords(rows *sql.Rows) (collectionx.List[AppliedRecord], error) {
+func collectAppliedRecords(rows *sql.Rows) (*collectionx.List[AppliedRecord], error) {
 	items := collectionx.NewListWithCapacity[AppliedRecord](8)
 	for rows.Next() {
 		record, scanErr := scanAppliedRecord(rows)

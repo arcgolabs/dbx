@@ -3,7 +3,7 @@ package paging_test
 import (
 	"testing"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/paging"
 	"github.com/stretchr/testify/require"
 )

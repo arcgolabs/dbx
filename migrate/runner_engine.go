@@ -6,35 +6,36 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 	"github.com/pressly/goose/v3"
 )
 
 type runnerEngine struct {
 	runner        *Runner
 	engine        *goose.Provider
-	metaByVersion collectionx.Map[int64, AppliedRecord]
+	metaByVersion *mappingx.Map[int64, AppliedRecord]
 }
 
 type goEngineBuildState struct {
-	gooseMigrations collectionx.List[*goose.Migration]
-	metaByVersion   collectionx.Map[int64, AppliedRecord]
+	gooseMigrations *collectionx.List[*goose.Migration]
+	metaByVersion   *mappingx.Map[int64, AppliedRecord]
 }
 
 type sqlEngineBuildState struct {
-	gooseMigrations collectionx.List[*goose.Migration]
-	metaByVersion   collectionx.Map[int64, AppliedRecord]
-	repeatables     collectionx.List[loadedSQLMigration]
+	gooseMigrations *collectionx.List[*goose.Migration]
+	metaByVersion   *mappingx.Map[int64, AppliedRecord]
+	repeatables     *collectionx.List[loadedSQLMigration]
 }
 
 func (r *Runner) newRunnerEngineForGo(migrations []Migration) (*runnerEngine, error) {
 	if len(migrations) == 0 {
-		return &runnerEngine{runner: r, metaByVersion: collectionx.NewMap[int64, AppliedRecord]()}, nil
+		return &runnerEngine{runner: r, metaByVersion: mappingx.NewMap[int64, AppliedRecord]()}, nil
 	}
 
 	state, err := collectionx.ReduceErrList[Migration, goEngineBuildState](collectionx.NewList[Migration](migrations...), goEngineBuildState{
 		gooseMigrations: collectionx.NewListWithCapacity[*goose.Migration](len(migrations)),
-		metaByVersion:   collectionx.NewMapWithCapacity[int64, AppliedRecord](len(migrations)),
+		metaByVersion:   mappingx.NewMapWithCapacity[int64, AppliedRecord](len(migrations)),
 	}, func(state goEngineBuildState, _ int, migration Migration) (goEngineBuildState, error) {
 		version, parseErr := parseNumericVersion(migration.Version())
 		if parseErr != nil {
@@ -62,7 +63,7 @@ func (r *Runner) newRunnerEngineForGo(migrations []Migration) (*runnerEngine, er
 	return r.newRunnerEngine(state.gooseMigrations.Values(), state.metaByVersion)
 }
 
-func (r *Runner) newRunnerEngineForSQL(source FileSource) (*runnerEngine, collectionx.List[loadedSQLMigration], error) {
+func (r *Runner) newRunnerEngineForSQL(source FileSource) (*runnerEngine, *collectionx.List[loadedSQLMigration], error) {
 	loaded, err := loadSQLMigrations(source)
 	if err != nil {
 		return nil, nil, err
@@ -73,7 +74,7 @@ func (r *Runner) newRunnerEngineForSQL(source FileSource) (*runnerEngine, collec
 
 	state, err := collectionx.ReduceErrList[loadedSQLMigration, sqlEngineBuildState](loaded, sqlEngineBuildState{
 		gooseMigrations: collectionx.NewListWithCapacity[*goose.Migration](loaded.Len()),
-		metaByVersion:   collectionx.NewMapWithCapacity[int64, AppliedRecord](loaded.Len()),
+		metaByVersion:   mappingx.NewMapWithCapacity[int64, AppliedRecord](loaded.Len()),
 		repeatables:     collectionx.NewListWithCapacity[loadedSQLMigration](loaded.Len()),
 	}, func(state sqlEngineBuildState, _ int, migration loadedSQLMigration) (sqlEngineBuildState, error) {
 		if migration.kind == KindRepeatable {
@@ -114,7 +115,7 @@ func (r *Runner) newRunnerEngineForSQL(source FileSource) (*runnerEngine, collec
 	return engine, state.repeatables, nil
 }
 
-func (r *Runner) newRunnerEngine(migrations []*goose.Migration, metaByVersion collectionx.Map[int64, AppliedRecord]) (*runnerEngine, error) {
+func (r *Runner) newRunnerEngine(migrations []*goose.Migration, metaByVersion *mappingx.Map[int64, AppliedRecord]) (*runnerEngine, error) {
 	if len(migrations) == 0 {
 		return &runnerEngine{
 			runner:        r,

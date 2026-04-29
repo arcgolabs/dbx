@@ -4,14 +4,14 @@ import (
 	"database/sql"
 	schemax "github.com/arcgolabs/dbx/schema"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 func TableSpecForTest(schema schemax.Resource) schemax.TableSpec {
 	return schema.Spec()
 }
 
-func IndexesForTest(schema schemax.Resource) collectionx.List[schemax.IndexMeta] {
+func IndexesForTest(schema schemax.Resource) *collectionx.List[schemax.IndexMeta] {
 	return schema.Spec().Indexes.Clone()
 }
 

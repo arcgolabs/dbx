@@ -3,6 +3,8 @@ package querydsl
 import (
 	"reflect"
 	"strings"
+
+	schemax "github.com/arcgolabs/dbx/schema"
 )
 
 // Table is a lightweight SQL table reference used by query builders.
@@ -25,6 +27,23 @@ func NamedTable(name string) Table {
 		panic("dbx/querydsl: named table cannot be empty")
 	}
 	return NewTable(trimmed)
+}
+
+// View creates a table-like reference for a CTE, derived table, or SQL view.
+func View(name string) Table {
+	return NamedTable(name)
+}
+
+// As returns source with alias applied. Schema values keep their concrete type.
+func As[S TableSource](source S, alias string) S {
+	if table, ok := any(source).(Table); ok {
+		typed, typedOK := any(table.As(alias)).(S)
+		if !typedOK {
+			panic("dbx/querydsl: table alias type mismatch")
+		}
+		return typed
+	}
+	return schemax.Alias(source, alias)
 }
 
 // NewTableRef creates a table reference with optional alias and type metadata.
@@ -89,5 +108,13 @@ func (t Table) WithEntityType(entityType reflect.Type) Table {
 
 func (t Table) WithSchemaType(schemaType reflect.Type) Table {
 	t.schemaType = schemaType
+	return t
+}
+
+func (t Table) As(alias string) Table {
+	t.alias = strings.TrimSpace(alias)
+	if t.alias == "" {
+		panic("dbx/querydsl: table alias cannot be empty")
+	}
 	return t
 }

@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/arcgolabs/collectionx"
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/dialect"
 	"github.com/arcgolabs/dbx/sqlstmt"
 	"github.com/samber/hot"
@@ -76,7 +76,7 @@ func (r *Registry) MustStatement(name string) *Template {
 }
 
 // Preload loads and caches the named templates.
-func (r *Registry) Preload(names ...string) (collectionx.List[*Template], error) {
+func (r *Registry) Preload(names ...string) (*collectionx.List[*Template], error) {
 	if r == nil {
 		return nil, sqlstmt.ErrNilStatement
 	}
@@ -92,7 +92,7 @@ func (r *Registry) Preload(names ...string) (collectionx.List[*Template], error)
 }
 
 // Names returns sorted template paths from the registry filesystem.
-func (r *Registry) Names() (collectionx.List[string], error) {
+func (r *Registry) Names() (*collectionx.List[string], error) {
 	if r == nil || r.fsys == nil {
 		return nil, sqlstmt.ErrNilStatement
 	}
@@ -117,7 +117,7 @@ func (r *Registry) Names() (collectionx.List[string], error) {
 }
 
 // PreloadAll loads and caches every .sql template from the registry filesystem.
-func (r *Registry) PreloadAll() (collectionx.List[*Template], error) {
+func (r *Registry) PreloadAll() (*collectionx.List[*Template], error) {
 	names, err := r.Names()
 	if err != nil {
 		return nil, err
@@ -145,7 +145,7 @@ func (r *Registry) Check(name string, params any) (CheckReport, error) {
 }
 
 // CheckAll loads every .sql template from the registry and checks each using samples[name].
-func (r *Registry) CheckAll(samples map[string]any) (collectionx.List[CheckReport], error) {
+func (r *Registry) CheckAll(samples map[string]any) (*collectionx.List[CheckReport], error) {
 	names, err := r.Names()
 	if err != nil {
 		return nil, err
