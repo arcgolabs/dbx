@@ -3,8 +3,8 @@ package codec
 import (
 	"errors"
 	"fmt"
-	"maps"
-	"sync"
+
+	mappingx "github.com/arcgolabs/collectionx/mapping"
 )
 
 var (
@@ -28,8 +28,7 @@ func (e *UnknownError) Unwrap() error {
 }
 
 type Registry struct {
-	mu     sync.RWMutex
-	codecs map[string]Codec
+	codecs *mappingx.ConcurrentMap[string, Codec]
 }
 
 var defaultRegistry = NewRegistry()
@@ -58,7 +57,7 @@ func NewRegistry() *Registry {
 
 func newEmptyRegistry() *Registry {
 	return &Registry{
-		codecs: make(map[string]Codec, 10),
+		codecs: mappingx.NewConcurrentMapWithCapacity[string, Codec](10),
 	}
 }
 
@@ -66,11 +65,8 @@ func (r *Registry) Clone() *Registry {
 	if r == nil {
 		return NewRegistry()
 	}
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
 	cloned := newEmptyRegistry()
-	maps.Copy(cloned.codecs, r.codecs)
+	cloned.codecs.SetAll(r.codecs.All())
 	return cloned
 }
 
@@ -84,12 +80,9 @@ func (r *Registry) Register(codec Codec) error {
 		return errors.New("dbx/codec: codec name cannot be empty")
 	}
 
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if _, ok := r.codecs[name]; ok {
+	if _, loaded := r.codecs.GetOrStore(name, codec); loaded {
 		return fmt.Errorf("dbx/codec: codec %q is already registered", name)
 	}
-	r.codecs[name] = codec
 	return nil
 }
 
@@ -103,8 +96,6 @@ func (r *Registry) Lookup(name string) (Codec, bool) {
 	if r == nil {
 		return nil, false
 	}
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	codec, ok := r.codecs[NormalizeName(name)]
+	codec, ok := r.codecs.Get(NormalizeName(name))
 	return codec, ok
 }

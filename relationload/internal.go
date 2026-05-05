@@ -7,6 +7,7 @@ import (
 
 	collectionx "github.com/arcgolabs/collectionx/list"
 	mappingx "github.com/arcgolabs/collectionx/mapping"
+	setx "github.com/arcgolabs/collectionx/set"
 	"github.com/arcgolabs/dbx"
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/querydsl"
@@ -181,7 +182,7 @@ func buildRelationTargetsBoundQuery[E any](session dbx.Session, rt *relationrunt
 
 func indexRelationTargets[E any](targets *collectionx.List[E], mapper mapperx.Mapper[E], column, relationName string, enforceUnique bool) (*mappingx.Map[any, E], error) {
 	indexed := mappingx.NewMapWithCapacity[any, E](targets.Len())
-	counts := mappingx.NewMapWithCapacity[any, int](targets.Len())
+	counts := setx.NewMultiSetWithCapacity[any](targets.Len())
 	var resultErr error
 	targets.Range(func(_ int, target E) bool {
 		key, err := presentEntityRelationKey(mapper, &target, column)
@@ -192,9 +193,8 @@ func indexRelationTargets[E any](targets *collectionx.List[E], mapper mapperx.Ma
 		if !key.ok {
 			return true
 		}
-		count, _ := counts.GetOrSet(key.value, 0)
-		count++
-		counts.Set(key.value, count)
+		counts.Add(key.value)
+		count := counts.Count(key.value)
 		if enforceUnique && count > 1 {
 			resultErr = &dbx.RelationCardinalityError{Relation: relationName, Key: key.value, Count: count}
 			return false
