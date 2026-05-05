@@ -66,13 +66,14 @@ func main() {
 ## API Highlights
 
 - CRUD: `Create`, `CreateMany`, `List`, `First`, `Update`, `Delete`
-- PK helpers: `GetByID`, `UpdateByID`, `DeleteByID`
+- Legacy PK helpers: `GetByID`, `UpdateByID`, `DeleteByID`
 - Typed key accessor: `repository.By(repo, Users.ID).Get(ctx, id)`
 - Composite key helpers: `GetByKey`, `UpdateByKey`, `DeleteByKey`
 - Pagination: `paging.Request`, `paging.Result`, `ListPage`, `ListPageRequest`, `ListPageSpec`, `ListPageSpecRequest`
 - Upsert: `Upsert(ctx, entity, conflictColumns...)`
 - Transactions: `InTx`
 - Specs: `Where`, `OrderBy`, `Limit`, `Offset`, `Page`, `PageByRequest`
+- Fluent query: `repository.Query(repo).Where(...).OrderBy(...).List(ctx)`
 - Optional single-row reads: `GetByIDOption`, `GetByKeyOption`, `FirstOption`, `FirstSpecOption` (see below)
 
 ## Pagination
@@ -99,6 +100,30 @@ _ = page.HasNext
 
 `ListPage(ctx, query, page, pageSize)` and `ListPageSpec(ctx, page, pageSize, specs...)` remain available for direct page/size calls. The `*Request` variants are preferred when the page request is passed through service boundaries or reused by `sqltmpl`.
 
+## Fluent query
+
+Use `repository.Query(repo)` when the query is built step by step and you want to keep the repository context captured once:
+
+```go
+items, err := repository.Query(repo).
+	Where(Users.Name.Eq("alice")).
+	OrderBy(Users.ID.Desc()).
+	PageRequest(sqltmpl.Page(1, 20)).
+	List(ctx)
+if err != nil {
+	return err
+}
+
+total, err := repository.Query(repo).
+	Where(Users.Name.Eq("alice")).
+	Count(ctx)
+if err != nil {
+	return err
+}
+
+_, _ = items, total
+```
+
 ## Typed key access
 
 For single-column keys, prefer binding a typed schema column once instead of passing `any` IDs through every call:
@@ -123,7 +148,7 @@ if err != nil {
 _ = exists
 ```
 
-`GetByID` and `Key` remain useful for dynamic or composite-key paths. `repository.By` is the preferred public API when the key column is known at compile time.
+`GetByID`, `UpdateByID`, and `DeleteByID` are legacy convenience helpers kept for dynamic primary-key paths. `repository.By` is the preferred public API when the key column is known at compile time.
 
 ## Optional reads (`mo.Option`)
 

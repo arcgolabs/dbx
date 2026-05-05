@@ -41,7 +41,12 @@ Preferred usage:
 ```go
 users := schemax.MustSchema("users", UserSchema{})
 
-query := querydsl.SelectFrom(users, users.ID, users.Username).
+type UserRow struct {
+	ID       int64  `dbx:"id"`
+	Username string `dbx:"username"`
+}
+
+query := querydsl.SelectFromInto[UserRow](users, users.ID, users.Username).
 	Where(querydsl.And(
 		users.Status.Eq(1),
 		querydsl.Like(users.Username, "a%"),
@@ -60,7 +65,7 @@ type ActiveUsersSource struct {
 
 activeUsers := querydsl.MustSource("active_users", ActiveUsersSource{})
 
-query := querydsl.SelectFrom(activeUsers, activeUsers.ID, activeUsers.Username).
+query := querydsl.SelectFromInto[UserRow](activeUsers, activeUsers.ID, activeUsers.Username).
 	Where(activeUsers.ID.Gt(100))
 ```
 
@@ -73,6 +78,7 @@ Preferred direction:
 - constructors bind schema and mapper once
 - CRUD methods accept entity values and focused option/spec arguments
 - single-column key lookups should prefer `repository.By(repo, typedColumn)` over `any` IDs
+- repeated query specs should prefer `repository.Query(repo)` when a fluent chain reads better than a long variadic call
 - relation loading should be exposed through repository/store-level helpers instead of long free-function parameter lists
 - Active Record stays a thin convenience layer over repository and should not own separate persistence rules
 

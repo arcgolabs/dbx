@@ -118,7 +118,7 @@ func TestStoreNewWithOptions(t *testing.T) {
 	require.NoError(t, err)
 
 	store := activerecord.NewWithOptions[User](core, users, repository.WithByIDNotFoundAsError(true))
-	_, err = store.Repository().DeleteByID(ctx, int64(404))
+	_, err = repository.By(store.Repository(), users.ID).Delete(ctx, int64(404))
 	require.ErrorIs(t, err, repository.ErrNotFound)
 }
 

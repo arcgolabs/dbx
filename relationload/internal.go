@@ -28,26 +28,20 @@ type relationKeyPair struct {
 
 type relationKeyCollectionState struct {
 	lookup *collectionx.List[relationLookupValue]
-	keys   *collectionx.List[any]
+	keys   *setx.OrderedSet[any]
 }
 
-func collectSourceRelationKeys[E any](rt *relationruntime.Runtime, entities *collectionx.List[E], mapper mapperx.Mapper[E], spec schemax.TableSpec, meta schemax.RelationMeta) (*collectionx.List[any], *collectionx.List[relationLookupValue], error) {
+func collectSourceRelationKeys[E any](entities *collectionx.List[E], mapper mapperx.Mapper[E], spec schemax.TableSpec, meta schemax.RelationMeta) (*collectionx.List[any], *collectionx.List[relationLookupValue], error) {
 	localColumn, err := sourceColumnFromSpec(spec, meta)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	seen, err := rt.AcquireSeenSet()
-	if err != nil {
-		return nil, nil, wrapRelationLoadError("acquire relation seen set", err)
-	}
-	defer rt.ReleaseSeenSet(seen)
-
 	state, err := collectionx.ReduceErrList[E, relationKeyCollectionState](
 		entities,
 		relationKeyCollectionState{
 			lookup: collectionx.NewListWithCapacity[relationLookupValue](entities.Len()),
-			keys:   collectionx.NewListWithCapacity[any](entities.Len()),
+			keys:   setx.NewOrderedSetWithCapacity[any](entities.Len()),
 		},
 		func(state relationKeyCollectionState, _ int, entity E) (relationKeyCollectionState, error) {
 			key, keyErr := entityRelationKey(mapper, &entity, localColumn.Name)
@@ -58,10 +52,6 @@ func collectSourceRelationKeys[E any](rt *relationruntime.Runtime, entities *col
 			if !key.present {
 				return state, nil
 			}
-			if seen.Contains(key.key) {
-				return state, nil
-			}
-			seen.Add(key.key)
 			state.keys.Add(key.key)
 			return state, nil
 		},
@@ -69,7 +59,7 @@ func collectSourceRelationKeys[E any](rt *relationruntime.Runtime, entities *col
 	if err != nil {
 		return nil, nil, err
 	}
-	return state.keys, state.lookup, nil
+	return collectionx.NewList[any](state.keys.Values()...), state.lookup, nil
 }
 
 func entityRelationKey[E any](mapper mapperx.Mapper[E], entity *E, column string) (relationLookupValue, error) {

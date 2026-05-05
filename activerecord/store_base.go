@@ -37,6 +37,9 @@ func (s *Store[E, S]) Wrap(entity *E) *Model[E, S] {
 }
 
 // FindByID loads a model by its primary key value.
+//
+// Deprecated: prefer By(store, typedColumn).Find when the key column is known
+// at compile time, or FindByKey for dynamic and composite-key paths.
 func (s *Store[E, S]) FindByID(ctx context.Context, id any) (*Model[E, S], error) {
 	entity, err := s.repository.GetByID(ctx, id)
 	if err != nil {
@@ -46,6 +49,9 @@ func (s *Store[E, S]) FindByID(ctx context.Context, id any) (*Model[E, S], error
 }
 
 // FindByIDOption loads a model by its primary key value and returns an empty option when absent.
+//
+// Deprecated: prefer By(store, typedColumn).FindOption when the key column is
+// known at compile time, or FindByKeyOption for dynamic and composite-key paths.
 func (s *Store[E, S]) FindByIDOption(ctx context.Context, id any) (mo.Option[*Model[E, S]], error) {
 	entity, err := s.repository.GetByIDOption(ctx, id)
 	if err != nil {

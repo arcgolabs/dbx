@@ -8,6 +8,7 @@ import (
 
 	collectionx "github.com/arcgolabs/collectionx/list"
 	mappingx "github.com/arcgolabs/collectionx/mapping"
+	setx "github.com/arcgolabs/collectionx/set"
 	"github.com/arcgolabs/dbx"
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/querydsl"
@@ -97,27 +98,17 @@ func buildManyToManyPairsBoundQuery(session dbx.Session, rt *relationruntime.Run
 	return bound, nil
 }
 
-func uniqueRelationKeysFromPairs(rt *relationruntime.Runtime, pairs *collectionx.List[relationKeyPair], useSource bool) *collectionx.List[any] {
-	keys := collectionx.NewListWithCapacity[any](pairs.Len())
-	seen, err := rt.AcquireSeenSet()
-	if err != nil {
-		return nil
-	}
-	defer rt.ReleaseSeenSet(seen)
-
+func uniqueRelationKeysFromPairs(pairs *collectionx.List[relationKeyPair], useSource bool) *collectionx.List[any] {
+	keys := setx.NewOrderedSetWithCapacity[any](pairs.Len())
 	pairs.Range(func(_ int, pair relationKeyPair) bool {
 		key := pair.target
 		if useSource {
 			key = pair.source
 		}
-		if seen.Contains(key) {
-			return true
-		}
-		seen.Add(key)
 		keys.Add(key)
 		return true
 	})
-	return keys
+	return collectionx.NewList[any](keys.Values()...)
 }
 
 func groupManyToManyTargets[E any](pairs *collectionx.List[relationKeyPair], indexed *mappingx.Map[any, E]) *mappingx.MultiMap[any, E] {

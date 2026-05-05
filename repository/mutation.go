@@ -50,6 +50,9 @@ func (r *Base[E, S]) Delete(ctx context.Context, query *querydsl.DeleteQuery) (s
 }
 
 // UpdateByID updates the row identified by the repository primary key.
+//
+// Deprecated: prefer By(repo, typedColumn).Update when the key column is known
+// at compile time, or UpdateByKey for dynamic and composite-key paths.
 func (r *Base[E, S]) UpdateByID(ctx context.Context, id any, assignments ...querydsl.Assignment) (sql.Result, error) {
 	if len(assignments) == 0 {
 		return nil, ErrNilMutation
@@ -69,6 +72,9 @@ func (r *Base[E, S]) UpdateByID(ctx context.Context, id any, assignments ...quer
 }
 
 // DeleteByID deletes the row identified by the repository primary key.
+//
+// Deprecated: prefer By(repo, typedColumn).Delete when the key column is known
+// at compile time, or DeleteByKey for dynamic and composite-key paths.
 func (r *Base[E, S]) DeleteByID(ctx context.Context, id any) (sql.Result, error) {
 	pk := r.primaryColumnName()
 	result, err := r.Delete(ctx, querydsl.DeleteFrom(r.schema).Where(columnx.Named[any](r.schema, pk).Eq(id)))

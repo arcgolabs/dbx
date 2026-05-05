@@ -172,7 +172,7 @@ func startRelationLoad(session dbx.Session, sourceCount int, sourceSchema, targe
 
 func prepareRelationSourceState[E any](session dbx.Session, sources *collectionx.List[E], sourceSchema schemax.SchemaSource[E], sourceMapper mapperx.Mapper[E], meta schemax.RelationMeta, logPrefix string) (relationSourceState, error) {
 	rt := relationruntime.For(session)
-	keys, lookup, err := collectSourceRelationKeys(rt, sources, sourceMapper, sourceSchema.Spec(), meta)
+	keys, lookup, err := collectSourceRelationKeys(sources, sourceMapper, sourceSchema.Spec(), meta)
 	if err != nil {
 		logRelationLoadError(session, logPrefix, "collect_source_keys", err)
 		return relationSourceState{}, err
@@ -194,7 +194,7 @@ func loadManyToManyGroupedTargets[T any](ctx context.Context, session dbx.Sessio
 	if pairs.Len() == 0 {
 		return mappingx.NewMultiMap[any, T](), 0, false, nil
 	}
-	targetKeys := uniqueRelationKeysFromPairs(rt, pairs, false)
+	targetKeys := uniqueRelationKeysFromPairs(pairs, false)
 	targets, err := queryRelationTargets(ctx, session, rt, targetSchema, targetMapper, targetColumn, targetKeys)
 	if err != nil {
 		logRelationLoadError(session, logPrefix, "query_targets", err)

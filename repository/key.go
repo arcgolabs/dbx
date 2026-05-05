@@ -12,6 +12,9 @@ import (
 type Key map[string]any
 
 // GetByID returns the entity identified by the repository primary key.
+//
+// Deprecated: prefer By(repo, typedColumn).Get when the key column is known at
+// compile time, or GetByKey for dynamic and composite-key paths.
 func (r *Base[E, S]) GetByID(ctx context.Context, id any) (E, error) {
 	pk := r.primaryColumnName()
 	query := r.defaultSelect().Where(columnx.Named[any](r.schema, pk).Eq(id))
