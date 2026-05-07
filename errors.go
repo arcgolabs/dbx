@@ -16,6 +16,7 @@ var (
 	ErrNilQuery                  = errors.New("dbx: query is nil")
 	ErrNilMapper                 = errors.New("dbx: mapper is nil")
 	ErrNilRow                    = errors.New("dbx: row is nil")
+	ErrTooManyRows               = errors.New("dbx: query returned more than one row")
 	ErrRelationCardinality       = errors.New("dbx: relation cardinality violation")
 	ErrUnsupportedSchema         = errors.New("dbx: schema type is unsupported")
 )

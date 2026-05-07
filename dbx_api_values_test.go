@@ -22,7 +22,7 @@ var ErrMissingDSN = dbx.ErrMissingDSN
 var ErrNilQuery = dbx.ErrNilQuery
 var ErrPrimaryKeyUnmapped = mapperx.ErrPrimaryKeyUnmapped
 var ErrRelationCardinality = dbx.ErrRelationCardinality
-var ErrTooManyRows = mapperx.ErrTooManyRows
+var ErrTooManyRows = dbx.ErrTooManyRows
 var ErrUnknownCodec = codecx.ErrUnknown
 var ErrUnmappedColumn = mapperx.ErrUnmappedColumn
 

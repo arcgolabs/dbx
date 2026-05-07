@@ -109,6 +109,74 @@ func QueryTyped[E any](ctx context.Context, session Session, query querydsl.Sele
 	return items, nil
 }
 
+func QueryOne[E any](ctx context.Context, session Session, query querydsl.Builder, mapper RowsScanner[E]) (E, error) {
+	item, err := dbx.QueryOne[E](ctx, session, query, mapper)
+	if err != nil {
+		var zero E
+		return zero, fmt.Errorf("query one: %w", err)
+	}
+	return item, nil
+}
+
+func QueryOneTyped[E any](ctx context.Context, session Session, query querydsl.SelectResult[E], mapper RowsScanner[E]) (E, error) {
+	item, err := dbx.QueryOneTyped[E](ctx, session, query, mapper)
+	if err != nil {
+		var zero E
+		return zero, fmt.Errorf("query one typed: %w", err)
+	}
+	return item, nil
+}
+
+func GetTyped[E any](ctx context.Context, session Session, query querydsl.SelectResult[E]) (E, error) {
+	item, err := dbx.GetTyped[E](ctx, session, query)
+	if err != nil {
+		var zero E
+		return zero, fmt.Errorf("get typed: %w", err)
+	}
+	return item, nil
+}
+
+func QueryOption[E any](ctx context.Context, session Session, query querydsl.Builder, mapper RowsScanner[E]) (mo.Option[E], error) {
+	item, err := dbx.QueryOption[E](ctx, session, query, mapper)
+	if err != nil {
+		return mo.None[E](), fmt.Errorf("query option: %w", err)
+	}
+	return item, nil
+}
+
+func QueryOptionTyped[E any](ctx context.Context, session Session, query querydsl.SelectResult[E], mapper RowsScanner[E]) (mo.Option[E], error) {
+	item, err := dbx.QueryOptionTyped[E](ctx, session, query, mapper)
+	if err != nil {
+		return mo.None[E](), fmt.Errorf("query option typed: %w", err)
+	}
+	return item, nil
+}
+
+func FindTyped[E any](ctx context.Context, session Session, query querydsl.SelectResult[E]) (mo.Option[E], error) {
+	item, err := dbx.FindTyped[E](ctx, session, query)
+	if err != nil {
+		return mo.None[E](), fmt.Errorf("find typed: %w", err)
+	}
+	return item, nil
+}
+
+func QueryScalar[T any](ctx context.Context, session Session, query querydsl.SelectResult[T]) (T, error) {
+	item, err := dbx.QueryScalar[T](ctx, session, query)
+	if err != nil {
+		var zero T
+		return zero, fmt.Errorf("query scalar: %w", err)
+	}
+	return item, nil
+}
+
+func QueryScalarOption[T any](ctx context.Context, session Session, query querydsl.SelectResult[T]) (mo.Option[T], error) {
+	item, err := dbx.QueryScalarOption[T](ctx, session, query)
+	if err != nil {
+		return mo.None[T](), fmt.Errorf("query scalar option: %w", err)
+	}
+	return item, nil
+}
+
 func QueryAllList[E any](ctx context.Context, session Session, query querydsl.Builder, mapper RowsScanner[E]) (*collectionx.List[E], error) {
 	items, err := dbx.QueryAllList[E](ctx, session, query, mapper)
 	if err != nil {

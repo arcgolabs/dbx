@@ -185,6 +185,14 @@ query := querydsl.SelectFromInto[UserSummary](Users, Users.ID, Users.Username).
     ))
 
 items, _ := dbx.QueryTyped[UserSummary](ctx, session, query)
+one, _ := dbx.GetTyped[UserSummary](ctx, session, query.Clone().Limit(1))
+maybe, _ := dbx.FindTyped[UserSummary](ctx, session, query.Clone().Where(Users.Username.Eq("missing")))
+
+activeCount, _ := dbx.QueryScalar[int64](
+    ctx,
+    session,
+    querydsl.SelectValue(querydsl.CountAll()).From(Users).Where(Users.Status.Eq(1)),
+)
 ```
 
 ```go

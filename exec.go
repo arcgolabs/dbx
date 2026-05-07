@@ -11,6 +11,7 @@ import (
 
 	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/dialect"
+	"github.com/samber/mo"
 	"github.com/samber/oops"
 )
 
@@ -106,6 +107,56 @@ func QueryTyped[E any](ctx context.Context, session Session, query querydsl.Sele
 	return QueryAllTyped[E](ctx, session, query, mapperx.MustStructMapper[E]())
 }
 
+// QueryOne builds a querydsl SELECT and maps exactly one row into E.
+func QueryOne[E any](ctx context.Context, session Session, query querydsl.Builder, mapper mapperx.RowsScanner[E]) (E, error) {
+	if mapper == nil {
+		var zero E
+		return zero, oops.In("dbx").
+			With("op", "query_one").
+			Wrapf(ErrNilMapper, "validate mapper")
+	}
+	bound, err := Build(session, query)
+	if err != nil {
+		var zero E
+		return zero, err
+	}
+	return QueryOneBound[E](ctx, session, bound, mapper)
+}
+
+// QueryOneTyped builds a typed querydsl SELECT and maps exactly one row into E.
+func QueryOneTyped[E any](ctx context.Context, session Session, query querydsl.SelectResult[E], mapper mapperx.RowsScanner[E]) (E, error) {
+	return QueryOne[E](ctx, session, query, mapper)
+}
+
+// GetTyped builds a typed querydsl SELECT and maps exactly one row into E with the default struct mapper.
+func GetTyped[E any](ctx context.Context, session Session, query querydsl.SelectResult[E]) (E, error) {
+	return QueryOneTyped[E](ctx, session, query, mapperx.MustStructMapper[E]())
+}
+
+// QueryOption builds a querydsl SELECT and maps zero or one row into E.
+func QueryOption[E any](ctx context.Context, session Session, query querydsl.Builder, mapper mapperx.RowsScanner[E]) (mo.Option[E], error) {
+	if mapper == nil {
+		return mo.None[E](), oops.In("dbx").
+			With("op", "query_option").
+			Wrapf(ErrNilMapper, "validate mapper")
+	}
+	bound, err := Build(session, query)
+	if err != nil {
+		return mo.None[E](), err
+	}
+	return QueryOptionBound[E](ctx, session, bound, mapper)
+}
+
+// QueryOptionTyped builds a typed querydsl SELECT and maps zero or one row into E.
+func QueryOptionTyped[E any](ctx context.Context, session Session, query querydsl.SelectResult[E], mapper mapperx.RowsScanner[E]) (mo.Option[E], error) {
+	return QueryOption[E](ctx, session, query, mapper)
+}
+
+// FindTyped builds a typed querydsl SELECT and maps zero or one row into E with the default struct mapper.
+func FindTyped[E any](ctx context.Context, session Session, query querydsl.SelectResult[E]) (mo.Option[E], error) {
+	return QueryOptionTyped[E](ctx, session, query, mapperx.MustStructMapper[E]())
+}
+
 // QueryAllList builds a query and maps all rows into a collectionx.List.
 func QueryAllList[E any](ctx context.Context, session Session, query querydsl.Builder, mapper mapperx.RowsScanner[E]) (*collectionx.List[E], error) {
 	if mapper == nil {
@@ -163,6 +214,55 @@ func QueryAllBound[E any](ctx context.Context, session Session, bound sqlstmt.Bo
 // QueryAllBoundList executes a pre-built sqlstmt.Bound and maps all rows into a collectionx.List.
 func QueryAllBoundList[E any](ctx context.Context, session Session, bound sqlstmt.Bound, mapper mapperx.RowsScanner[E]) (*collectionx.List[E], error) {
 	return QueryAllBound[E](ctx, session, bound, mapper)
+}
+
+// QueryOneBound executes a pre-built sqlstmt.Bound and maps exactly one row.
+func QueryOneBound[E any](ctx context.Context, session Session, bound sqlstmt.Bound, mapper mapperx.RowsScanner[E]) (E, error) {
+	items, err := QueryAllBound[E](ctx, session, bound, mapper)
+	if err != nil {
+		var zero E
+		return zero, err
+	}
+	return oneFromList[E](items, "query_one_bound")
+}
+
+// QueryOptionBound executes a pre-built sqlstmt.Bound and maps zero or one row.
+func QueryOptionBound[E any](ctx context.Context, session Session, bound sqlstmt.Bound, mapper mapperx.RowsScanner[E]) (mo.Option[E], error) {
+	items, err := QueryAllBound[E](ctx, session, bound, mapper)
+	if err != nil {
+		return mo.None[E](), err
+	}
+	return optionFromList[E](items, "query_option_bound")
+}
+
+func oneFromList[E any](items *collectionx.List[E], op string) (E, error) {
+	if items == nil || items.Len() == 0 {
+		var zero E
+		return zero, oops.In("dbx").
+			With("op", op).
+			Wrapf(sql.ErrNoRows, "query returned no rows")
+	}
+	if items.Len() > 1 {
+		var zero E
+		return zero, oops.In("dbx").
+			With("op", op).
+			Wrapf(ErrTooManyRows, "query returned too many rows")
+	}
+	item, _ := items.GetFirst()
+	return item, nil
+}
+
+func optionFromList[E any](items *collectionx.List[E], op string) (mo.Option[E], error) {
+	if items == nil || items.Len() == 0 {
+		return mo.None[E](), nil
+	}
+	if items.Len() > 1 {
+		return mo.None[E](), oops.In("dbx").
+			With("op", op).
+			Wrapf(ErrTooManyRows, "query returned too many rows")
+	}
+	item, _ := items.GetFirst()
+	return mo.Some(item), nil
 }
 
 func capacityHintScannerFor[E any](mapper mapperx.RowsScanner[E], capacityHint int) (mapperx.CapacityHintScanner[E], bool) {

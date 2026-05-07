@@ -31,8 +31,12 @@ weight: 18
 - `querydsl.Update(schema).Set(...).Where(...)`
 - `querydsl.DeleteFrom(schema).Where(...)`
 - `dbx.Exec(ctx, session, query)` / `dbx.QueryAll[T](ctx, session, query, scanner)` / `dbx.QueryTyped[T](ctx, session, typedQuery)`
-- `dbx.QueryAllTyped[T](ctx, session, typedQuery, scanner)` when you need an explicit mapper.
-- `dbx.Build(session, query)` then `ExecBound` / `QueryAllBound[T]` for reuse.
+- `dbx.GetTyped[T](ctx, session, typedQuery)` for exactly one typed result row.
+- `dbx.FindTyped[T](ctx, session, typedQuery)` for optional typed result rows.
+- `dbx.QueryScalar[T](ctx, session, querydsl.SelectValue(column).From(schema))` for exactly one typed scalar row.
+- `dbx.QueryScalarOption[T](ctx, session, scalarQuery)` for optional typed scalar rows.
+- `dbx.QueryAllTyped[T]`, `dbx.QueryOneTyped[T]`, and `dbx.QueryOptionTyped[T]` when you need an explicit mapper.
+- `dbx.Build(session, query)` then `ExecBound` / `QueryAllBound[T]` / `QueryOneBound[T]` / `QueryOptionBound[T]` / `QueryScalarBound[T]` for reuse.
 - `paging.Page(page, pageSize)` / `paging.NewRequest(page, pageSize)` for shared pagination requests.
 - `paging.NewResult(items, total, request)` / `paging.MapResult(...)` for pagination metadata.
 
@@ -74,5 +78,6 @@ weight: 18
 
 - `dbx.ErrMissingDriver`, `dbx.ErrMissingDSN`, `dbx.ErrMissingDialect`
 - `dbx.ErrIDGeneratorNodeIDConflict`
+- `dbx.ErrTooManyRows`
 - `dbx.ErrInvalidNodeID`
 - `*dbx.NodeIDOutOfRangeError`
