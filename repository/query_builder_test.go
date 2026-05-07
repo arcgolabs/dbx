@@ -1,8 +1,10 @@
 package repository_test
 
 import (
+	"context"
 	"testing"
 
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/paging"
 	repository "github.com/arcgolabs/dbx/repository"
 	"github.com/stretchr/testify/require"
@@ -43,4 +45,44 @@ func TestQueryBuilderListPage(t *testing.T) {
 	item, ok := result.Items.GetFirst()
 	require.True(t, ok)
 	require.Equal(t, "carol", item.Name)
+}
+
+func TestQueryBuilderIncludeLoadsResults(t *testing.T) {
+	repo, users, ctx := newSeededUserRepo(t, "file:repository_query_builder_include_test?mode=memory&cache=shared", "alice", "bob")
+	loaded := 0
+	include := repository.IncludeFunc[User](func(_ context.Context, items *collectionx.List[User]) error {
+		loaded += items.Len()
+		items.SetAllIndexed(func(_ int, item User) User {
+			item.Name += "-loaded"
+			return item
+		})
+		return nil
+	})
+
+	items, err := repository.Query(repo).
+		OrderBy(users.ID.Asc()).
+		Include(include).
+		List(ctx)
+	require.NoError(t, err)
+	require.Equal(t, 2, loaded)
+	first, ok := items.GetFirst()
+	require.True(t, ok)
+	require.Equal(t, "alice-loaded", first.Name)
+
+	item, err := repository.Query(repo).
+		Where(users.Name.Eq("bob")).
+		Include(include).
+		First(ctx)
+	require.NoError(t, err)
+	require.Equal(t, "bob-loaded", item.Name)
+
+	page, err := repository.Query(repo).
+		OrderBy(users.ID.Asc()).
+		Include(include).
+		ListPage(ctx, paging.NewRequest(1, 1))
+	require.NoError(t, err)
+	pageItem, ok := page.Items.GetFirst()
+	require.True(t, ok)
+	require.Equal(t, "alice-loaded", pageItem.Name)
+	require.Equal(t, 4, loaded)
 }

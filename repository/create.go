@@ -91,10 +91,25 @@ func (r *Base[E, S]) Upsert(ctx context.Context, entity *E, conflictColumns ...s
 		dbx.LogRuntimeNode(r.session, "repository.upsert.error", "table", r.schema.TableName(), "stage", "assignments", "error", err)
 		return err
 	}
+	query, targetColumns, err := r.upsertQuery(assignments, conflictColumns...)
+	if err != nil {
+		return err
+	}
+	_, err = dbx.Exec(ctx, r.session, query)
+	if err != nil {
+		wrapped := wrapMutationError(err)
+		dbx.LogRuntimeNode(r.session, "repository.upsert.error", "table", r.schema.TableName(), "stage", "exec", "error", wrapped)
+		return wrapped
+	}
+	dbx.LogRuntimeNode(r.session, "repository.upsert.done", "table", r.schema.TableName(), "conflict_columns", targetColumns)
+	return nil
+}
+
+func (r *Base[E, S]) upsertQuery(assignments *collectionx.List[querydsl.Assignment], conflictColumns ...string) (*querydsl.InsertQuery, *collectionx.List[string], error) {
 	query := querydsl.InsertInto(r.schema).ValuesList(assignments)
 	targetColumns := normalizeConflictColumns(collectionx.NewList[string](conflictColumns...), r.primaryKeyColumns())
 	if targetColumns.Len() == 0 {
-		return &ValidationError{Message: "upsert requires conflict columns"}
+		return nil, nil, &ValidationError{Message: "upsert requires conflict columns"}
 	}
 	targetExpressions := collectionx.MapList[string, querydsl.Expression](targetColumns, func(_ int, column string) querydsl.Expression {
 		return columnx.Named[any](r.schema, column)
@@ -105,14 +120,7 @@ func (r *Base[E, S]) Upsert(ctx context.Context, entity *E, conflictColumns ...s
 	} else {
 		query.OnConflictList(targetExpressions).DoUpdateSetList(updateAssignments)
 	}
-	_, err = dbx.Exec(ctx, r.session, query)
-	if err != nil {
-		wrapped := wrapMutationError(err)
-		dbx.LogRuntimeNode(r.session, "repository.upsert.error", "table", r.schema.TableName(), "stage", "exec", "error", wrapped)
-		return wrapped
-	}
-	dbx.LogRuntimeNode(r.session, "repository.upsert.done", "table", r.schema.TableName(), "conflict_columns", targetColumns)
-	return nil
+	return query, targetColumns, nil
 }
 
 func (r *Base[E, S]) insertAssignments(ctx context.Context, entity *E) (*collectionx.List[querydsl.Assignment], error) {

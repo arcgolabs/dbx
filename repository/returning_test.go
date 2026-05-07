@@ -29,6 +29,24 @@ func TestCreateReturningIntoScansProjection(t *testing.T) {
 	require.Equal(t, "alice", created.Name)
 }
 
+func TestUpsertReturningScansEntity(t *testing.T) {
+	repo, devices, ctx := newDeviceRepo(t, "file:repository_upsert_returning_test?mode=memory&cache=shared")
+
+	created, err := repository.UpsertReturning(ctx, repo, &Device{DeviceID: "dev-1", Name: "sensor"})
+	require.NoError(t, err)
+	require.Equal(t, "dev-1", created.DeviceID)
+	require.Equal(t, "sensor", created.Name)
+
+	updated, err := repository.UpsertReturning(ctx, repo, &Device{DeviceID: "dev-1", Name: "sensor-v2"})
+	require.NoError(t, err)
+	require.Equal(t, "dev-1", updated.DeviceID)
+	require.Equal(t, "sensor-v2", updated.Name)
+
+	stored, err := repository.By(repo, devices.DeviceID).Get(ctx, "dev-1")
+	require.NoError(t, err)
+	require.Equal(t, "sensor-v2", stored.Name)
+}
+
 func TestUpdateReturningScansRowsWithoutMutatingQuery(t *testing.T) {
 	repo, users, ctx := newSeededUserRepo(t, "file:repository_update_returning_test?mode=memory&cache=shared", "alice")
 	alice, err := repo.FirstSpec(ctx, repository.Where(users.Name.Eq("alice")))
@@ -67,4 +85,39 @@ func TestDeleteReturningIntoScansProjection(t *testing.T) {
 	total, err := repo.Count(ctx, nil)
 	require.NoError(t, err)
 	require.EqualValues(t, 1, total)
+}
+
+func TestUpdateByVersionReturningScansUpdatedEntity(t *testing.T) {
+	repo, users, ctx := newVersionedUserRepo(t, "file:repository_version_returning_test?mode=memory&cache=shared")
+	require.NoError(t, repo.Create(ctx, &VersionedUser{Name: "alice", Version: 1}))
+
+	item, err := repo.First(ctx, querydsl.Select(allColumns(users).Values()...).From(users))
+	require.NoError(t, err)
+
+	updated, err := repo.UpdateByVersionReturning(ctx, repository.Key{"id": item.ID}, 1, users.Name.Set("alice-v2"))
+	require.NoError(t, err)
+	require.Equal(t, item.ID, updated.ID)
+	require.Equal(t, "alice-v2", updated.Name)
+	require.EqualValues(t, 2, updated.Version)
+
+	_, err = repo.UpdateByVersionReturning(ctx, repository.Key{"id": item.ID}, 1, users.Name.Set("alice-stale"))
+	require.ErrorIs(t, err, repository.ErrVersionConflict)
+}
+
+func TestUpdateByVersionSetReturningScansUpdatedEntity(t *testing.T) {
+	repo, users, ctx := newVersionedUserRepo(t, "file:repository_typed_version_returning_test?mode=memory&cache=shared")
+	require.NoError(t, repo.Create(ctx, &VersionedUser{Name: "alice", Version: 1}))
+
+	item, err := repo.First(ctx, querydsl.Select(allColumns(users).Values()...).From(users))
+	require.NoError(t, err)
+
+	key := repository.KeySet(repository.Part(users.ID, item.ID))
+	updated, err := repo.UpdateByVersionSetReturning(ctx, key, users.Version, 1, users.Name.Set("alice-v2"))
+	require.NoError(t, err)
+	require.Equal(t, item.ID, updated.ID)
+	require.Equal(t, "alice-v2", updated.Name)
+	require.EqualValues(t, 2, updated.Version)
+
+	_, err = repo.UpdateByVersionSetReturning(ctx, key, users.Version, 1, users.Name.Set("alice-stale"))
+	require.ErrorIs(t, err, repository.ErrVersionConflict)
 }
