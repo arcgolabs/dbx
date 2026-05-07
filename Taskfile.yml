@@ -21,8 +21,51 @@ tasks:
     cmds:
       - GOCACHE="$PWD/.cache/go-build" go vet ./... ./examples/... ./migrate/... ./sqltmpl/... ./sqltmpl/validate/... ./sqltmpl/validate/mysqlparser/... ./sqltmpl/validate/postgresparser/... ./sqltmpl/validate/sqliteparser/...
 
+  lint:
+    desc: Run golangci-lint for the root module.
+    cmds:
+      - go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4 run --allow-parallel-runners ./...
+
+  lint:module:
+    internal: true
+    dir: '{{.MODULE}}'
+    cmds:
+      - go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4 run --allow-parallel-runners ./...
+
+  lint:workspace:
+    desc: Run golangci-lint for every module in go.work.
+    cmds:
+      - task: lint
+      - task: lint:module
+        vars:
+          MODULE: examples
+      - task: lint:module
+        vars:
+          MODULE: migrate
+      - task: lint:module
+        vars:
+          MODULE: sqltmpl
+      - task: lint:module
+        vars:
+          MODULE: sqltmpl/validate
+      - task: lint:module
+        vars:
+          MODULE: sqltmpl/validate/mysqlparser
+      - task: lint:module
+        vars:
+          MODULE: sqltmpl/validate/postgresparser
+      - task: lint:module
+        vars:
+          MODULE: sqltmpl/validate/sqliteparser
+
+  bench:typed-query:
+    desc: Benchmark typed single-row and scalar query helpers.
+    cmds:
+      - go test -run ^$ -bench 'Benchmark(GetTyped|QueryOneTyped|FindTyped|QueryScalar)$' -benchmem
+
   ci:
-    desc: Run workspace test and vet checks.
+    desc: Run workspace test, vet, and lint checks.
     cmds:
       - task test:workspace
       - task vet:workspace
+      - task lint:workspace
