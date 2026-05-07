@@ -22,6 +22,12 @@ func Source[S any](name string, shape S) (S, error) {
 	return SourceAs(name, "", shape)
 }
 
+// SourceOf binds a zero-value struct-shaped query source.
+func SourceOf[S any](name string) (S, error) {
+	var shape S
+	return Source(name, shape)
+}
+
 // MustSource is Source and panics on invalid source declarations.
 func MustSource[S any](name string, shape S) S {
 	bound, err := Source(name, shape)
@@ -29,6 +35,12 @@ func MustSource[S any](name string, shape S) S {
 		panic(err)
 	}
 	return bound
+}
+
+// MustSourceOf is SourceOf and panics on invalid source declarations.
+func MustSourceOf[S any](name string) S {
+	var shape S
+	return MustSource(name, shape)
 }
 
 // SourceAs binds a struct-shaped query source with an alias.
@@ -45,6 +57,12 @@ func SourceAs[S any](name, alias string, shape S) (S, error) {
 	return shape, nil
 }
 
+// SourceAsOf binds a zero-value struct-shaped query source with an alias.
+func SourceAsOf[S any](name, alias string) (S, error) {
+	var shape S
+	return SourceAs(name, alias, shape)
+}
+
 // MustSourceAs is SourceAs and panics on invalid source declarations.
 func MustSourceAs[S any](name, alias string, shape S) S {
 	bound, err := SourceAs(name, alias, shape)
@@ -52,6 +70,12 @@ func MustSourceAs[S any](name, alias string, shape S) S {
 		panic(err)
 	}
 	return bound
+}
+
+// MustSourceAsOf is SourceAsOf and panics on invalid source declarations.
+func MustSourceAsOf[S any](name, alias string) S {
+	var shape S
+	return MustSourceAs(name, alias, shape)
 }
 
 func sourceShapeValue(shape any) (reflect.Value, error) {

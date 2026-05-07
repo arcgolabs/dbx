@@ -54,3 +54,37 @@ func TestMustSourceAsBindsAlias(t *testing.T) {
 		t.Fatalf("unexpected aliased source SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
 }
+
+func TestMustSourceOfBindsZeroValueShape(t *testing.T) {
+	activeUsers := querydsl.MustSourceOf[activeUsersSource]("active_users")
+
+	query := SelectFrom(activeUsers, activeUsers.ID).
+		Where(activeUsers.Status.Eq(1))
+
+	bound, err := query.Build(testSQLiteDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := `SELECT "active_users"."id" FROM "active_users" WHERE "active_users"."status" = ?`
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected source SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+}
+
+func TestMustSourceAsOfBindsZeroValueShapeAlias(t *testing.T) {
+	activeUsers := querydsl.MustSourceAsOf[activeUsersSource]("active_users", "au")
+
+	query := SelectFrom(activeUsers, activeUsers.ID).
+		Where(activeUsers.Status.Eq(1))
+
+	bound, err := query.Build(testSQLiteDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := `SELECT "au"."id" FROM "active_users" AS "au" WHERE "au"."status" = ?`
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected aliased source SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+}
