@@ -101,6 +101,11 @@ func QueryAllTyped[E any](ctx context.Context, session Session, query querydsl.S
 	return QueryAll[E](ctx, session, query, mapper)
 }
 
+// QueryTyped builds a typed querydsl SELECT and maps all rows into E with the default struct mapper.
+func QueryTyped[E any](ctx context.Context, session Session, query querydsl.SelectResult[E]) (*collectionx.List[E], error) {
+	return QueryAllTyped[E](ctx, session, query, mapperx.MustStructMapper[E]())
+}
+
 // QueryAllList builds a query and maps all rows into a collectionx.List.
 func QueryAllList[E any](ctx context.Context, session Session, query querydsl.Builder, mapper mapperx.RowsScanner[E]) (*collectionx.List[E], error) {
 	if mapper == nil {

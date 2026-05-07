@@ -101,6 +101,14 @@ func QueryAllTyped[E any](ctx context.Context, session Session, query querydsl.S
 	return items, nil
 }
 
+func QueryTyped[E any](ctx context.Context, session Session, query querydsl.SelectResult[E]) (*collectionx.List[E], error) {
+	items, err := dbx.QueryTyped[E](ctx, session, query)
+	if err != nil {
+		return nil, fmt.Errorf("query typed: %w", err)
+	}
+	return items, nil
+}
+
 func QueryAllList[E any](ctx context.Context, session Session, query querydsl.Builder, mapper RowsScanner[E]) (*collectionx.List[E], error) {
 	items, err := dbx.QueryAllList[E](ctx, session, query, mapper)
 	if err != nil {

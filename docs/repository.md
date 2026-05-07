@@ -173,6 +173,27 @@ _ = membership
 
 `repository.Key` remains available for dynamic key assembly. Prefer `KeySet` when the key columns are known at compile time.
 
+## Typed optimistic locking
+
+Use `UpdateByVersionSet` when the key and version column are known from schema metadata:
+
+```go
+key := repository.KeySet(repository.Part(Users.ID, user.ID))
+
+_, err := repo.UpdateByVersionSet(
+	ctx,
+	key,
+	Users.Version,
+	user.Version,
+	Users.Name.Set("alice-v2"),
+)
+if err != nil {
+	return err
+}
+```
+
+The update adds `Users.Version = user.Version + 1` and requires the current row to still match `Users.Version = user.Version`. If no row is affected, it returns `ErrVersionConflict`.
+
 ## Optional reads (`mo.Option`)
 
 For “maybe one row” queries, you can use parallel methods that return `github.com/samber/mo.Option` instead of treating “not found” as `repository.ErrNotFound`:

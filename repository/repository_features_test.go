@@ -228,3 +228,23 @@ func TestBaseUpdateByVersion(t *testing.T) {
 	_, err = repo.UpdateByVersion(ctx, key, 1, users.Name.Set("alice-stale"))
 	require.ErrorIs(t, err, repository.ErrVersionConflict)
 }
+
+func TestBaseUpdateByVersionSet(t *testing.T) {
+	repo, users, ctx := newVersionedUserRepo(t, "file:repository_typed_version_conflict_test?mode=memory&cache=shared")
+	require.NoError(t, repo.Create(ctx, &VersionedUser{Name: "alice", Version: 1}))
+
+	item, err := repo.First(ctx, querydsl.Select(allColumns(users).Values()...).From(users))
+	require.NoError(t, err)
+
+	key := repository.KeySet(repository.Part(users.ID, item.ID))
+	_, err = repo.UpdateByVersionSet(ctx, key, users.Version, 1, users.Name.Set("alice-v2"))
+	require.NoError(t, err)
+
+	updated, err := repository.By(repo, users.ID).Get(ctx, item.ID)
+	require.NoError(t, err)
+	require.Equal(t, "alice-v2", updated.Name)
+	require.EqualValues(t, 2, updated.Version)
+
+	_, err = repo.UpdateByVersionSet(ctx, key, users.Version, 1, users.Name.Set("alice-stale"))
+	require.ErrorIs(t, err, repository.ErrVersionConflict)
+}

@@ -30,7 +30,8 @@ weight: 18
 - `querydsl.InsertInto(schema).Values(assignments.Values()...)`
 - `querydsl.Update(schema).Set(...).Where(...)`
 - `querydsl.DeleteFrom(schema).Where(...)`
-- `dbx.Exec(ctx, session, query)` / `dbx.QueryAll[T](ctx, session, query, scanner)` / `dbx.QueryAllTyped[T](ctx, session, typedQuery, scanner)`
+- `dbx.Exec(ctx, session, query)` / `dbx.QueryAll[T](ctx, session, query, scanner)` / `dbx.QueryTyped[T](ctx, session, typedQuery)`
+- `dbx.QueryAllTyped[T](ctx, session, typedQuery, scanner)` when you need an explicit mapper.
 - `dbx.Build(session, query)` then `ExecBound` / `QueryAllBound[T]` for reuse.
 - `paging.Page(page, pageSize)` / `paging.NewRequest(page, pageSize)` for shared pagination requests.
 - `paging.NewResult(items, total, request)` / `paging.MapResult(...)` for pagination metadata.

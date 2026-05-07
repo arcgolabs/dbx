@@ -184,7 +184,7 @@ query := querydsl.SelectFromInto[UserSummary](Users, Users.ID, Users.Username).
             Where(Roles.Name.Eq("admin")),
     ))
 
-items, _ := dbx.QueryAllTyped[UserSummary](ctx, session, query, mapper)
+items, _ := dbx.QueryTyped[UserSummary](ctx, session, query)
 ```
 
 ```go
