@@ -11,6 +11,7 @@ import (
 
 // KeyColumn is the typed column behavior needed for key lookups.
 type KeyColumn[T any] interface {
+	querydsl.ColumnAccessor
 	Eq(T) querydsl.Predicate
 }
 

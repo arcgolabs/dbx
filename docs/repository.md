@@ -68,7 +68,8 @@ func main() {
 - CRUD: `Create`, `CreateMany`, `List`, `First`, `Update`, `Delete`
 - Legacy PK helpers: `GetByID`, `UpdateByID`, `DeleteByID`
 - Typed key accessor: `repository.By(repo, Users.ID).Get(ctx, id)`
-- Composite key helpers: `GetByKey`, `UpdateByKey`, `DeleteByKey`
+- Typed composite key set: `repository.KeySet(repository.Part(Users.ID, id), ...)`
+- Legacy composite key helpers: `GetByKey`, `UpdateByKey`, `DeleteByKey`
 - Pagination: `paging.Request`, `paging.Result`, `ListPage`, `ListPageRequest`, `ListPageSpec`, `ListPageSpecRequest`
 - Upsert: `Upsert(ctx, entity, conflictColumns...)`
 - Transactions: `InTx`
@@ -149,6 +150,29 @@ _ = exists
 ```
 
 `GetByID`, `UpdateByID`, and `DeleteByID` are legacy convenience helpers kept for dynamic primary-key paths. `repository.By` is the preferred public API when the key column is known at compile time.
+
+For composite keys, build the key from typed column/value parts instead of a stringly typed map:
+
+```go
+key := repository.KeySet(
+	repository.Part(Memberships.TenantID, int64(100)),
+	repository.Part(Memberships.UserID, int64(200)),
+)
+
+membership, err := repo.GetByKeySet(ctx, key)
+if err != nil {
+	return err
+}
+
+_, err = repo.UpdateByKeySet(ctx, key, Memberships.Role.Set("admin"))
+if err != nil {
+	return err
+}
+
+_ = membership
+```
+
+`repository.Key` remains available for dynamic key assembly. Prefer `KeySet` when the key columns are known at compile time.
 
 ## Optional reads (`mo.Option`)
 

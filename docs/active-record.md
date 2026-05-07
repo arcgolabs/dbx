@@ -24,6 +24,7 @@ Package: `github.com/arcgolabs/dbx/activerecord`.
 - `Store.Wrap(entity *E) *Model[E, S]` — attach an entity pointer to the store.
 - `Store.FindByKey`, `Store.List` — return `*Model` (errors include `repository.ErrNotFound` when applicable).
 - `Store.FindByID` — legacy `any` ID helper; prefer `activerecord.By(store, Users.ID)`.
+- `Store.FindByKeySet` — typed composite-key helper built from `repository.KeySet`.
 - `activerecord.By(store, Users.ID)` — typed single-column lookup helper for `Find`, `FindOption`, and `Exists`.
 - `Model.Entity() *E`, `Model.Key() repository.Key` — `Key` is a defensive copy of the current primary key map.
 - `Model.Save` — insert when key is empty or all key parts are zero; otherwise update by key (if update affects no row, falls back to create for the “row missing” case).

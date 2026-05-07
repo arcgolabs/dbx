@@ -71,6 +71,57 @@ func TestBaseCompositePrimaryKeyByKey(t *testing.T) {
 	require.ErrorIs(t, err, repository.ErrNotFound)
 }
 
+func TestBaseCompositePrimaryKeyByKeySet(t *testing.T) {
+	repo, memberships, ctx := newMembershipRepo(t, "file:repository_composite_key_set_test?mode=memory&cache=shared")
+	require.NoError(t, repo.Create(ctx, &Membership{TenantID: 100, UserID: 200, Role: "viewer"}))
+
+	key := repository.KeySet(
+		repository.Part(memberships.TenantID, int64(100)),
+		repository.Part(memberships.UserID, int64(200)),
+	)
+
+	legacyKey, err := key.Key()
+	require.NoError(t, err)
+	require.Equal(t, repository.Key{"tenant_id": int64(100), "user_id": int64(200)}, legacyKey)
+
+	item, err := repo.GetByKeySet(ctx, key)
+	require.NoError(t, err)
+	require.Equal(t, "viewer", item.Role)
+
+	_, err = repo.UpdateByKeySet(ctx, key, memberships.Role.Set("admin"))
+	require.NoError(t, err)
+
+	updated, err := repo.GetByKeySet(ctx, key)
+	require.NoError(t, err)
+	require.Equal(t, "admin", updated.Role)
+
+	option, err := repo.GetByKeySetOption(ctx, repository.KeySet(
+		repository.Part(memberships.TenantID, int64(100)),
+		repository.Part(memberships.UserID, int64(404)),
+	))
+	require.NoError(t, err)
+	require.False(t, option.IsPresent())
+
+	_, err = repo.DeleteByKeySet(ctx, key)
+	require.NoError(t, err)
+
+	_, err = repo.GetByKeySet(ctx, key)
+	require.ErrorIs(t, err, repository.ErrNotFound)
+}
+
+func TestBaseKeySetValidation(t *testing.T) {
+	repo, users, ctx := newSeededUserRepo(t, "file:repository_key_set_validation_test?mode=memory&cache=shared", "alice")
+
+	_, err := repo.GetByKeySet(ctx, repository.KeySet())
+	require.ErrorIs(t, err, repository.ErrValidation)
+
+	_, err = repository.KeySet(
+		repository.Part(users.ID, int64(1)),
+		repository.Part(users.ID, int64(2)),
+	).Key()
+	require.ErrorIs(t, err, repository.ErrValidation)
+}
+
 func TestBaseSpecAPIs(t *testing.T) {
 	repo, users, ctx := newSeededUserRepo(t, "file:repository_spec_test?mode=memory&cache=shared", "alice", "bob")
 

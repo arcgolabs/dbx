@@ -102,6 +102,15 @@ func TestStoreTypedKeyAPIs(t *testing.T) {
 	foundByName, err := byName.Find(ctx, "alice")
 	require.NoError(t, err)
 	require.Equal(t, model.Entity().ID, foundByName.Entity().ID)
+
+	key := repository.KeySet(repository.Part(users.ID, model.Entity().ID))
+	foundByKeySet, err := store.FindByKeySet(ctx, key)
+	require.NoError(t, err)
+	require.Equal(t, model.Entity().ID, foundByKeySet.Entity().ID)
+
+	noneByKeySet, err := store.FindByKeySetOption(ctx, repository.KeySet(repository.Part(users.ID, int64(404))))
+	require.NoError(t, err)
+	require.False(t, noneByKeySet.IsPresent())
 }
 
 func TestStoreNewWithOptions(t *testing.T) {
