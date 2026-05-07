@@ -177,21 +177,12 @@ func SQLEach[E any](ctx context.Context, session Session, statement sqlstmt.Sour
 }
 
 func structMapperCursor[E any](ctx context.Context, rows *sql.Rows, mapper mapperx.RowsScanner[E]) (Cursor[E], bool, error) {
-	switch typed := any(mapper).(type) {
-	case mapperx.StructMapper[E]:
-		cursor, err := typed.ScanCursor(ctx, rows)
-		return cursor, true, wrapDBError("open mapper scan cursor", err)
-	case *mapperx.StructMapper[E]:
-		if typed == nil {
-			return nil, true, oops.In("dbx").
-				With("op", "cursor_mapper").
-				Wrapf(ErrNilMapper, "validate struct mapper")
-		}
-		cursor, err := typed.ScanCursor(ctx, rows)
-		return cursor, true, wrapDBError("open mapper scan cursor", err)
-	default:
+	scanner, ok := any(mapper).(mapperx.CursorScanner[E])
+	if !ok {
 		return nil, false, nil
 	}
+	cursor, err := scanner.ScanCursor(ctx, rows)
+	return cursor, true, wrapDBError("open mapper scan cursor", err)
 }
 
 func iterateCursor[E any](open func() (Cursor[E], error)) func(func(E, error) bool) {

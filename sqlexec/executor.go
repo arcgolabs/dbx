@@ -34,6 +34,10 @@ type CapacityHintScanner[E any] interface {
 	ScanRowsWithCapacity(rows *sql.Rows, capacityHint int) (*collectionx.List[E], error)
 }
 
+type LimitScanner[E any] interface {
+	ScanRowsLimit(ctx context.Context, rows *sql.Rows, limit int) (*collectionx.List[E], error)
+}
+
 type Executor struct {
 	session Session
 }
@@ -135,7 +139,7 @@ func QueryList[E any](ctx context.Context, session Session, statement sqlstmt.So
 }
 
 func Get[E any](ctx context.Context, session Session, statement sqlstmt.Source, params any, mapper RowsScanner[E]) (E, error) {
-	items, err := List(ctx, session, statement, params, mapper)
+	items, err := listLimit(ctx, session, statement, params, mapper, 2)
 	if err != nil {
 		var zero E
 		return zero, err
@@ -158,7 +162,7 @@ func Get[E any](ctx context.Context, session Session, statement sqlstmt.Source, 
 }
 
 func Find[E any](ctx context.Context, session Session, statement sqlstmt.Source, params any, mapper RowsScanner[E]) (mo.Option[E], error) {
-	items, err := List(ctx, session, statement, params, mapper)
+	items, err := listLimit(ctx, session, statement, params, mapper, 2)
 	if err != nil {
 		return mo.None[E](), err
 	}
@@ -231,9 +235,44 @@ func queryStatementRows(ctx context.Context, executor *Executor, statement sqlst
 	return rows, bound, nil
 }
 
+func listLimit[E any](ctx context.Context, session Session, statement sqlstmt.Source, params any, mapper RowsScanner[E], limit int) (*collectionx.List[E], error) {
+	if mapper == nil {
+		return nil, oops.In("dbx/sqlexec").
+			With("op", "list_limit", "statement", sqlstmt.Name(statement)).
+			Wrapf(ErrNilMapper, "validate mapper")
+	}
+	limitScanner, ok := any(mapper).(LimitScanner[E])
+	if !ok {
+		return List(ctx, session, statement, params, mapper)
+	}
+
+	exec, err := executor(session)
+	if err != nil {
+		return nil, err
+	}
+	rows, _, err := queryStatementRows(ctx, exec, statement, params)
+	if err != nil {
+		return nil, err
+	}
+	return scanRowsLimit(ctx, rows, limitScanner, limit)
+}
+
 func scanRows[E any](rows *sql.Rows, mapper RowsScanner[E]) (*collectionx.List[E], error) {
 	items, scanErr := mapper.ScanRows(rows)
 	scanErr = errors.Join(wrapError("scan statement rows", scanErr), rowsIterError(rows))
+	closeErr := closeRows(rows)
+	if scanErr != nil {
+		return nil, errors.Join(scanErr, closeErr)
+	}
+	if closeErr != nil {
+		return nil, closeErr
+	}
+	return items, nil
+}
+
+func scanRowsLimit[E any](ctx context.Context, rows *sql.Rows, mapper LimitScanner[E], limit int) (*collectionx.List[E], error) {
+	items, scanErr := mapper.ScanRowsLimit(ctx, rows, limit)
+	scanErr = errors.Join(wrapError("scan statement rows limit", scanErr), rowsIterError(rows))
 	closeErr := closeRows(rows)
 	if scanErr != nil {
 		return nil, errors.Join(scanErr, closeErr)

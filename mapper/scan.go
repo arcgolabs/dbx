@@ -60,6 +60,28 @@ func (m StructMapper[E]) ScanRowsWithCapacity(rows *sql.Rows, capacityHint int) 
 	return m.scanRowsWithCapacity(rows, capacityHint)
 }
 
+func (m StructMapper[E]) ScanRowsLimit(ctx context.Context, rows *sql.Rows, limit int) (*collectionx.List[E], error) {
+	if m.meta == nil {
+		return nil, ErrNilMapper
+	}
+	if rows == nil {
+		return nil, errors.New("dbx: rows is nil")
+	}
+	if limit <= 0 {
+		return collectionx.NewList[E](), nil
+	}
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, wrapDBError("read row columns", err)
+	}
+	plan, err := m.scanPlan(columns)
+	if err != nil {
+		return nil, err
+	}
+	return m.collectRowsLimit(ctx, plan, rows, limit)
+}
+
 func (m StructMapper[E]) scanRowsWithCapacity(rows *sql.Rows, capacityHint int) (*collectionx.List[E], error) {
 	if m.meta == nil {
 		return nil, ErrNilMapper
@@ -99,6 +121,28 @@ func (m StructMapper[E]) collectRowsWithCapacity(ctx context.Context, plan *scan
 		result.Add(value)
 	}
 	return result, wrapDBError("read scan cursor error", cursor.Err())
+}
+
+func (m StructMapper[E]) collectRowsLimit(ctx context.Context, plan *scanPlan, rows *sql.Rows, limit int) (_ *collectionx.List[E], err error) {
+	cursor, err := scanlib.CursorFromRows(ctx, m.scanMapper(plan), rows)
+	if err != nil {
+		return nil, wrapDBError("open scan cursor", err)
+	}
+	defer func() {
+		err = errors.Join(err, wrapDBError("close scan cursor", cursor.Close()))
+	}()
+	result := collectionx.NewListWithCapacity[E](limit)
+	for result.Len() < limit {
+		if !cursor.Next() {
+			return result, wrapDBError("read scan cursor error", cursor.Err())
+		}
+		value, getErr := cursor.Get()
+		if getErr != nil {
+			return nil, wrapDBError("get scan cursor value", getErr)
+		}
+		result.Add(value)
+	}
+	return result, nil
 }
 
 func (m StructMapper[E]) scanCursor(ctx context.Context, rows *sql.Rows) (Cursor[E], error) {

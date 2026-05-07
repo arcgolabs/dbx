@@ -1,6 +1,7 @@
 package mapper
 
 import (
+	"context"
 	"database/sql"
 	schemax "github.com/arcgolabs/dbx/schema"
 	"reflect"
@@ -20,6 +21,17 @@ type RowsScanner[E any] interface {
 // QueryAllBound uses ScanRowsWithCapacity to pre-allocate the result slice (reduces append growth).
 type CapacityHintScanner[E any] interface {
 	ScanRowsWithCapacity(rows *sql.Rows, capacityHint int) (*listx.List[E], error)
+}
+
+// LimitScanner is an optional extension for callers that only need the first N rows.
+// Single-row helpers use this to read at most two rows when checking cardinality.
+type LimitScanner[E any] interface {
+	ScanRowsLimit(ctx context.Context, rows *sql.Rows, limit int) (*listx.List[E], error)
+}
+
+// CursorScanner is an optional extension for streaming callers.
+type CursorScanner[E any] interface {
+	ScanCursor(ctx context.Context, rows *sql.Rows) (Cursor[E], error)
 }
 
 // StructMapper provides schema-less pure DTO mapping. It infers fields from struct tags (e.g. dbx)
