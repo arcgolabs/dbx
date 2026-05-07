@@ -23,6 +23,11 @@ func SelectInto[R any](items ...SelectItem) SelectResult[R] {
 	return SelectResult[R]{query: Select(items...)}
 }
 
+// SelectValue starts a typed scalar SELECT from one typed select item.
+func SelectValue[T any](item TypedSelectItem[T]) SelectResult[T] {
+	return SelectInto[T](item)
+}
+
 // SelectFromInto starts a SELECT query from source whose result rows scan into R.
 func SelectFromInto[R any](source TableSource, items ...SelectItem) SelectResult[R] {
 	return SelectInto[R](items...).From(source)
@@ -36,6 +41,11 @@ func TypedSelect[R any](query *SelectQuery) SelectResult[R] {
 // Query returns the underlying mutable SelectQuery.
 func (q SelectResult[R]) Query() *SelectQuery {
 	return q.query
+}
+
+// Subquery returns the typed query as a scalar subquery operand.
+func (q SelectResult[R]) Subquery() SubqueryOperand {
+	return Subquery(q.query)
 }
 
 // Clone returns a typed wrapper around a cloned SelectQuery.

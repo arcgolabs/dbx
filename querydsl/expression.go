@@ -26,6 +26,16 @@ type TypedColumn[T any] interface {
 	ColumnType(T)
 }
 
+type TypedOperand[T any] interface {
+	Operand
+	ColumnType(T)
+}
+
+type TypedSelectItem[T any] interface {
+	TypedOperand[T]
+	SelectItem
+}
+
 type Predicate interface {
 	Expression
 	QueryPredicate()

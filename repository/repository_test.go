@@ -107,8 +107,9 @@ func TestBaseFirstNotFound(t *testing.T) {
 	require.ErrorIs(t, err, repository.ErrNotFound)
 }
 
-func TestBaseGetByIDCountExistsUpdateDeleteByIDAndListPage(t *testing.T) {
+func TestBaseTypedKeyCountExistsUpdateDeleteAndListPage(t *testing.T) {
 	repo, users, ctx := newSeededUserRepo(t, "file:repository_features_test?mode=memory&cache=shared", "alice", "bob")
+	byID := repository.By(repo, users.ID)
 
 	total, err := repo.Count(ctx, nil)
 	require.NoError(t, err)
@@ -121,14 +122,14 @@ func TestBaseGetByIDCountExistsUpdateDeleteByIDAndListPage(t *testing.T) {
 	alice, err := repo.First(ctx, querydsl.Select(allColumns(users).Values()...).From(users).Where(users.Name.Eq("alice")))
 	require.NoError(t, err)
 
-	got, err := repo.GetByID(ctx, alice.ID)
+	got, err := byID.Get(ctx, alice.ID)
 	require.NoError(t, err)
 	require.Equal(t, "alice", got.Name)
 
-	_, err = repo.UpdateByID(ctx, alice.ID, users.Name.Set("alice-updated"))
+	_, err = byID.Update(ctx, alice.ID, users.Name.Set("alice-updated"))
 	require.NoError(t, err)
 
-	updated, err := repo.GetByID(ctx, alice.ID)
+	updated, err := byID.Get(ctx, alice.ID)
 	require.NoError(t, err)
 	require.Equal(t, "alice-updated", updated.Name)
 
@@ -143,7 +144,7 @@ func TestBaseGetByIDCountExistsUpdateDeleteByIDAndListPage(t *testing.T) {
 	require.False(t, page.HasPrevious)
 	require.Equal(t, 1, page.Items.Len())
 
-	_, err = repo.DeleteByID(ctx, alice.ID)
+	_, err = byID.Delete(ctx, alice.ID)
 	require.NoError(t, err)
 
 	afterDelete, err := repo.Count(ctx, nil)

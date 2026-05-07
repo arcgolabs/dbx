@@ -22,11 +22,11 @@ func (r *Base[E, S]) InTx(ctx context.Context, opts *sql.TxOptions, fn func(tx *
 		return fmt.Errorf("begin tx: %w", err)
 	}
 	txRepo := &Base[E, S]{
-		db:                  r.db,
-		session:             tx,
-		schema:              r.schema,
-		mapper:              r.mapper,
-		byIDNotFoundAsError: r.byIDNotFoundAsError,
+		db:                 r.db,
+		session:            tx,
+		schema:             r.schema,
+		mapper:             r.mapper,
+		keyNotFoundAsError: r.keyNotFoundAsError,
 	}
 	runErr := fn(tx, txRepo)
 	if runErr != nil {

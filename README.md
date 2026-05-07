@@ -174,6 +174,19 @@ for range batches {
 }
 ```
 
+Typed result queries can carry the scan target through the builder, and `SelectValue` carries scalar subquery types:
+
+```go
+query := querydsl.SelectFromInto[UserSummary](Users, Users.ID, Users.Username).
+    Where(Users.RoleID.InQuery(
+        querydsl.SelectValue(Roles.ID).
+            From(Roles).
+            Where(Roles.Name.Eq("admin")),
+    ))
+
+items, _ := dbx.QueryAllTyped[UserSummary](ctx, session, query, mapper)
+```
+
 ```go
 statusLabel := querydsl.CaseWhen[string](Users.Status.Eq(1), "active").
     When(Users.Status.Eq(2), "blocked").

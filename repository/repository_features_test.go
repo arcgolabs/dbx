@@ -11,22 +11,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestBaseByIDNotFoundAsErrorOption(t *testing.T) {
+func TestBaseTypedKeyNotFoundAsErrorOption(t *testing.T) {
 	ctx := context.Background()
 	core := openRepositoryCore(t, "file:repository_not_found_option_test?mode=memory&cache=shared")
 	users := schemax.MustSchema("users", UserSchema{})
 	mustAutoMigrate(ctx, t, core, users)
 
 	defaultRepo := repository.New[User](core, users)
-	_, err := defaultRepo.DeleteByID(ctx, int64(404))
+	defaultByID := repository.By(defaultRepo, users.ID)
+	_, err := defaultByID.Delete(ctx, int64(404))
 	require.NoError(t, err)
-	_, err = defaultRepo.UpdateByID(ctx, int64(404), users.Name.Set("missing"))
+	_, err = defaultByID.Update(ctx, int64(404), users.Name.Set("missing"))
 	require.NoError(t, err)
 
-	strictRepo := repository.NewWithOptions[User](core, users, repository.WithByIDNotFoundAsError(true))
-	_, err = strictRepo.DeleteByID(ctx, int64(404))
+	strictRepo := repository.NewWithOptions[User](core, users, repository.WithKeyNotFoundAsError(true))
+	strictByID := repository.By(strictRepo, users.ID)
+	_, err = strictByID.Delete(ctx, int64(404))
 	require.ErrorIs(t, err, repository.ErrNotFound)
-	_, err = strictRepo.UpdateByID(ctx, int64(404), users.Name.Set("missing"))
+	_, err = strictByID.Update(ctx, int64(404), users.Name.Set("missing"))
 	require.ErrorIs(t, err, repository.ErrNotFound)
 }
 
@@ -38,11 +40,11 @@ func TestBaseCreateManyAndUpsert(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 2, total)
 
-	deviceRepo, _, deviceCtx := newDeviceRepo(t, "file:repository_upsert_devices_test?mode=memory&cache=shared")
+	deviceRepo, devices, deviceCtx := newDeviceRepo(t, "file:repository_upsert_devices_test?mode=memory&cache=shared")
 	require.NoError(t, deviceRepo.Create(deviceCtx, &Device{DeviceID: "dev-1", Name: "sensor"}))
 	require.NoError(t, deviceRepo.Upsert(deviceCtx, &Device{DeviceID: "dev-1", Name: "sensor-v2"}))
 
-	device, err := deviceRepo.GetByID(deviceCtx, "dev-1")
+	device, err := repository.By(deviceRepo, devices.DeviceID).Get(deviceCtx, "dev-1")
 	require.NoError(t, err)
 	require.Equal(t, "sensor-v2", device.Name)
 }
@@ -146,7 +148,7 @@ func TestBaseSpecAPIs(t *testing.T) {
 func TestBaseOptionAPIs(t *testing.T) {
 	repo, users, ctx := newSeededUserRepo(t, "file:repository_option_api_test?mode=memory&cache=shared", "alice")
 
-	noneByID, err := repo.GetByIDOption(ctx, int64(99999))
+	noneByID, err := repository.By(repo, users.ID).GetOption(ctx, int64(99999))
 	require.NoError(t, err)
 	require.False(t, noneByID.IsPresent())
 

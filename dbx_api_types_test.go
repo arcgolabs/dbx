@@ -78,6 +78,7 @@ type SchemaResource = schemamigrate.Resource
 type SchemaSource[E any] = schemax.SchemaSource[E]
 type SelectItem = querydsl.SelectItem
 type SelectQuery = querydsl.SelectQuery
+type SelectResult[R any] = querydsl.SelectResult[R]
 type Session = dbx.Session
 type SQLExecutor = sqlexec.Executor
 type Statement = sqlstmt.Statement

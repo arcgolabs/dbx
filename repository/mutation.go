@@ -49,47 +49,6 @@ func (r *Base[E, S]) Delete(ctx context.Context, query *querydsl.DeleteQuery) (s
 	return result, nil
 }
 
-// UpdateByID updates the row identified by the repository primary key.
-//
-// Deprecated: prefer By(repo, typedColumn).Update when the key column is known
-// at compile time, or UpdateByKey for dynamic and composite-key paths.
-func (r *Base[E, S]) UpdateByID(ctx context.Context, id any, assignments ...querydsl.Assignment) (sql.Result, error) {
-	if len(assignments) == 0 {
-		return nil, ErrNilMutation
-	}
-	pk := r.primaryColumnName()
-	result, err := r.Update(ctx, querydsl.Update(r.schema).Set(assignments...).Where(columnx.Named[any](r.schema, pk).Eq(id)))
-	if err != nil {
-		dbx.LogRuntimeNode(r.session, "repository.update_by_id.error", "table", r.schema.TableName(), "error", err)
-		return nil, err
-	}
-	if r.byIDNotFoundAsError && !hasAffectedRows(result) {
-		dbx.LogRuntimeNode(r.session, "repository.update_by_id.not_found", "table", r.schema.TableName())
-		return nil, ErrNotFound
-	}
-	dbx.LogRuntimeNode(r.session, "repository.update_by_id.done", "table", r.schema.TableName())
-	return result, nil
-}
-
-// DeleteByID deletes the row identified by the repository primary key.
-//
-// Deprecated: prefer By(repo, typedColumn).Delete when the key column is known
-// at compile time, or DeleteByKey for dynamic and composite-key paths.
-func (r *Base[E, S]) DeleteByID(ctx context.Context, id any) (sql.Result, error) {
-	pk := r.primaryColumnName()
-	result, err := r.Delete(ctx, querydsl.DeleteFrom(r.schema).Where(columnx.Named[any](r.schema, pk).Eq(id)))
-	if err != nil {
-		dbx.LogRuntimeNode(r.session, "repository.delete_by_id.error", "table", r.schema.TableName(), "error", err)
-		return nil, err
-	}
-	if r.byIDNotFoundAsError && !hasAffectedRows(result) {
-		dbx.LogRuntimeNode(r.session, "repository.delete_by_id.not_found", "table", r.schema.TableName())
-		return nil, ErrNotFound
-	}
-	dbx.LogRuntimeNode(r.session, "repository.delete_by_id.done", "table", r.schema.TableName())
-	return result, nil
-}
-
 // UpdateByVersion performs an optimistic-lock update against the version column.
 func (r *Base[E, S]) UpdateByVersion(ctx context.Context, key Key, currentVersion int64, assignments ...querydsl.Assignment) (sql.Result, error) {
 	if len(key) == 0 {

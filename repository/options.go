@@ -10,15 +10,15 @@ import (
 type Option func(*baseOptions)
 
 type baseOptions struct {
-	byIDNotFoundAsError bool
+	keyNotFoundAsError bool
 }
 
 func defaultOptions() baseOptions { return baseOptions{} }
 
-// WithByIDNotFoundAsError makes ID-based updates and deletes return ErrNotFound
+// WithKeyNotFoundAsError makes key-based updates and deletes return ErrNotFound
 // when no rows are affected.
-func WithByIDNotFoundAsError(enabled bool) Option {
-	return func(opts *baseOptions) { opts.byIDNotFoundAsError = enabled }
+func WithKeyNotFoundAsError(enabled bool) Option {
+	return func(opts *baseOptions) { opts.keyNotFoundAsError = enabled }
 }
 
 // New constructs a repository with default options.
@@ -31,10 +31,10 @@ func NewWithOptions[E any, S EntitySchema[E]](db *dbx.DB, schema S, opts ...Opti
 	config := defaultOptions()
 	option.Apply(&config, opts...)
 	return &Base[E, S]{
-		db:                  db,
-		session:             db,
-		schema:              schema,
-		mapper:              mapperx.MustMapper[E](schema),
-		byIDNotFoundAsError: config.byIDNotFoundAsError,
+		db:                 db,
+		session:            db,
+		schema:             schema,
+		mapper:             mapperx.MustMapper[E](schema),
+		keyNotFoundAsError: config.keyNotFoundAsError,
 	}
 }

@@ -155,7 +155,7 @@ func (r *Base[E, S]) UpdateByKeySet(ctx context.Context, key TypedKeySet, assign
 	if err != nil {
 		return nil, err
 	}
-	if r.byIDNotFoundAsError && !hasAffectedRows(result) {
+	if r.keyNotFoundAsError && !hasAffectedRows(result) {
 		return nil, ErrNotFound
 	}
 	return result, nil
@@ -174,7 +174,7 @@ func (r *Base[E, S]) DeleteByKeySet(ctx context.Context, key TypedKeySet) (sql.R
 	if err != nil {
 		return nil, err
 	}
-	if r.byIDNotFoundAsError && !hasAffectedRows(result) {
+	if r.keyNotFoundAsError && !hasAffectedRows(result) {
 		return nil, ErrNotFound
 	}
 	return result, nil

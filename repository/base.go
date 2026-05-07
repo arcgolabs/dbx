@@ -14,11 +14,11 @@ type EntitySchema[E any] interface {
 
 // Base provides generic CRUD helpers for a schema-backed entity type.
 type Base[E any, S EntitySchema[E]] struct {
-	db                  *dbx.DB
-	session             dbx.Session
-	schema              S
-	mapper              mapperx.Mapper[E]
-	byIDNotFoundAsError bool
+	db                 *dbx.DB
+	session            dbx.Session
+	schema             S
+	mapper             mapperx.Mapper[E]
+	keyNotFoundAsError bool
 }
 
 // DB returns the database bound to the repository.

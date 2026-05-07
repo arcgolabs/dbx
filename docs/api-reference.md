@@ -24,11 +24,13 @@ weight: 18
 ## Query and Execute
 
 - `querydsl.SelectFrom(schema, columns...).Where(...)`
+- `querydsl.SelectInto[T](columns...).From(schema).Where(...)`
+- `querydsl.SelectValue(column).From(schema).Where(...)` for typed scalar subqueries
 - `querydsl.From(schema).Select(columns...).Where(...)`
 - `querydsl.InsertInto(schema).Values(assignments.Values()...)`
 - `querydsl.Update(schema).Set(...).Where(...)`
 - `querydsl.DeleteFrom(schema).Where(...)`
-- `dbx.Exec(ctx, session, query)` / `dbx.QueryAll[T](ctx, session, query, scanner)`
+- `dbx.Exec(ctx, session, query)` / `dbx.QueryAll[T](ctx, session, query, scanner)` / `dbx.QueryAllTyped[T](ctx, session, typedQuery, scanner)`
 - `dbx.Build(session, query)` then `ExecBound` / `QueryAllBound[T]` for reuse.
 - `paging.Page(page, pageSize)` / `paging.NewRequest(page, pageSize)` for shared pagination requests.
 - `paging.NewResult(items, total, request)` / `paging.MapResult(...)` for pagination metadata.

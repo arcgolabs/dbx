@@ -250,7 +250,7 @@ func TestSelectBuildWithSubqueryAndExists(t *testing.T) {
 	users := MustSchema("users", UserSchema{})
 	roles := MustSchema("roles", RoleSchema{})
 
-	subquery := Select(roles.ID).
+	subquery := querydsl.SelectValue(roles.ID).
 		From(roles).
 		Where(roles.Name.Eq("admin"))
 

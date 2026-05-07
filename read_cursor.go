@@ -69,6 +69,11 @@ func QueryCursor[E any](ctx context.Context, session Session, query querydsl.Bui
 	return QueryCursorBound[E](ctx, session, bound, mapper)
 }
 
+// QueryCursorTyped builds a typed querydsl SELECT and returns a cursor over E.
+func QueryCursorTyped[E any](ctx context.Context, session Session, query querydsl.SelectResult[E], mapper mapperx.RowsScanner[E]) (Cursor[E], error) {
+	return QueryCursor[E](ctx, session, query, mapper)
+}
+
 // QueryCursorBound executes a pre-built sqlstmt.Bound and returns a cursor. Use with Build
 // for reuse when executing the same query multiple times.
 func QueryCursorBound[E any](ctx context.Context, session Session, bound sqlstmt.Bound, mapper mapperx.RowsScanner[E]) (Cursor[E], error) {
@@ -120,6 +125,11 @@ func QueryEach[E any](ctx context.Context, session Session, query querydsl.Build
 	return iterateCursor(func() (Cursor[E], error) {
 		return QueryCursor[E](ctx, session, query, mapper)
 	})
+}
+
+// QueryEachTyped builds a typed querydsl SELECT and iterates over E.
+func QueryEachTyped[E any](ctx context.Context, session Session, query querydsl.SelectResult[E], mapper mapperx.RowsScanner[E]) func(func(E, error) bool) {
+	return QueryEach[E](ctx, session, query, mapper)
 }
 
 func SQLCursor[E any](ctx context.Context, session Session, statement sqlstmt.Source, params any, mapper mapperx.RowsScanner[E]) (Cursor[E], error) {

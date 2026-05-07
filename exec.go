@@ -96,6 +96,11 @@ func QueryAll[E any](ctx context.Context, session Session, query querydsl.Builde
 	return QueryAllBound[E](ctx, session, bound, mapper)
 }
 
+// QueryAllTyped builds a typed querydsl SELECT and maps all rows into E.
+func QueryAllTyped[E any](ctx context.Context, session Session, query querydsl.SelectResult[E], mapper mapperx.RowsScanner[E]) (*collectionx.List[E], error) {
+	return QueryAll[E](ctx, session, query, mapper)
+}
+
 // QueryAllList builds a query and maps all rows into a collectionx.List.
 func QueryAllList[E any](ctx context.Context, session Session, query querydsl.Builder, mapper mapperx.RowsScanner[E]) (*collectionx.List[E], error) {
 	if mapper == nil {

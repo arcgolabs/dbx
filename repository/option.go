@@ -2,17 +2,10 @@ package repository
 
 import (
 	"context"
+
 	"github.com/arcgolabs/dbx/querydsl"
 	"github.com/samber/mo"
 )
-
-// GetByIDOption returns the entity identified by the primary key as an option.
-//
-// Deprecated: prefer By(repo, typedColumn).GetOption when the key column is
-// known at compile time, or GetByKeyOption for dynamic and composite-key paths.
-func (r *Base[E, S]) GetByIDOption(ctx context.Context, id any) (mo.Option[E], error) {
-	return optionFromResult(r.GetByID(ctx, id))
-}
 
 // GetByKeyOption returns the entity identified by the provided key as an option.
 func (r *Base[E, S]) GetByKeyOption(ctx context.Context, key Key) (mo.Option[E], error) {

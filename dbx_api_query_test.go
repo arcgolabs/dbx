@@ -93,6 +93,14 @@ func QueryAll[E any](ctx context.Context, session Session, query querydsl.Builde
 	return items, nil
 }
 
+func QueryAllTyped[E any](ctx context.Context, session Session, query querydsl.SelectResult[E], mapper RowsScanner[E]) (*collectionx.List[E], error) {
+	items, err := dbx.QueryAllTyped[E](ctx, session, query, mapper)
+	if err != nil {
+		return nil, fmt.Errorf("query all typed: %w", err)
+	}
+	return items, nil
+}
+
 func QueryAllList[E any](ctx context.Context, session Session, query querydsl.Builder, mapper RowsScanner[E]) (*collectionx.List[E], error) {
 	items, err := dbx.QueryAllList[E](ctx, session, query, mapper)
 	if err != nil {
@@ -131,6 +139,14 @@ func QueryEach[E any](ctx context.Context, session Session, query querydsl.Build
 
 func ResultColumn[T any](name string) Column[struct{}, T] {
 	return columnx.Result[T](name)
+}
+
+func SelectInto[R any](items ...SelectItem) SelectResult[R] {
+	return querydsl.SelectInto[R](items...)
+}
+
+func SelectValue[T any](item querydsl.TypedSelectItem[T]) SelectResult[T] {
+	return querydsl.SelectValue[T](item)
 }
 
 func SQLCursor[E any](ctx context.Context, session Session, statement sqlstmt.Source, params any, mapper RowsScanner[E]) (Cursor[E], error) {

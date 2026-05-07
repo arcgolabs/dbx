@@ -23,7 +23,6 @@ Package: `github.com/arcgolabs/dbx/activerecord`.
 - `Store.Repository() *repository.Base[E, S]` — escape hatch for bulk ops, specs, transactions, etc.
 - `Store.Wrap(entity *E) *Model[E, S]` — attach an entity pointer to the store.
 - `Store.FindByKey`, `Store.List` — return `*Model` (errors include `repository.ErrNotFound` when applicable).
-- `Store.FindByID` — legacy `any` ID helper; prefer `activerecord.By(store, Users.ID)`.
 - `Store.FindByKeySet` — typed composite-key helper built from `repository.KeySet`.
 - `activerecord.By(store, Users.ID)` — typed single-column lookup helper for `Find`, `FindOption`, and `Exists`.
 - `Model.Entity() *E`, `Model.Key() repository.Key` — `Key` is a defensive copy of the current primary key map.
@@ -34,10 +33,10 @@ Package: `github.com/arcgolabs/dbx/activerecord`.
 
 Parallel to repository’s `*Option` reads:
 
-- `Store.FindByIDOption(ctx, id) (mo.Option[*Model[E, S]], error)`
+- `activerecord.By(store, Users.ID).FindOption(ctx, id)`
 - `Store.FindByKeyOption(ctx, key) (mo.Option[*Model[E, S]], error)`
 
-When the row is missing, these return `mo.None[*Model[E, S]]()` with `nil` error, matching `repository.GetByIDOption` / `GetByKeyOption` semantics. Other errors still return a non-nil `error`.
+When the row is missing, these return `mo.None[*Model[E, S]]()` with `nil` error, matching `repository.By(...).GetOption` / `GetByKeyOption` semantics. Other errors still return a non-nil `error`.
 
 ## Complete Example
 
@@ -93,7 +92,7 @@ func main() {
 }
 ```
 
-`FindByIDOption` returns `mo.Option[*Model[User, UserSchema]]` from `github.com/samber/mo`; add that import if you reference `mo.Some` / `mo.None` explicitly.
+`FindOption` returns `mo.Option[*Model[User, UserSchema]]` from `github.com/samber/mo`; add that import if you reference `mo.Some` / `mo.None` explicitly.
 
 ## See Also
 

@@ -4,22 +4,11 @@ import (
 	"context"
 	"database/sql"
 
-	columnx "github.com/arcgolabs/dbx/column"
 	"github.com/arcgolabs/dbx/querydsl"
 )
 
 // Key identifies a row by one or more column/value pairs.
 type Key map[string]any
-
-// GetByID returns the entity identified by the repository primary key.
-//
-// Deprecated: prefer By(repo, typedColumn).Get when the key column is known at
-// compile time, or GetByKey for dynamic and composite-key paths.
-func (r *Base[E, S]) GetByID(ctx context.Context, id any) (E, error) {
-	pk := r.primaryColumnName()
-	query := r.defaultSelect().Where(columnx.Named[any](r.schema, pk).Eq(id))
-	return r.First(ctx, query)
-}
 
 // GetByKey returns the entity identified by the provided key columns.
 func (r *Base[E, S]) GetByKey(ctx context.Context, key Key) (E, error) {
@@ -42,7 +31,7 @@ func (r *Base[E, S]) UpdateByKey(ctx context.Context, key Key, assignments ...qu
 	if err != nil {
 		return nil, err
 	}
-	if r.byIDNotFoundAsError && !hasAffectedRows(result) {
+	if r.keyNotFoundAsError && !hasAffectedRows(result) {
 		return nil, ErrNotFound
 	}
 	return result, nil
@@ -57,7 +46,7 @@ func (r *Base[E, S]) DeleteByKey(ctx context.Context, key Key) (sql.Result, erro
 	if err != nil {
 		return nil, err
 	}
-	if r.byIDNotFoundAsError && !hasAffectedRows(result) {
+	if r.keyNotFoundAsError && !hasAffectedRows(result) {
 		return nil, ErrNotFound
 	}
 	return result, nil

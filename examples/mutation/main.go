@@ -102,7 +102,7 @@ func queryStatusSummaries(ctx context.Context, core *dbx.DB, catalog shared.Cata
 }
 
 func queryAdminUsers(ctx context.Context, core *dbx.DB, catalog shared.Catalog) *collectionx.List[userNameRow] {
-	adminRoleIDs := querydsl.Select(catalog.Roles.ID).
+	adminRoleIDs := querydsl.SelectValue(catalog.Roles.ID).
 		From(catalog.Roles).
 		Where(catalog.Roles.Name.Eq("admin"))
 

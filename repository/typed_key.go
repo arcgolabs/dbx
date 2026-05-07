@@ -60,7 +60,7 @@ func (k TypedKey[E, S, T]) Update(ctx context.Context, value T, assignments ...q
 	if err != nil {
 		return nil, err
 	}
-	if k.repo.byIDNotFoundAsError && !hasAffectedRows(result) {
+	if k.repo.keyNotFoundAsError && !hasAffectedRows(result) {
 		return nil, ErrNotFound
 	}
 	return result, nil
@@ -75,7 +75,7 @@ func (k TypedKey[E, S, T]) Delete(ctx context.Context, value T) (sql.Result, err
 	if err != nil {
 		return nil, err
 	}
-	if k.repo.byIDNotFoundAsError && !hasAffectedRows(result) {
+	if k.repo.keyNotFoundAsError && !hasAffectedRows(result) {
 		return nil, ErrNotFound
 	}
 	return result, nil

@@ -104,6 +104,30 @@ func (c Column[E, T]) LeColumn(other Typed[T]) querydsl.Predicate {
 	return querydsl.Compare(c, querydsl.OpLe, columnOperand[T]{Column: other})
 }
 
+func (c Column[E, T]) EqQuery(query querydsl.SelectResult[T]) querydsl.Predicate {
+	return querydsl.Compare(c, querydsl.OpEq, query.Subquery())
+}
+
+func (c Column[E, T]) NeQuery(query querydsl.SelectResult[T]) querydsl.Predicate {
+	return querydsl.Compare(c, querydsl.OpNe, query.Subquery())
+}
+
+func (c Column[E, T]) GtQuery(query querydsl.SelectResult[T]) querydsl.Predicate {
+	return querydsl.Compare(c, querydsl.OpGt, query.Subquery())
+}
+
+func (c Column[E, T]) GeQuery(query querydsl.SelectResult[T]) querydsl.Predicate {
+	return querydsl.Compare(c, querydsl.OpGe, query.Subquery())
+}
+
+func (c Column[E, T]) LtQuery(query querydsl.SelectResult[T]) querydsl.Predicate {
+	return querydsl.Compare(c, querydsl.OpLt, query.Subquery())
+}
+
+func (c Column[E, T]) LeQuery(query querydsl.SelectResult[T]) querydsl.Predicate {
+	return querydsl.Compare(c, querydsl.OpLe, query.Subquery())
+}
+
 func (c Column[E, T]) Ne(value T) querydsl.Predicate {
 	return querydsl.Compare(c, querydsl.OpNe, querydsl.Value(value))
 }
@@ -130,8 +154,8 @@ func (c Column[E, T]) In(values ...T) querydsl.Predicate {
 	}))
 }
 
-func (c Column[E, T]) InQuery(query *querydsl.SelectQuery) querydsl.Predicate {
-	return querydsl.Compare(c, querydsl.OpIn, querydsl.Subquery(query))
+func (c Column[E, T]) InQuery(query querydsl.SelectResult[T]) querydsl.Predicate {
+	return querydsl.Compare(c, querydsl.OpIn, query.Subquery())
 }
 
 func (c Column[E, T]) IsNull() querydsl.Predicate {

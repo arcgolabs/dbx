@@ -36,30 +36,6 @@ func (s *Store[E, S]) Wrap(entity *E) *Model[E, S] {
 	return s.newModel(entity)
 }
 
-// FindByID loads a model by its primary key value.
-//
-// Deprecated: prefer By(store, typedColumn).Find when the key column is known
-// at compile time, or FindByKey for dynamic and composite-key paths.
-func (s *Store[E, S]) FindByID(ctx context.Context, id any) (*Model[E, S], error) {
-	entity, err := s.repository.GetByID(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("find entity by id: %w", err)
-	}
-	return s.newKeyedModel(&entity, s.keyOf(&entity)), nil
-}
-
-// FindByIDOption loads a model by its primary key value and returns an empty option when absent.
-//
-// Deprecated: prefer By(store, typedColumn).FindOption when the key column is
-// known at compile time, or FindByKeyOption for dynamic and composite-key paths.
-func (s *Store[E, S]) FindByIDOption(ctx context.Context, id any) (mo.Option[*Model[E, S]], error) {
-	entity, err := s.repository.GetByIDOption(ctx, id)
-	if err != nil {
-		return mo.None[*Model[E, S]](), fmt.Errorf("find entity by id: %w", err)
-	}
-	return s.wrapOption(entity), nil
-}
-
 // FindByKey loads a model by its repository key.
 func (s *Store[E, S]) FindByKey(ctx context.Context, key repository.Key) (*Model[E, S], error) {
 	entity, err := s.repository.GetByKey(ctx, key)

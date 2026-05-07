@@ -55,7 +55,7 @@ func main() {
 	core := dbx.MustNewWithOptions(raw, sqlite.New())
 	_, _ = schemamigrate.AutoMigrate(ctx, core, Users)
 
-	repo := repository.NewWithOptions[User](core, Users, repository.WithByIDNotFoundAsError(true))
+	repo := repository.NewWithOptions[User](core, Users, repository.WithKeyNotFoundAsError(true))
 	_ = repo.CreateMany(ctx, &User{Name: "alice"}, &User{Name: "bob"})
 	_ = repo.Upsert(ctx, &User{ID: 1, Name: "alice-v2"})
 	page, _ := repo.ListPageSpecRequest(ctx, sqltmpl.Page(1, 20), repository.Where(Users.Name.Eq("alice-v2")))
@@ -66,16 +66,15 @@ func main() {
 ## API Highlights
 
 - CRUD: `Create`, `CreateMany`, `List`, `First`, `Update`, `Delete`
-- Legacy PK helpers: `GetByID`, `UpdateByID`, `DeleteByID`
 - Typed key accessor: `repository.By(repo, Users.ID).Get(ctx, id)`
 - Typed composite key set: `repository.KeySet(repository.Part(Users.ID, id), ...)`
-- Legacy composite key helpers: `GetByKey`, `UpdateByKey`, `DeleteByKey`
+- Dynamic/composite key helpers: `GetByKey`, `UpdateByKey`, `DeleteByKey`
 - Pagination: `paging.Request`, `paging.Result`, `ListPage`, `ListPageRequest`, `ListPageSpec`, `ListPageSpecRequest`
 - Upsert: `Upsert(ctx, entity, conflictColumns...)`
 - Transactions: `InTx`
 - Specs: `Where`, `OrderBy`, `Limit`, `Offset`, `Page`, `PageByRequest`
 - Fluent query: `repository.Query(repo).Where(...).OrderBy(...).List(ctx)`
-- Optional single-row reads: `GetByIDOption`, `GetByKeyOption`, `FirstOption`, `FirstSpecOption` (see below)
+- Optional single-row reads: `repository.By(...).GetOption`, `GetByKeyOption`, `GetByKeySetOption`, `FirstOption`, `FirstSpecOption` (see below)
 
 ## Pagination
 
@@ -127,7 +126,7 @@ _, _ = items, total
 
 ## Typed key access
 
-For single-column keys, prefer binding a typed schema column once instead of passing `any` IDs through every call:
+For single-column keys, bind a typed schema column once instead of passing `any` IDs through every call:
 
 ```go
 usersByID := repository.By(repo, Users.ID)
@@ -149,7 +148,7 @@ if err != nil {
 _ = exists
 ```
 
-`GetByID`, `UpdateByID`, and `DeleteByID` are legacy convenience helpers kept for dynamic primary-key paths. `repository.By` is the preferred public API when the key column is known at compile time.
+`repository.By` is the public API for typed single-column keys. Use `repository.Key` only for dynamic key assembly where the key columns are not known at compile time.
 
 For composite keys, build the key from typed column/value parts instead of a stringly typed map:
 
@@ -178,23 +177,24 @@ _ = membership
 
 For “maybe one row” queries, you can use parallel methods that return `github.com/samber/mo.Option` instead of treating “not found” as `repository.ErrNotFound`:
 
-- `GetByIDOption`, `GetByKeyOption`, `FirstOption`, `FirstSpecOption`
+- `repository.By(repo, Users.ID).GetOption(ctx, id)`
+- `GetByKeyOption`, `GetByKeySetOption`, `FirstOption`, `FirstSpecOption`
 
 Semantics:
 
-- When the underlying `GetByID` / `GetByKey` / `First` would return `repository.ErrNotFound`, the `Option` variant returns `mo.None[E]()` and **no error** (`error == nil`).
+- When the underlying typed key / dynamic key / first-row read would return `repository.ErrNotFound`, the `Option` variant returns `mo.None[E]()` and **no error** (`error == nil`).
 - Any other failure (invalid key, DB error, etc.) still returns a non-nil `error` and `mo.None[E]()`.
 - Empty composite `Key{}` still surfaces as `repository.ValidationError` from `GetByKey` / `GetByKeyOption` (not folded into `Option`).
 
 When to use which:
 
-- Prefer `GetByID` / `First` + `errors.Is(err, repository.ErrNotFound)` when not-found is exceptional or you want uniform `if err != nil` handling.
+- Prefer typed key `Get` / `First` + `errors.Is(err, repository.ErrNotFound)` when not-found is exceptional or you want uniform `if err != nil` handling.
 - Prefer `*Option` when absence is a normal outcome and you want `(mo.Option[E], error)` to separate “missing row” from “real errors”, consistent with `sqlexec.Find` / `sqlexec.ScalarOption`.
 
 ```go
 // Assumes User, UserSchema, Users, repo, and ctx from the "Complete Example" above.
 
-byID, err := repo.GetByIDOption(ctx, int64(42))
+byID, err := repository.By(repo, Users.ID).GetOption(ctx, int64(42))
 if err != nil {
 	return err
 }
@@ -216,4 +216,4 @@ _, _ = byName.Get()
 - `ErrValidation` (`ValidationError`)
 - `ErrVersionConflict` (`VersionConflictError`)
 
-`WithByIDNotFoundAsError(true)` enables strict by-id mutation semantics (`RowsAffected=0 => ErrNotFound`).
+`WithKeyNotFoundAsError(true)` enables strict typed-key and dynamic-key mutation semantics (`RowsAffected=0 => ErrNotFound`).

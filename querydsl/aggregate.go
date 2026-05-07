@@ -142,6 +142,7 @@ func (c CaseExpression[T]) Desc() Order {
 
 func (a Aggregate[T]) QueryExpression() {}
 func (a Aggregate[T]) QuerySelectItem() {}
+func (a Aggregate[T]) ColumnType(T)     {}
 
 func (a Aggregate[T]) RenderOperand(state *State) (string, error) {
 	var builder Buffer
@@ -177,6 +178,7 @@ func (a Aggregate[T]) RenderSelectItem(state *State) error {
 
 func (c CaseExpression[T]) QueryExpression() {}
 func (c CaseExpression[T]) QuerySelectItem() {}
+func (c CaseExpression[T]) ColumnType(T)     {}
 
 func (c CaseExpression[T]) RenderOperand(state *State) (string, error) {
 	if c.Branches.Len() == 0 {

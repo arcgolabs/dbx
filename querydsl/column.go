@@ -124,14 +124,38 @@ func (c Column[T]) LeColumn(other TypedColumn[T]) Predicate {
 	return Compare(c, OpLe, other)
 }
 
+func (c Column[T]) EqQuery(query SelectResult[T]) Predicate {
+	return Compare(c, OpEq, query.Subquery())
+}
+
+func (c Column[T]) NeQuery(query SelectResult[T]) Predicate {
+	return Compare(c, OpNe, query.Subquery())
+}
+
+func (c Column[T]) GtQuery(query SelectResult[T]) Predicate {
+	return Compare(c, OpGt, query.Subquery())
+}
+
+func (c Column[T]) GeQuery(query SelectResult[T]) Predicate {
+	return Compare(c, OpGe, query.Subquery())
+}
+
+func (c Column[T]) LtQuery(query SelectResult[T]) Predicate {
+	return Compare(c, OpLt, query.Subquery())
+}
+
+func (c Column[T]) LeQuery(query SelectResult[T]) Predicate {
+	return Compare(c, OpLe, query.Subquery())
+}
+
 func (c Column[T]) In(values ...T) Predicate {
 	return Compare(c, OpIn, collectionx.MapList[T, any](collectionx.NewList[T](values...), func(_ int, value T) any {
 		return value
 	}))
 }
 
-func (c Column[T]) InQuery(query *SelectQuery) Predicate {
-	return Compare(c, OpIn, Subquery(query))
+func (c Column[T]) InQuery(query SelectResult[T]) Predicate {
+	return Compare(c, OpIn, query.Subquery())
 }
 
 func (c Column[T]) IsNull() Predicate {

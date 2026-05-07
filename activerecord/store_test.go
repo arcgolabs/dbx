@@ -31,6 +31,7 @@ type UserSchema struct {
 
 func TestModelSaveReloadDelete(t *testing.T) {
 	ctx, store := openUserStore(t, "file:activerecord_model_test?mode=memory&cache=shared")
+	byID := activerecord.By(store, store.Repository().Schema().ID)
 
 	model := store.Wrap(&User{Name: "alice"})
 	require.NoError(t, model.Save(ctx))
@@ -39,7 +40,7 @@ func TestModelSaveReloadDelete(t *testing.T) {
 	model.Entity().Name = "alice-v2"
 	require.NoError(t, model.Save(ctx))
 
-	found, err := store.FindByID(ctx, model.Entity().ID)
+	found, err := byID.Find(ctx, model.Entity().ID)
 	require.NoError(t, err)
 	require.Equal(t, "alice-v2", found.Entity().Name)
 
@@ -49,7 +50,7 @@ func TestModelSaveReloadDelete(t *testing.T) {
 
 	require.NoError(t, model.Delete(ctx))
 
-	_, err = store.FindByID(ctx, model.Entity().ID)
+	_, err = byID.Find(ctx, model.Entity().ID)
 	require.True(t, errors.Is(err, repository.ErrNotFound))
 }
 
@@ -59,14 +60,15 @@ func TestStoreFindOptionAPIs(t *testing.T) {
 	model := store.Wrap(&User{Name: "alice"})
 	require.NoError(t, model.Save(ctx))
 
-	noneByID, err := store.FindByIDOption(ctx, int64(99999))
+	byID := activerecord.By(store, store.Repository().Schema().ID)
+	noneByID, err := byID.FindOption(ctx, int64(99999))
 	require.NoError(t, err)
 	require.False(t, noneByID.IsPresent())
 
-	byID, err := store.FindByIDOption(ctx, model.Entity().ID)
+	someByID, err := byID.FindOption(ctx, model.Entity().ID)
 	require.NoError(t, err)
 
-	found, ok := byID.Get()
+	found, ok := someByID.Get()
 	require.True(t, ok)
 	require.Equal(t, "alice", found.Entity().Name)
 
@@ -126,7 +128,7 @@ func TestStoreNewWithOptions(t *testing.T) {
 	_, err = schemamigrate.AutoMigrate(ctx, core, users)
 	require.NoError(t, err)
 
-	store := activerecord.NewWithOptions[User](core, users, repository.WithByIDNotFoundAsError(true))
+	store := activerecord.NewWithOptions[User](core, users, repository.WithKeyNotFoundAsError(true))
 	_, err = repository.By(store.Repository(), users.ID).Delete(ctx, int64(404))
 	require.ErrorIs(t, err, repository.ErrNotFound)
 }
