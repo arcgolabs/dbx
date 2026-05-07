@@ -46,6 +46,29 @@ limit /* page.limit */20 offset /* page.offset */0
 	require.Equal(t, 5, bound.CapacityHint)
 }
 
+func TestTemplateRenderWithTypedPage(t *testing.T) {
+	engine := sqltmpl.New(sqlite.New())
+	template, err := engine.Compile(`
+select id, username
+from users
+where status = /* status */1
+limit /* Page.Limit */20 offset /* Page.Offset */0
+`)
+	require.NoError(t, err)
+
+	type params struct {
+		Status int `db:"status"`
+	}
+
+	paged := sqltmpl.WithTypedPage(params{Status: 1}, sqltmpl.Page(2, 10))
+	bound, err := template.Render(paged)
+	require.NoError(t, err)
+	require.Equal(t, params{Status: 1}, paged.Params)
+	require.Equal(t, 10, paged.Page.Limit())
+	require.Equal(t, "select id, username from users where status = ? limit ? offset ?", bound.Query)
+	require.Equal(t, []any{1, 10, 10}, bound.Args.Values())
+}
+
 func TestEngineRenderPage(t *testing.T) {
 	engine := sqltmpl.New(sqlite.New())
 

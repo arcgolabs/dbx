@@ -113,13 +113,33 @@ Use `sqlstmt.For[P]` when a template has a stable parameter struct and you want 
 type FindActiveParams struct {
 	Status int `dbx:"status"`
 }
+type FindActivePage = sqltmpl.PageParams[FindActiveParams]
 
-stmt := sqlstmt.For[FindActiveParams](registry.MustStatement("sql/user/find_active.sql"))
+stmt := sqlstmt.For[FindActivePage](registry.MustStatement("sql/user/find_active.sql"))
+items, err := sqlexec.ListTyped[FindActivePage, UserSummary](
+	ctx,
+	core,
+	stmt,
+	sqltmpl.WithTypedPage(FindActiveParams{Status: 1}, sqltmpl.Page(1, 20)),
+	mapperx.MustStructMapper[UserSummary](),
+)
+```
+
+Use `sqlstmt.NewTyped[P]` when the statement is defined in Go code and can accept a typed binder directly:
+
+```go
+stmt := sqlstmt.NewTyped("user.find_active_inline", func(params FindActiveParams) (sqlstmt.Bound, error) {
+	return sqlstmt.Bound{
+		SQL:  `SELECT "id", "username" FROM "users" WHERE "status" = ?`,
+		Args: collectionx.NewList[any](params.Status),
+	}, nil
+})
+
 items, err := sqlexec.ListTyped[FindActiveParams, UserSummary](
 	ctx,
 	core,
 	stmt,
-	sqltmpl.WithPage(FindActiveParams{Status: 1}, sqltmpl.Page(1, 20)),
+	FindActiveParams{Status: 1},
 	mapperx.MustStructMapper[UserSummary](),
 )
 ```

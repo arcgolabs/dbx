@@ -274,13 +274,28 @@ if err != nil {
 type FindActiveParams struct {
 	Status int `dbx:"status"`
 }
+type FindActivePage = sqltmpl.PageParams[FindActiveParams]
 
-typedStmt := sqlstmt.For[FindActiveParams](registry.MustStatement("sql/user/find_active.sql"))
-items, err = sqlexec.ListTyped[FindActiveParams, UserSummary](
+typedStmt := sqlstmt.For[FindActivePage](registry.MustStatement("sql/user/find_active.sql"))
+items, err = sqlexec.ListTyped[FindActivePage, UserSummary](
 	ctx,
 	core,
 	typedStmt,
-	sqltmpl.WithPage(FindActiveParams{Status: 1}, sqltmpl.Page(1, 20)),
+	sqltmpl.WithTypedPage(FindActiveParams{Status: 1}, sqltmpl.Page(1, 20)),
+	mapperx.MustStructMapper[UserSummary](),
+)
+
+codeStmt := sqlstmt.NewTyped("user.find_active_inline", func(params FindActiveParams) (sqlstmt.Bound, error) {
+	return sqlstmt.Bound{
+		SQL:  `SELECT "id", "username" FROM "users" WHERE "status" = ?`,
+		Args: collectionx.NewList[any](params.Status),
+	}, nil
+})
+items, err = sqlexec.ListTyped[FindActiveParams, UserSummary](
+	ctx,
+	core,
+	codeStmt,
+	FindActiveParams{Status: 1},
 	mapperx.MustStructMapper[UserSummary](),
 )
 ```

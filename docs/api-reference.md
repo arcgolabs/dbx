@@ -62,10 +62,10 @@ weight: 18
 - `sqltmpl.NewRegistry(fs, dialect)`
 - `registry.MustStatement(path)`
 - `sqltmpl.Page(page, pageSize)` / `sqltmpl.NewPageRequest(page, pageSize)`
-- `sqltmpl.WithPage(params, request)`
+- `sqltmpl.WithPage(params, request)` / `sqltmpl.WithTypedPage[P](params, request)`
 - `template.RenderPage(params, request)` / `template.BindPage(params, request)`
 - `sqlexec.List[T]` / `Get[T]` / `Find[T]` / `Scalar[T]` / `ScalarOption[T]`
-- `sqlstmt.For[P](statement)` + `sqlexec.ListTyped[P, T]` / `GetTyped[P, T]` / `FindTyped[P, T]` / `ScalarTyped[P, T]` / `ScalarOptionTyped[P, T]`
+- `sqlstmt.For[P](statement)` or `sqlstmt.NewTyped[P](name, binder)` + `sqlexec.ListTyped[P, T]` / `GetTyped[P, T]` / `FindTyped[P, T]` / `ScalarTyped[P, T]` / `ScalarOptionTyped[P, T]`
 
 ## Common Error Sentinels and Types
 

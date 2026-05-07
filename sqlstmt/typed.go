@@ -13,6 +13,20 @@ func For[P any](source Source) TypedSource[P] {
 	return TypedSource[P]{source: source}
 }
 
+// NewTyped creates a typed statement source from a name and typed bind function.
+func NewTyped[P any](name string, binder func(P) (Bound, error)) TypedSource[P] {
+	if binder == nil {
+		return For[P](New(name, nil))
+	}
+	return For[P](New(name, func(params any) (Bound, error) {
+		value, ok := params.(P)
+		if !ok {
+			return Bound{}, fmt.Errorf("dbx/sqlstmt: typed statement %q params type mismatch", name)
+		}
+		return binder(value)
+	}))
+}
+
 func (s TypedSource[P]) StatementName() string {
 	return Name(s.source)
 }
