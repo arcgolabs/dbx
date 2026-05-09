@@ -18,7 +18,9 @@ func (f SpecFunc) Apply(query *querydsl.SelectQuery) *querydsl.SelectQuery { ret
 
 // Where appends a predicate to the query.
 func Where(predicate querydsl.Predicate) Spec {
-	return SpecFunc(func(query *querydsl.SelectQuery) *querydsl.SelectQuery { return query.Where(predicate) })
+	return SpecFunc(func(query *querydsl.SelectQuery) *querydsl.SelectQuery {
+		return appendWhere(query, predicate)
+	})
 }
 
 // OrderBy appends one or more order clauses to the query.
@@ -44,4 +46,14 @@ func Limit(limit int) Spec {
 // Offset applies a row offset to the query.
 func Offset(offset int) Spec {
 	return SpecFunc(func(query *querydsl.SelectQuery) *querydsl.SelectQuery { return query.Offset(offset) })
+}
+
+func appendWhere(query *querydsl.SelectQuery, predicate querydsl.Predicate) *querydsl.SelectQuery {
+	if query == nil || predicate == nil {
+		return query
+	}
+	if query.WhereExp == nil {
+		return query.Where(predicate)
+	}
+	return query.Where(querydsl.And(query.WhereExp, predicate))
 }

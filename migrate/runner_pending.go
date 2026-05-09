@@ -11,29 +11,7 @@ import (
 
 // PendingGo returns Go migrations that have not yet been applied.
 func (r *Runner) PendingGo(ctx context.Context, migrations ...Migration) (*collectionx.List[Migration], error) {
-	migrations = r.filterGoMigrationsByDialect(migrations)
-	bundle, err := r.newRunnerEngineForGo(migrations)
-	if err != nil {
-		return nil, err
-	}
-	if bundle.engine == nil {
-		return collectionx.NewList[Migration](), nil
-	}
-
-	statuses, err := pendingStatuses(ctx, bundle.engine, "go")
-	if err != nil {
-		return nil, err
-	}
-	indexed, err := r.appliedIndex(ctx)
-	if err != nil {
-		return nil, err
-	}
-	byVersion, err := indexGoMigrationsByVersion(migrations)
-	if err != nil {
-		return nil, err
-	}
-
-	return collectPendingGoMigrations(statuses, bundle.metaByVersion, indexed, byVersion, r.options.ValidateHash)
+	return r.PendingGoFor(ctx, DialectAny, migrations...)
 }
 
 // PendingSQL returns SQL migrations that should be applied next.

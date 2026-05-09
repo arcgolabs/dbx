@@ -11,6 +11,7 @@ import (
 	columnx "github.com/arcgolabs/dbx/column"
 	sqlitedialect "github.com/arcgolabs/dbx/dialect/sqlite"
 	"github.com/arcgolabs/dbx/idgen"
+	"github.com/arcgolabs/dbx/querydsl"
 	"github.com/arcgolabs/dbx/repository"
 	schemax "github.com/arcgolabs/dbx/schema"
 	schemamigrate "github.com/arcgolabs/dbx/schemamigrate"
@@ -27,6 +28,11 @@ type UserSchema struct {
 	schemax.Schema[User]
 	ID   columnx.IDColumn[User, int64, idgen.IDSnowflake] `dbx:"id,pk"`
 	Name columnx.Column[User, string]                     `dbx:"name"`
+}
+
+type userNameRow struct {
+	ID   int64  `dbx:"id"`
+	Name string `dbx:"name"`
 }
 
 func TestModelSaveReloadDelete(t *testing.T) {
@@ -126,6 +132,36 @@ func TestStoreTypedKeyAPIs(t *testing.T) {
 	noneByKeySet, err := store.FindByKeySetOption(ctx, repository.KeySet(repository.Part(users.ID, int64(404))))
 	require.NoError(t, err)
 	require.False(t, noneByKeySet.IsPresent())
+}
+
+func TestStoreTypedQueryResultAPIs(t *testing.T) {
+	ctx, store := openUserStore(t, "file:activerecord_typed_query_test?mode=memory&cache=shared")
+	users := store.Repository().Schema()
+
+	model := store.Wrap(&User{Name: "alice"})
+	require.NoError(t, model.Save(ctx))
+
+	query := querydsl.SelectFromInto[userNameRow](users, users.ID, users.Name).
+		Where(users.Name.Eq("alice"))
+	items, err := activerecord.ListResult[userNameRow](ctx, store, query)
+	require.NoError(t, err)
+	require.Equal(t, 1, items.Len())
+
+	first, err := activerecord.GetResult[userNameRow](ctx, store, query)
+	require.NoError(t, err)
+	require.Equal(t, model.Entity().ID, first.ID)
+
+	found, err := activerecord.FindResult[userNameRow](ctx, store, query)
+	require.NoError(t, err)
+	require.True(t, found.IsPresent())
+
+	id, err := activerecord.ScalarResult[int64](ctx, store, querydsl.SelectValue(users.ID).From(users).Where(users.Name.Eq("alice")))
+	require.NoError(t, err)
+	require.Equal(t, model.Entity().ID, id)
+
+	none, err := activerecord.ScalarResultOption[int64](ctx, store, querydsl.SelectValue(users.ID).From(users).Where(users.Name.Eq("missing")))
+	require.NoError(t, err)
+	require.False(t, none.IsPresent())
 }
 
 func TestStoreNewWithOptions(t *testing.T) {

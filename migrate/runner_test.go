@@ -222,3 +222,57 @@ func TestRunnerUpGoAppliesMatchingDialectOnly(t *testing.T) {
 	require.True(t, sqliteTableExists(ctx, t, db, "migration_sqlite"))
 	require.False(t, sqliteTableExists(ctx, t, db, "mysql_migration"))
 }
+
+func TestMigrationFacadesUseCallTimeDialect(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-facade-dialect.db"))
+	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
+
+	source := migrate.FileSource{
+		FS: fstest.MapFS{
+			"sql/V1__create_sql_generic.sql":        &fstest.MapFile{Data: []byte("CREATE TABLE sql_generic (id INTEGER PRIMARY KEY);\n")},
+			"sql/V2__create_sqlite_only_sqlite.sql": &fstest.MapFile{Data: []byte("CREATE TABLE sql_sqlite_only (id INTEGER PRIMARY KEY);\n")},
+			"sql/V2__create_mysql_only_mysql.sql":   &fstest.MapFile{Data: []byte("CREATE TABLE sql_mysql_only (id INTEGER PRIMARY KEY);\n")},
+		},
+		Dir:      "sql",
+		Database: migrate.DialectSQLite,
+	}
+
+	report, err := migrate.SQL(runner).ForDialect(migrate.DialectMySQL).Up(ctx, source)
+	require.NoError(t, err)
+	require.Equal(t, 2, report.Applied.Len())
+	require.True(t, sqliteTableExists(ctx, t, db, "sql_generic"))
+	require.False(t, sqliteTableExists(ctx, t, db, "sql_sqlite_only"))
+	require.True(t, sqliteTableExists(ctx, t, db, "sql_mysql_only"))
+
+	goGeneric := migrate.NewGoMigration("3", "create go generic", func(ctx context.Context, tx *sql.Tx) error {
+		_, execErr := tx.ExecContext(ctx, `CREATE TABLE go_generic (id INTEGER PRIMARY KEY)`)
+		if execErr != nil {
+			return fmt.Errorf("create go_generic table: %w", execErr)
+		}
+		return nil
+	}, nil)
+	goSQLite := migrate.NewGoMigration("4", "create go sqlite", func(ctx context.Context, tx *sql.Tx) error {
+		_, execErr := tx.ExecContext(ctx, `CREATE TABLE go_sqlite_only (id INTEGER PRIMARY KEY)`)
+		if execErr != nil {
+			return fmt.Errorf("create go_sqlite_only table: %w", execErr)
+		}
+		return nil
+	}, nil, migrate.DialectSQLite)
+	goMySQL := migrate.NewGoMigration("5", "create go mysql", func(ctx context.Context, tx *sql.Tx) error {
+		_, execErr := tx.ExecContext(ctx, `CREATE TABLE go_mysql_only (id INTEGER PRIMARY KEY)`)
+		if execErr != nil {
+			return fmt.Errorf("create go_mysql_only table: %w", execErr)
+		}
+		return nil
+	}, nil, migrate.DialectMySQL)
+
+	report, err = migrate.Go(runner).ForDialect(migrate.DialectMySQL).Up(ctx, goGeneric, goSQLite, goMySQL)
+	require.NoError(t, err)
+	require.Equal(t, 2, report.Applied.Len())
+	require.True(t, sqliteTableExists(ctx, t, db, "go_generic"))
+	require.False(t, sqliteTableExists(ctx, t, db, "go_sqlite_only"))
+	require.True(t, sqliteTableExists(ctx, t, db, "go_mysql_only"))
+}

@@ -32,7 +32,7 @@ func (k TypedKey[E, S, T]) Get(ctx context.Context, value T) (E, error) {
 	if k.repo == nil {
 		return zero, dbx.ErrNilDB
 	}
-	return k.repo.First(ctx, k.selectQuery(value))
+	return k.repo.first(ctx, k.selectQuery(value), false)
 }
 
 // GetOption returns the entity identified by value as an option.
@@ -45,7 +45,7 @@ func (k TypedKey[E, S, T]) Exists(ctx context.Context, value T) (bool, error) {
 	if k.repo == nil {
 		return false, dbx.ErrNilDB
 	}
-	return k.repo.Exists(ctx, k.selectQuery(value))
+	return k.repo.exists(ctx, k.selectQuery(value), false)
 }
 
 // Update updates the row identified by value.
@@ -82,5 +82,5 @@ func (k TypedKey[E, S, T]) Delete(ctx context.Context, value T) (sql.Result, err
 }
 
 func (k TypedKey[E, S, T]) selectQuery(value T) *querydsl.SelectQuery {
-	return k.repo.defaultSelect().Where(k.column.Eq(value))
+	return k.repo.applySpecs(Where(k.column.Eq(value)))
 }

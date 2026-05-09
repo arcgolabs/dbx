@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	collectionx "github.com/arcgolabs/collectionx/list"
+	"github.com/arcgolabs/dbx/dialect"
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/sqlexec"
 	"github.com/arcgolabs/dbx/sqlstmt"
@@ -40,9 +41,23 @@ func LoadStatement[P any, R any](registry *Registry, name string, mapper sqlexec
 	return NewStatement[P, R](template, mapper), nil
 }
 
+// LoadStatementFor loads a template for d and wraps it as a typed statement.
+func LoadStatementFor[P any, R any](registry *Registry, name string, d dialect.Contract, mapper sqlexec.RowsScanner[R]) (Statement[P, R], error) {
+	template, err := registry.TemplateFor(name, d)
+	if err != nil {
+		return Statement[P, R]{}, err
+	}
+	return NewStatement[P, R](template, mapper), nil
+}
+
 // LoadStructStatement loads a template from registry and wraps it with the default struct mapper.
 func LoadStructStatement[P any, R any](registry *Registry, name string) (Statement[P, R], error) {
 	return LoadStatement[P, R](registry, name, mapperx.MustStructMapper[R]())
+}
+
+// LoadStructStatementFor loads a template for d and wraps it with the default struct mapper.
+func LoadStructStatementFor[P any, R any](registry *Registry, name string, d dialect.Contract) (Statement[P, R], error) {
+	return LoadStatementFor[P, R](registry, name, d, mapperx.MustStructMapper[R]())
 }
 
 // MustLoadStatement is LoadStatement and panics on error.
@@ -54,9 +69,23 @@ func MustLoadStatement[P any, R any](registry *Registry, name string, mapper sql
 	return statement
 }
 
+// MustLoadStatementFor is LoadStatementFor and panics on error.
+func MustLoadStatementFor[P any, R any](registry *Registry, name string, d dialect.Contract, mapper sqlexec.RowsScanner[R]) Statement[P, R] {
+	statement, err := LoadStatementFor[P, R](registry, name, d, mapper)
+	if err != nil {
+		panic(err)
+	}
+	return statement
+}
+
 // MustLoadStructStatement is LoadStructStatement and panics on error.
 func MustLoadStructStatement[P any, R any](registry *Registry, name string) Statement[P, R] {
 	return MustLoadStatement[P, R](registry, name, mapperx.MustStructMapper[R]())
+}
+
+// MustLoadStructStatementFor is LoadStructStatementFor and panics on error.
+func MustLoadStructStatementFor[P any, R any](registry *Registry, name string, d dialect.Contract) Statement[P, R] {
+	return MustLoadStatementFor[P, R](registry, name, d, mapperx.MustStructMapper[R]())
 }
 
 // StatementName returns the underlying template statement name.

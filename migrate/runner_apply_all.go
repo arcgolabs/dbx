@@ -19,6 +19,7 @@ type MigrationTarget struct {
 type MigrationApplySpec struct {
 	Direction    Direction
 	Target       *MigrationTarget
+	Database     DialectName
 	GoMigrations []Migration
 	SQLSource    *FileSource
 }
@@ -27,6 +28,9 @@ type MigrationApplySpec struct {
 func (r *Runner) ValidateApplyAll(spec MigrationApplySpec) error {
 	if r == nil || r.db == nil {
 		return sql.ErrConnDone
+	}
+	if !spec.Database.IsValid() {
+		return fmt.Errorf("dbx/migrate: invalid migration dialect selector %d", spec.Database)
 	}
 
 	direction := migrateDirection(spec.Direction)
@@ -59,25 +63,25 @@ func (r *Runner) ApplyAll(ctx context.Context, spec MigrationApplySpec) (RunRepo
 
 	switch direction {
 	case DirectionUp:
-		report, err = r.applyAllGoUp(ctx, spec.GoMigrations, spec.Target)
+		report, err = r.applyAllGoUp(ctx, spec.GoMigrations, spec.Target, spec.Database)
 		if err != nil {
 			return RunReport{}, err
 		}
 		total.Applied.Merge(report.Applied)
 
-		report, err = r.applyAllSQLUp(ctx, spec.SQLSource, spec.Target)
+		report, err = r.applyAllSQLUp(ctx, spec.SQLSource, spec.Target, spec.Database)
 		if err != nil {
 			return RunReport{}, err
 		}
 		total.Applied.Merge(report.Applied)
 	case DirectionDown:
-		report, err = r.applyAllGoDown(ctx, spec.GoMigrations, spec.Target)
+		report, err = r.applyAllGoDown(ctx, spec.GoMigrations, spec.Target, spec.Database)
 		if err != nil {
 			return RunReport{}, err
 		}
 		total.Applied.Merge(report.Applied)
 
-		report, err = r.applyAllSQLDown(ctx, spec.SQLSource, spec.Target)
+		report, err = r.applyAllSQLDown(ctx, spec.SQLSource, spec.Target, spec.Database)
 		if err != nil {
 			return RunReport{}, err
 		}
@@ -94,31 +98,31 @@ func migrateDirection(direction Direction) Direction {
 	return DirectionUp
 }
 
-func (r *Runner) applyAllGoUp(ctx context.Context, migrations []Migration, target *MigrationTarget) (RunReport, error) {
+func (r *Runner) applyAllGoUp(ctx context.Context, migrations []Migration, target *MigrationTarget, database DialectName) (RunReport, error) {
 	if len(migrations) == 0 {
 		return RunReport{Applied: collectionx.NewList[AppliedRecord]()}, nil
 	}
 
 	if target == nil {
-		return r.UpGo(ctx, migrations...)
+		return Go(r).ForDialect(database).Up(ctx, migrations...)
 	}
 
-	return r.UpGoTo(ctx, target.Version, migrations...)
+	return Go(r).ForDialect(database).UpTo(ctx, target.Version, migrations...)
 }
 
-func (r *Runner) applyAllSQLUp(ctx context.Context, source *FileSource, target *MigrationTarget) (RunReport, error) {
+func (r *Runner) applyAllSQLUp(ctx context.Context, source *FileSource, target *MigrationTarget, database DialectName) (RunReport, error) {
 	if source == nil {
 		return RunReport{Applied: collectionx.NewList[AppliedRecord]()}, nil
 	}
 
 	if target == nil {
-		return r.UpSQL(ctx, *source)
+		return SQL(r).ForDialect(database).Up(ctx, *source)
 	}
 
-	return r.UpSQLTo(ctx, target.Version, *source)
+	return SQL(r).ForDialect(database).UpTo(ctx, target.Version, *source)
 }
 
-func (r *Runner) applyAllGoDown(ctx context.Context, migrations []Migration, target *MigrationTarget) (RunReport, error) {
+func (r *Runner) applyAllGoDown(ctx context.Context, migrations []Migration, target *MigrationTarget, database DialectName) (RunReport, error) {
 	if len(migrations) == 0 {
 		return RunReport{Applied: collectionx.NewList[AppliedRecord]()}, nil
 	}
@@ -127,10 +131,10 @@ func (r *Runner) applyAllGoDown(ctx context.Context, migrations []Migration, tar
 		target = &MigrationTarget{Version: 0}
 	}
 
-	return r.DownGoTo(ctx, target.Version, migrations...)
+	return Go(r).ForDialect(database).DownTo(ctx, target.Version, migrations...)
 }
 
-func (r *Runner) applyAllSQLDown(ctx context.Context, source *FileSource, target *MigrationTarget) (RunReport, error) {
+func (r *Runner) applyAllSQLDown(ctx context.Context, source *FileSource, target *MigrationTarget, database DialectName) (RunReport, error) {
 	if source == nil {
 		return RunReport{Applied: collectionx.NewList[AppliedRecord]()}, nil
 	}
@@ -139,5 +143,5 @@ func (r *Runner) applyAllSQLDown(ctx context.Context, source *FileSource, target
 		target = &MigrationTarget{Version: 0}
 	}
 
-	return r.DownSQLTo(ctx, target.Version, *source)
+	return SQL(r).ForDialect(database).DownTo(ctx, target.Version, *source)
 }

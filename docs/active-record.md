@@ -26,6 +26,7 @@ Package: `github.com/arcgolabs/dbx/activerecord`.
 - `Store.Find` / `Store.FirstOption` return optional spec-based single-row reads.
 - `Store.FindByKeySet` is the typed composite-key helper built from `repository.KeySet`.
 - `activerecord.By(store, Users.ID)` is the typed single-column lookup helper for `Find`, `FindOption`, and `Exists`.
+- `activerecord.ListResult[T](ctx, store, typedQuery)` and `ScalarResult[T]` execute typed querydsl projections through the underlying repository.
 - `Model.Entity() *E`, `Model.Key() repository.Key`: `Key` is a defensive copy of the current primary key map.
 - `Model.Save` inserts when key is empty or all key parts are zero; otherwise it updates by key. If update affects no row, it falls back to create for the row-missing case.
 - `Model.Reload`, `Model.Delete`: operate by key.
@@ -96,6 +97,25 @@ func main() {
 ```
 
 `FindOption` and `Find` return `mo.Option[*Model[User, UserSchema]]` from `github.com/samber/mo`; add that import if you reference `mo.Some` / `mo.None` explicitly.
+
+For DTO projections that should not be wrapped in `Model`, use the typed query helpers:
+
+```go
+type UserSummary struct {
+	ID   int64  `dbx:"id"`
+	Name string `dbx:"name"`
+}
+
+query := querydsl.SelectFromInto[UserSummary](Users, Users.ID, Users.Name).
+	Where(Users.Name.Eq("alice"))
+
+rows, err := activerecord.ListResult[UserSummary](ctx, store, query)
+if err != nil {
+	return err
+}
+
+_, _ = rows.GetFirst()
+```
 
 ## See Also
 

@@ -74,6 +74,10 @@ func main() {
 - Transactions: `InTx`
 - Specs: `Where`, `OrderBy`, `Limit`, `Offset`, `Page`, `PageByRequest`
 - Fluent query: `repository.Query(repo).Where(...).OrderBy(...).List(ctx)`
+- Typed querydsl projections: `repository.ListResult[T](ctx, repo, typedQuery)`, `GetResult[T]`, `FindResult[T]`, `ScalarResult[T]`
+- Partial updates: `repository.Patch(repo, key).Set(...).Apply(ctx)` and `PatchSet(repo, typedKeySet)`
+- Default filters and soft delete: `WithDefaultSpecs`, `WithSoftDeleteFlag`, `WithSoftDeleteTime`, `Query(repo).WithDeleted()`, `OnlyDeleted()`
+- Streaming: `repo.Cursor`, `repo.Each`, `repo.Batch`, plus the same API on `repository.Query(repo)`
 - Optional single-row reads: `repository.By(...).GetOption`, `GetByKeyOption`, `GetByKeySetOption`, `FirstOption`, `FirstSpecOption`, `repository.Query(repo).Find(ctx)` (see below)
 
 ## Pagination
@@ -131,6 +135,107 @@ if err != nil {
 _, _ = items, total, maybeUser
 ```
 
+## Typed querydsl projections
+
+Use querydsl typed selects when the result row is not the repository entity but you still want to reuse the repository's session/dialect context:
+
+```go
+type UserSummary struct {
+	ID   int64  `dbx:"id"`
+	Name string `dbx:"name"`
+}
+
+query := querydsl.SelectFromInto[UserSummary](Users, Users.ID, Users.Name).
+	Where(Users.Name.Eq("alice"))
+
+rows, err := repository.ListResult[UserSummary](ctx, repo, query)
+if err != nil {
+	return err
+}
+
+id, err := repository.ScalarResult[int64](
+	ctx,
+	repo,
+	querydsl.SelectValue(Users.ID).From(Users).Where(Users.Name.Eq("alice")),
+)
+if err != nil {
+	return err
+}
+
+_, _ = rows, id
+```
+
+## Patch and soft delete
+
+Use `Patch` / `PatchSet` when a service needs a partial update without building an `UpdateQuery` directly:
+
+```go
+key := repository.KeySet(repository.Part(Users.ID, user.ID))
+
+_, err := repository.PatchSet(repo, key).
+	Set(Users.Name.Set("alice-v2")).
+	Version(Users.Version, user.Version).
+	Apply(ctx)
+if err != nil {
+	return err
+}
+```
+
+Default specs are applied to repository reads. Soft-delete options are just predefined default specs plus a delete assignment:
+
+```go
+repo := repository.NewWithOptions[User](
+	core,
+	Users,
+	repository.WithSoftDeleteFlag(Users.Deleted, false, true),
+)
+
+_, err = repo.SoftDeleteByKeySet(ctx, key)
+if err != nil {
+	return err
+}
+
+visible, _ := repo.List(ctx, nil)
+all, _ := repository.Query(repo).WithDeleted().List(ctx)
+deleted, _ := repository.Query(repo).OnlyDeleted().List(ctx)
+
+_, _, _ = visible, all, deleted
+```
+
+`WithDefaultSpecs(...)` is the lower-level hook when the filter is not soft delete, for example tenant or row-level visibility.
+
+## Cursor and batch reads
+
+Use cursor or batch APIs when a query can return many rows:
+
+```go
+cursor, err := repository.Query(repo).
+	WithDeleted().
+	OrderBy(Users.ID.Asc()).
+	Cursor(ctx)
+if err != nil {
+	return err
+}
+defer cursor.Close()
+
+for cursor.Next() {
+	user, err := cursor.Get()
+	if err != nil {
+		return err
+	}
+	_ = user
+}
+if err := cursor.Err(); err != nil {
+	return err
+}
+
+err = repository.Query(repo).
+	OrderBy(Users.ID.Asc()).
+	Batch(ctx, 500, func(items *collectionx.List[User]) error {
+		return nil
+	})
+```
+
 ## Typed key access
 
 For single-column keys, bind a typed schema column once instead of passing `any` IDs through every call:
@@ -179,6 +284,26 @@ _ = membership
 ```
 
 `repository.Key` remains available for dynamic key assembly. Prefer `KeySet` when the key columns are known at compile time.
+
+## Relation includes
+
+`repository.Query(repo).Include(...)` loads relations after the base query. `IncludeFrom` captures the source and target repositories once:
+
+```go
+includeRole := repository.IncludeFrom(userRepo, roleRepo).
+	BelongsTo(UserRelations.Role, func(user *User, role Role) {
+		user.Role = &role
+	})
+
+users, err := repository.Query(userRepo).
+	Include(includeRole).
+	List(ctx)
+if err != nil {
+	return err
+}
+
+_ = users
+```
 
 ## Typed optimistic locking
 

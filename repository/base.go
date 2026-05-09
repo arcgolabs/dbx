@@ -3,6 +3,7 @@ package repository
 import (
 	"github.com/arcgolabs/dbx"
 	mapperx "github.com/arcgolabs/dbx/mapper"
+	"github.com/arcgolabs/dbx/querydsl"
 	schemax "github.com/arcgolabs/dbx/schema"
 )
 
@@ -19,6 +20,9 @@ type Base[E any, S EntitySchema[E]] struct {
 	schema             S
 	mapper             mapperx.Mapper[E]
 	keyNotFoundAsError bool
+	defaultSpecs       []Spec
+	softDeleteAssign   func() querydsl.Assignment
+	softDeleteSpec     Spec
 }
 
 // DB returns the database bound to the repository.

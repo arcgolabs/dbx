@@ -51,6 +51,12 @@ weight: 18
 - `repo.ListPage(ctx, query, page, pageSize)` and `repo.ListPageRequest(ctx, query, request)`.
 - `repo.ListPageSpec(ctx, page, pageSize, specs...)` and `repo.ListPageSpecRequest(ctx, request, specs...)`.
 - `repository.Query(repo).Where(...).List(ctx)` / `Find(ctx)` / `FirstOption(ctx)` for fluent repository queries.
+- `repository.Query(repo).Cursor(ctx)` / `Each(ctx)` / `Batch(ctx, size, fn)` for streaming and batched reads.
+- `repository.Patch(repo, key).Set(...).Apply(ctx)` / `PatchSet(repo, keySet)` for partial updates.
+- `repository.WithDefaultSpecs(...)`, `WithSoftDeleteFlag(...)`, `WithSoftDeleteTime(...)`, `Query(repo).WithDeleted()`, and `OnlyDeleted()` for repository-level filters.
+- `repo.SoftDeleteByKey(ctx, key)` / `SoftDeleteByKeySet(ctx, keySet)` when soft delete is configured.
+- `repository.ListResult[T](ctx, repo, typedQuery)` / `GetResult[T]` / `FindResult[T]` for querydsl DTO projections through a repository session.
+- `repository.ScalarResult[T](ctx, repo, querydsl.SelectValue(column).From(schema))` / `ScalarResultOption[T]` for typed scalar projections.
 - `repository.PageRequest` / `repository.PageResult[T]` are aliases of the shared `paging` pagination model.
 
 ## Active Record
@@ -59,6 +65,8 @@ weight: 18
 - `store.First(ctx, specs...)` / `store.Find(ctx, specs...)` for spec-based single model reads.
 - `activerecord.By(store, Users.ID).Find(ctx, id)` / `FindOption(ctx, id)` for typed key reads.
 - `store.List(ctx, specs...)` / `store.ListPage(ctx, request, specs...)` for model collections.
+- `activerecord.ListResult[T](ctx, store, typedQuery)` / `GetResult[T]` / `FindResult[T]` for DTO projections through a store.
+- `activerecord.ScalarResult[T](ctx, store, scalarQuery)` / `ScalarResultOption[T]` for scalar projections.
 
 ## Migration and Schema Validation
 
@@ -71,17 +79,25 @@ weight: 18
 - `(*Runner).UpGo(ctx, migrations...)`
 - `(*Runner).UpGoTo(ctx, version, migrations...)`
 - `(*Runner).DownGoTo(ctx, version, migrations...)`
+- `(*Runner).UpGoFor(ctx, dialect, migrations...)` / `(*Runner).UpGoToFor(ctx, version, dialect, migrations...)` / `(*Runner).DownGoToFor(ctx, version, dialect, migrations...)`
 - `(*Runner).UpSQL(ctx, source)` / `(*Runner).UpSQLTo(ctx, version, source)` / `(*Runner).DownSQLTo(ctx, version, source)`
 - `(*Runner).UpSQLFor(ctx, dialect, source)` / `(*Runner).UpSQLToFor(ctx, version, dialect, source)` / `(*Runner).DownSQLToFor(ctx, version, dialect, source)`
 - `FileSource.Database` or `FileSource.ForDialect(...)`: set explicit SQL migration dialect suffix filter, e.g. `source.ForDialect(migrate.DialectMySQL)`
 - `(*Runner).PendingGo(ctx, migrations...)`
+- `(*Runner).PendingGoFor(ctx, dialect, migrations...)`
 - `(*Runner).PendingSQL(ctx, source)`
 - `(*Runner).PendingSQLFor(ctx, dialect, source)`
 - `(*Runner).StatusGo(ctx, migrations...)`
+- `(*Runner).StatusGoFor(ctx, dialect, migrations...)`
 - `(*Runner).StatusSQL(ctx, source)`
 - `(*Runner).StatusSQLFor(ctx, dialect, source)`
+- `migrate.Go(runner).ForDialect(dialect).Up(ctx, migrations...)` / `Pending(ctx, migrations...)` / `Status(ctx, migrations...)`
+- `migrate.SQL(runner).ForDialect(dialect).Up(ctx, source)` / `Pending(ctx, source)` / `Status(ctx, source)`
 - `(*Runner).StatusAll(ctx, goMigrations, source)`
 - `(*Runner).PendingAll(ctx, goMigrations, source)`
+- `(*Runner).PlanGo` / `PlanSQL` / `PlanAll` and `DryRunGo` / `DryRunSQL` / `DryRunAll` for non-executing migration plans.
+- `(*Runner).ValidateGo` / `ValidateSQL` / `ValidateAll` for checksum validation reports.
+- `(*Runner).BaselineGo` / `BaselineSQL` and `RepairGo` / `RepairSQL` for marking or repairing migration history without executing migrations.
 - `(*Runner).ValidateApplyAll(spec migrate.MigrationApplySpec)` - validate high-level migration spec before execution.
 - `(*Runner).ApplyAll(ctx, spec migrate.MigrationApplySpec)` (high-level orchestration, low-level methods above remain)
 - `(*Runner).Applied(ctx)`
@@ -103,6 +119,9 @@ weight: 18
 - `registry.MustStatement(path)`
 - `registry.Statement("sql/user/find.sql")` resolves `sql/user/find_<dialect>.sql`, then `sql/user/find__<dialect>.sql`, then the base file.
 - `registry.StatementFor("sql/user/find.sql", dialect)` uses a call-site dialect for suffix resolution and placeholder rendering.
+- `sqltmpl.Typed[P](registry, path)` / `TypedFor[P](registry, path, dialect)` for typed template parameters.
+- `sqltmpl.LoadStructStatement[P, R](registry, path)` / `LoadStructStatementFor[P, R](registry, path, dialect)` for typed params and typed result rows.
+- `sqltmpl.LoadScalarStatement[P, T](registry, path)` / `LoadScalarStatementFor[P, T](registry, path, dialect)` for typed scalar reads.
 - `sqltmpl.Page(page, pageSize)` / `sqltmpl.NewPageRequest(page, pageSize)`
 - `sqltmpl.WithPage(params, request)` / `sqltmpl.WithTypedPage[P](params, request)`
 - `template.RenderPage(params, request)` / `template.BindPage(params, request)`

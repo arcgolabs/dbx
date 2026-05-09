@@ -110,8 +110,8 @@ func isDialectName(raw string) bool {
 	if raw == "" {
 		return false
 	}
-	_, ok := errDialectAliases[strings.ToLower(strings.TrimSpace(raw))]
-	return ok
+	_, err := ParseDialectName(raw)
+	return err == nil
 }
 
 func isValidVersion(version string) bool {

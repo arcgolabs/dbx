@@ -30,7 +30,14 @@ type sqlEngineBuildState struct {
 }
 
 func (r *Runner) newRunnerEngineForGo(migrations []Migration) (*runnerEngine, error) {
-	migrations = r.filterGoMigrationsByDialect(migrations)
+	return r.newRunnerEngineFromGoMigrations(r.filterGoMigrationsByDialect(migrations))
+}
+
+func (r *Runner) newRunnerEngineForGoWithDialect(migrations []Migration, database DialectName) (*runnerEngine, error) {
+	return r.newRunnerEngineFromGoMigrations(r.selectGoMigrationsForDialect(migrations, database))
+}
+
+func (r *Runner) newRunnerEngineFromGoMigrations(migrations []Migration) (*runnerEngine, error) {
 	if len(migrations) == 0 {
 		return &runnerEngine{runner: r, metaByVersion: mappingx.NewMap[int64, AppliedRecord]()}, nil
 	}
@@ -65,6 +72,13 @@ func (r *Runner) newRunnerEngineForGo(migrations []Migration) (*runnerEngine, er
 	return r.newRunnerEngine(state.gooseMigrations.Values(), state.metaByVersion)
 }
 
+func (r *Runner) selectGoMigrationsForDialect(migrations []Migration, database DialectName) []Migration {
+	if database.IsKnown() {
+		return filterGoMigrationsByTarget(migrations, database)
+	}
+	return r.filterGoMigrationsByDialect(migrations)
+}
+
 func (r *Runner) filterGoMigrationsByDialect(migrations []Migration) []Migration {
 	if len(migrations) == 0 {
 		return migrations
@@ -75,6 +89,10 @@ func (r *Runner) filterGoMigrationsByDialect(migrations []Migration) []Migration
 		return migrations
 	}
 
+	return filterGoMigrationsByTarget(migrations, target)
+}
+
+func filterGoMigrationsByTarget(migrations []Migration, target DialectName) []Migration {
 	filtered := make([]Migration, 0, len(migrations))
 	for _, migration := range migrations {
 		if migrationMatchesDialect(migration, target) {

@@ -16,7 +16,7 @@ func (r *Base[E, S]) GetByKey(ctx context.Context, key Key) (E, error) {
 		var zero E
 		return zero, &ValidationError{Message: "key is empty"}
 	}
-	return r.First(ctx, r.defaultSelect().Where(keyPredicate(r.schema, key)))
+	return r.first(ctx, r.applySpecs(Where(keyPredicate(r.schema, key))), false)
 }
 
 // UpdateByKey updates rows matched by the provided key.

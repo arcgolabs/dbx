@@ -12,10 +12,14 @@ import (
 
 // List returns every entity matched by the query.
 func (r *Base[E, S]) List(ctx context.Context, query *querydsl.SelectQuery) (*collectionx.List[E], error) {
+	return r.list(ctx, query, true)
+}
+
+func (r *Base[E, S]) list(ctx context.Context, query *querydsl.SelectQuery, includeDefaults bool) (*collectionx.List[E], error) {
 	if r == nil || r.session == nil {
 		return nil, dbx.ErrNilDB
 	}
-	listQuery := cloneOrDefault(r, query)
+	listQuery := cloneOrDefaultWithDefaults(r, query, includeDefaults)
 	dbx.LogRuntimeNode(r.session, "repository.list.start", "table", r.schema.TableName(), "has_query", query != nil)
 	rows, err := dbx.QueryAll[E](ctx, r.session, listQuery, r.mapper)
 	if err != nil {
@@ -28,16 +32,20 @@ func (r *Base[E, S]) List(ctx context.Context, query *querydsl.SelectQuery) (*co
 
 // ListSpec returns every entity matched by the provided specs.
 func (r *Base[E, S]) ListSpec(ctx context.Context, specs ...Spec) (*collectionx.List[E], error) {
-	return r.List(ctx, r.applySpecs(specs...))
+	return r.list(ctx, r.applySpecs(specs...), false)
 }
 
 // First returns the first entity matched by the query.
 func (r *Base[E, S]) First(ctx context.Context, query *querydsl.SelectQuery) (E, error) {
+	return r.first(ctx, query, true)
+}
+
+func (r *Base[E, S]) first(ctx context.Context, query *querydsl.SelectQuery, includeDefaults bool) (E, error) {
 	var zero E
 	if r == nil || r.session == nil {
 		return zero, dbx.ErrNilDB
 	}
-	firstQuery := cloneOrDefault(r, query)
+	firstQuery := cloneOrDefaultWithDefaults(r, query, includeDefaults)
 	dbx.LogRuntimeNode(r.session, "repository.first.start", "table", r.schema.TableName(), "has_query", query != nil)
 	items, err := dbx.QueryAll[E](ctx, r.session, firstQuery.Limit(1), r.mapper)
 	if err != nil {
@@ -55,15 +63,20 @@ func (r *Base[E, S]) First(ctx context.Context, query *querydsl.SelectQuery) (E,
 
 // FirstSpec returns the first entity matched by the provided specs.
 func (r *Base[E, S]) FirstSpec(ctx context.Context, specs ...Spec) (E, error) {
-	return r.First(ctx, r.applySpecs(specs...))
+	return r.first(ctx, r.applySpecs(specs...), false)
 }
 
 // Count returns the number of rows matched by the query.
 func (r *Base[E, S]) Count(ctx context.Context, query *querydsl.SelectQuery) (int64, error) {
+	return r.count(ctx, query, true)
+}
+
+func (r *Base[E, S]) count(ctx context.Context, query *querydsl.SelectQuery, includeDefaults bool) (int64, error) {
 	if r == nil || r.session == nil {
 		return 0, dbx.ErrNilDB
 	}
 	dbx.LogRuntimeNode(r.session, "repository.count.start", "table", r.schema.TableName(), "has_query", query != nil)
+	query = cloneOrDefaultWithDefaults(r, query, includeDefaults)
 	if countQueryRequiresWrap(query) {
 		total, err := r.countWrapped(ctx, query)
 		if err != nil {
@@ -73,10 +86,7 @@ func (r *Base[E, S]) Count(ctx context.Context, query *querydsl.SelectQuery) (in
 		dbx.LogRuntimeNode(r.session, "repository.count.done", "table", r.schema.TableName(), "count", total)
 		return total, nil
 	}
-	countQuery := r.defaultSelect()
-	if query != nil {
-		countQuery = cloneForCount(query)
-	}
+	countQuery := cloneForCount(query)
 	countQuery.Items = collectionx.NewList[querydsl.SelectItem](querydsl.CountAll().As("count"))
 	rows, err := dbx.QueryAll[countRow](ctx, r.session, countQuery, mapperx.MustStructMapper[countRow]())
 	if err != nil {
@@ -102,15 +112,20 @@ func (r *Base[E, S]) countWrapped(ctx context.Context, query *querydsl.SelectQue
 
 // CountSpec returns the number of rows matched by the provided specs.
 func (r *Base[E, S]) CountSpec(ctx context.Context, specs ...Spec) (int64, error) {
-	return r.Count(ctx, r.applySpecs(specs...))
+	return r.count(ctx, r.applySpecs(specs...), false)
 }
 
 // Exists reports whether the query matches at least one row.
 func (r *Base[E, S]) Exists(ctx context.Context, query *querydsl.SelectQuery) (bool, error) {
+	return r.exists(ctx, query, true)
+}
+
+func (r *Base[E, S]) exists(ctx context.Context, query *querydsl.SelectQuery, includeDefaults bool) (bool, error) {
 	if r == nil || r.session == nil {
 		return false, dbx.ErrNilDB
 	}
 	dbx.LogRuntimeNode(r.session, "repository.exists.start", "table", r.schema.TableName(), "has_query", query != nil)
+	query = cloneOrDefaultWithDefaults(r, query, includeDefaults)
 	bound, err := r.existsBound(query)
 	if err != nil {
 		dbx.LogRuntimeNode(r.session, "repository.exists.error", "table", r.schema.TableName(), "stage", "build_bound", "error", err)
@@ -127,7 +142,7 @@ func (r *Base[E, S]) Exists(ctx context.Context, query *querydsl.SelectQuery) (b
 
 // ExistsSpec reports whether the provided specs match at least one row.
 func (r *Base[E, S]) ExistsSpec(ctx context.Context, specs ...Spec) (bool, error) {
-	return r.Exists(ctx, r.applySpecs(specs...))
+	return r.exists(ctx, r.applySpecs(specs...), false)
 }
 
 // ListPage returns one page of results together with the total row count.
@@ -137,18 +152,22 @@ func (r *Base[E, S]) ListPage(ctx context.Context, query *querydsl.SelectQuery, 
 
 // ListPageRequest returns one page of results using a shared page request.
 func (r *Base[E, S]) ListPageRequest(ctx context.Context, query *querydsl.SelectQuery, request paging.Request) (paging.Result[E], error) {
+	return r.listPageRequest(ctx, query, request, true)
+}
+
+func (r *Base[E, S]) listPageRequest(ctx context.Context, query *querydsl.SelectQuery, request paging.Request, includeDefaults bool) (paging.Result[E], error) {
 	if r == nil || r.session == nil {
 		return paging.Result[E]{}, dbx.ErrNilDB
 	}
 	request = request.Normalize()
 	dbx.LogRuntimeNode(r.session, "repository.list_page.start", "table", r.schema.TableName(), "page", request.Page, "page_size", request.PageSize)
-	total, err := r.Count(ctx, query)
+	total, err := r.count(ctx, query, includeDefaults)
 	if err != nil {
 		dbx.LogRuntimeNode(r.session, "repository.list_page.error", "table", r.schema.TableName(), "stage", "count", "error", err)
 		return paging.Result[E]{}, err
 	}
-	pagedQuery := cloneOrDefault(r, query)
-	items, err := r.List(ctx, pagedQuery.Page(request))
+	pagedQuery := cloneOrDefaultWithDefaults(r, query, includeDefaults)
+	items, err := r.list(ctx, pagedQuery.Page(request), false)
 	if err != nil {
 		dbx.LogRuntimeNode(r.session, "repository.list_page.error", "table", r.schema.TableName(), "stage", "list", "error", err)
 		return paging.Result[E]{}, err
@@ -167,5 +186,5 @@ func (r *Base[E, S]) ListPageSpecRequest(ctx context.Context, request paging.Req
 	if r == nil || r.session == nil {
 		return paging.Result[E]{}, dbx.ErrNilDB
 	}
-	return r.ListPageRequest(ctx, r.applySpecs(specs...), request)
+	return r.listPageRequest(ctx, r.applySpecs(specs...), request, false)
 }

@@ -85,3 +85,49 @@ func IncludeManyToMany[E any, S EntitySchema[E], T any, TS EntitySchema[T]](
 		return LoadManyToMany(ctx, source, target, sources, relation, assign)
 	})
 }
+
+// IncludeTarget captures source and target repositories for relation include construction.
+type IncludeTarget[E any, S EntitySchema[E], T any, TS EntitySchema[T]] struct {
+	source *Base[E, S]
+	target *Base[T, TS]
+}
+
+// IncludeFrom starts relation include construction for source and target repositories.
+func IncludeFrom[E any, S EntitySchema[E], T any, TS EntitySchema[T]](
+	source *Base[E, S],
+	target *Base[T, TS],
+) IncludeTarget[E, S, T, TS] {
+	return IncludeTarget[E, S, T, TS]{source: source, target: target}
+}
+
+// BelongsTo returns an include for a belongs-to relation.
+func (b IncludeTarget[E, S, T, TS]) BelongsTo(
+	relation relationx.BelongsTo[E, T],
+	assign relationload.SingleRelationAssigner[E, T],
+) Include[E] {
+	return IncludeBelongsTo(b.source, b.target, relation, assign)
+}
+
+// HasOne returns an include for a has-one relation.
+func (b IncludeTarget[E, S, T, TS]) HasOne(
+	relation relationx.HasOne[E, T],
+	assign relationload.SingleRelationAssigner[E, T],
+) Include[E] {
+	return IncludeHasOne(b.source, b.target, relation, assign)
+}
+
+// HasMany returns an include for a has-many relation.
+func (b IncludeTarget[E, S, T, TS]) HasMany(
+	relation relationx.HasMany[E, T],
+	assign relationload.MultiRelationAssigner[E, T],
+) Include[E] {
+	return IncludeHasMany(b.source, b.target, relation, assign)
+}
+
+// ManyToMany returns an include for a many-to-many relation.
+func (b IncludeTarget[E, S, T, TS]) ManyToMany(
+	relation relationx.ManyToMany[E, T],
+	assign relationload.MultiRelationAssigner[E, T],
+) Include[E] {
+	return IncludeManyToMany(b.source, b.target, relation, assign)
+}

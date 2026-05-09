@@ -107,7 +107,7 @@ func main() {
 }
 ```
 
-Use `sqlstmt.For[P]` when a template has a stable parameter struct and you want typed call sites:
+Use `sqltmpl.Typed[P]` when a registry-backed template has a stable parameter struct and you want typed call sites:
 
 ```go
 type FindActiveParams struct {
@@ -115,7 +115,10 @@ type FindActiveParams struct {
 }
 type FindActivePage = sqltmpl.PageParams[FindActiveParams]
 
-stmt := sqlstmt.For[FindActivePage](registry.MustStatement("sql/user/find_active.sql"))
+stmt, err := sqltmpl.Typed[FindActivePage](registry, "sql/user/find_active.sql")
+if err != nil {
+	return err
+}
 items, err := sqlexec.ListTyped[FindActivePage, UserSummary](
 	ctx,
 	core,
@@ -124,6 +127,8 @@ items, err := sqlexec.ListTyped[FindActivePage, UserSummary](
 	mapperx.MustStructMapper[UserSummary](),
 )
 ```
+
+`sqlstmt.For[P]` remains the low-level helper when you already have a `sqlstmt.Source`.
 
 Use `sqlstmt.NewTyped[P]` when the statement is defined in Go code and can accept a typed binder directly:
 
@@ -164,6 +169,7 @@ You can also choose the dialect at the call site instead of using the registry d
 
 ```go
 postgresStmt := registry.MustStatementFor("sql/user/find_active.sql", postgres.New())
+typedPostgresStmt := sqltmpl.MustTypedFor[FindActiveParams](registry, "sql/user/find_active.sql", postgres.New())
 ```
 
 ## When to Use It

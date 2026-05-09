@@ -131,7 +131,7 @@ func (r *Base[E, S]) GetByKeySet(ctx context.Context, key TypedKeySet) (E, error
 	if err != nil {
 		return zero, err
 	}
-	return r.First(ctx, query)
+	return r.first(ctx, query, false)
 }
 
 // GetByKeySetOption returns the entity identified by the typed key set as an option.
@@ -188,5 +188,5 @@ func (r *Base[E, S]) selectByKeySet(key TypedKeySet) (*querydsl.SelectQuery, err
 	if err != nil {
 		return nil, err
 	}
-	return r.defaultSelect().Where(predicate), nil
+	return r.applySpecs(Where(predicate)), nil
 }

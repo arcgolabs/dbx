@@ -31,7 +31,18 @@ func (r *Base[E, S]) defaultSelect() *querydsl.SelectQuery {
 }
 
 func (r *Base[E, S]) applySpecs(specs ...Spec) *querydsl.SelectQuery {
+	return r.applySpecsWithDefaults(true, specs...)
+}
+
+func (r *Base[E, S]) applySpecsWithDefaults(includeDefaults bool, specs ...Spec) *querydsl.SelectQuery {
 	query := r.defaultSelect()
+	if includeDefaults {
+		query = r.applyDefaultSpecs(query)
+	}
+	return applySpecsToQuery(query, specs...)
+}
+
+func applySpecsToQuery(query *querydsl.SelectQuery, specs ...Spec) *querydsl.SelectQuery {
 	collectionx.NewList[Spec](specs...).Range(func(_ int, spec Spec) bool {
 		if spec != nil {
 			query = spec.Apply(query)
@@ -39,6 +50,10 @@ func (r *Base[E, S]) applySpecs(specs ...Spec) *querydsl.SelectQuery {
 		return true
 	})
 	return query
+}
+
+func (r *Base[E, S]) applyDefaultSpecs(query *querydsl.SelectQuery) *querydsl.SelectQuery {
+	return applySpecsToQuery(query, r.defaultSpecs...)
 }
 
 func cloneForCount(query *querydsl.SelectQuery) *querydsl.SelectQuery {
@@ -170,10 +185,18 @@ func firstCount(rows *collectionx.List[countRow]) int64 {
 }
 
 func cloneOrDefault[E any, S EntitySchema[E]](r *Base[E, S], query *querydsl.SelectQuery) *querydsl.SelectQuery {
+	return cloneOrDefaultWithDefaults(r, query, true)
+}
+
+func cloneOrDefaultWithDefaults[E any, S EntitySchema[E]](r *Base[E, S], query *querydsl.SelectQuery, includeDefaults bool) *querydsl.SelectQuery {
 	if query == nil {
-		return r.defaultSelect()
+		return r.applySpecsWithDefaults(includeDefaults)
 	}
-	return query.Clone()
+	cloned := query.Clone()
+	if includeDefaults {
+		return r.applyDefaultSpecs(cloned)
+	}
+	return cloned
 }
 
 func optionFromResult[T any](item T, err error) (mo.Option[T], error) {

@@ -19,5 +19,5 @@ func (r *Base[E, S]) FirstOption(ctx context.Context, query *querydsl.SelectQuer
 
 // FirstSpecOption returns the first entity matched by the provided specs as an option.
 func (r *Base[E, S]) FirstSpecOption(ctx context.Context, specs ...Spec) (mo.Option[E], error) {
-	return r.FirstOption(ctx, r.applySpecs(specs...))
+	return optionFromResult(r.first(ctx, r.applySpecs(specs...), false))
 }

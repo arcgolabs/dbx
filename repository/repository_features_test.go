@@ -5,11 +5,17 @@ import (
 	"testing"
 
 	"github.com/arcgolabs/dbx"
+	"github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/querydsl"
 	repository "github.com/arcgolabs/dbx/repository"
 	schemax "github.com/arcgolabs/dbx/schema"
 	"github.com/stretchr/testify/require"
 )
+
+type typedUserNameRow struct {
+	ID   int64  `dbx:"id"`
+	Name string `dbx:"name"`
+}
 
 func TestBaseTypedKeyNotFoundAsErrorOption(t *testing.T) {
 	ctx := context.Background()
@@ -162,6 +168,41 @@ func TestBaseOptionAPIs(t *testing.T) {
 	noneBySpec, err := repo.FirstSpecOption(ctx, repository.Where(users.Name.Eq("nobody")))
 	require.NoError(t, err)
 	require.False(t, noneBySpec.IsPresent())
+}
+
+func TestBaseTypedQueryResultAPIs(t *testing.T) {
+	repo, users, ctx := newSeededUserRepo(t, "file:repository_typed_query_test?mode=memory&cache=shared", "alice", "bob")
+
+	query := querydsl.SelectFromInto[typedUserNameRow](users, users.ID, users.Name).
+		Where(users.Name.Eq("alice"))
+	items, err := repository.ListResult[typedUserNameRow](ctx, repo, query)
+	require.NoError(t, err)
+	require.Equal(t, 1, items.Len())
+
+	first, err := repository.GetResult[typedUserNameRow](ctx, repo, query)
+	require.NoError(t, err)
+	require.Equal(t, "alice", first.Name)
+
+	found, err := repository.FindResult[typedUserNameRow](ctx, repo, query)
+	require.NoError(t, err)
+	require.True(t, found.IsPresent())
+
+	withMapper, err := repository.ListResultWithMapper[typedUserNameRow](
+		ctx,
+		repo,
+		query,
+		mapper.MustStructMapper[typedUserNameRow](),
+	)
+	require.NoError(t, err)
+	require.Equal(t, 1, withMapper.Len())
+
+	id, err := repository.ScalarResult[int64](ctx, repo, querydsl.SelectValue(users.ID).From(users).Where(users.Name.Eq("alice")))
+	require.NoError(t, err)
+	require.EqualValues(t, 1, id)
+
+	none, err := repository.ScalarResultOption[int64](ctx, repo, querydsl.SelectValue(users.ID).From(users).Where(users.Name.Eq("missing")))
+	require.NoError(t, err)
+	require.False(t, none.IsPresent())
 }
 
 func TestTypedKeyAPIs(t *testing.T) {

@@ -10,73 +10,17 @@ import (
 
 // UpGo applies the provided Go migrations.
 func (r *Runner) UpGo(ctx context.Context, migrations ...Migration) (RunReport, error) {
-	bundle, err := r.newRunnerEngineForGo(migrations)
-	if err != nil {
-		return RunReport{}, err
-	}
-	if bundle.engine == nil {
-		return RunReport{Applied: collectionx.NewList[AppliedRecord]()}, nil
-	}
-
-	results, err := bundle.engine.Up(ctx)
-	if err != nil {
-		return RunReport{}, fmt.Errorf("dbx/migrate: apply go migrations: %w", err)
-	}
-	applied, err := r.Applied(ctx)
-	if err != nil {
-		return RunReport{}, err
-	}
-	return buildRunReport(applied, bundle.metaByVersion, results)
+	return r.upGoForDialect(ctx, DialectAny, migrations...)
 }
 
 // UpGoTo applies provided Go migrations up to, and including, the specified version.
 func (r *Runner) UpGoTo(ctx context.Context, toVersion int64, migrations ...Migration) (RunReport, error) {
-	if err := validateMigrationTarget(toVersion, true); err != nil {
-		return RunReport{}, err
-	}
-
-	bundle, err := r.newRunnerEngineForGo(migrations)
-	if err != nil {
-		return RunReport{}, err
-	}
-	if bundle.engine == nil {
-		return RunReport{Applied: collectionx.NewList[AppliedRecord]()}, nil
-	}
-
-	results, err := bundle.engine.UpTo(ctx, toVersion)
-	if err != nil {
-		return RunReport{}, fmt.Errorf("dbx/migrate: apply go migrations to version %d: %w", toVersion, err)
-	}
-	applied, err := r.Applied(ctx)
-	if err != nil {
-		return RunReport{}, err
-	}
-	return buildRunReport(applied, bundle.metaByVersion, results)
+	return r.upGoToForDialect(ctx, toVersion, DialectAny, migrations...)
 }
 
 // DownGoTo rolls back Go migrations down to, but not including, the specified version.
 func (r *Runner) DownGoTo(ctx context.Context, toVersion int64, migrations ...Migration) (RunReport, error) {
-	if err := validateMigrationTarget(toVersion, false); err != nil {
-		return RunReport{}, err
-	}
-	bundle, err := r.newRunnerEngineForGo(migrations)
-	if err != nil {
-		return RunReport{}, err
-	}
-	if bundle.engine == nil {
-		return RunReport{Applied: collectionx.NewList[AppliedRecord]()}, nil
-	}
-
-	appliedBefore, err := r.Applied(ctx)
-	if err != nil {
-		return RunReport{}, err
-	}
-
-	results, err := bundle.engine.DownTo(ctx, toVersion)
-	if err != nil {
-		return RunReport{}, fmt.Errorf("dbx/migrate: rollback go migrations to version %d: %w", toVersion, err)
-	}
-	return buildRunReport(appliedBefore, bundle.metaByVersion, results)
+	return r.downGoToForDialect(ctx, toVersion, DialectAny, migrations...)
 }
 
 // UpSQL applies versioned and repeatable SQL migrations from source.

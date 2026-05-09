@@ -141,6 +141,33 @@ func TestRegistryStatementForUsesCallTimeDialect(t *testing.T) {
 	require.Contains(t, defaultBound.SQL, "?")
 }
 
+func TestRegistryTypedForUsesCallTimeDialect(t *testing.T) {
+	type findParams struct {
+		ID int64
+	}
+
+	registry := sqltmpl.NewRegistry(fstest.MapFS{
+		"sql/user/find.sql": {
+			Data: []byte(`select id from users where id = /* ID */1`),
+		},
+		"sql/user/find_postgres.sql": {
+			Data: []byte(`select id from users where id = /* ID */1`),
+		},
+	}, sqlite.New())
+
+	source, err := sqltmpl.TypedFor[findParams](registry, "sql/user/find.sql", postgres.New())
+	require.NoError(t, err)
+	require.Equal(t, "sql/user/find_postgres.sql", source.StatementName())
+
+	bound, err := source.Bind(findParams{ID: 42})
+	require.NoError(t, err)
+	require.Contains(t, bound.SQL, "$1")
+	require.Equal(t, []any{int64(42)}, bound.Args.Values())
+
+	statement := sqltmpl.MustLoadScalarStatementFor[findParams, int64](registry, "sql/user/find.sql", postgres.New())
+	require.Equal(t, "sql/user/find_postgres.sql", statement.StatementName())
+}
+
 func TestRegistryPreloadAndPreloadAll(t *testing.T) {
 	registry := sqltmpl.NewRegistry(fstest.MapFS{
 		"sql/user/find_active.sql": {

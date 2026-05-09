@@ -122,6 +122,16 @@ func runMigrations(ctx context.Context, core *dbx.DB) error {
 	if _, err := runner.UpSQLToFor(ctx, 2, migrate.DialectSQLite, source); err != nil {
 		return err
 	}
+
+	// The facade form keeps the selected source kind and call-time dialect together.
+	if _, err := migrate.Go(runner).ForDialect(migrate.DialectSQLite).Pending(ctx,
+		migrate.NewGoMigration("4", "refresh sqlite cache", upCache, nil, migrate.DialectSQLite),
+	); err != nil {
+		return err
+	}
+	if _, err := migrate.SQL(runner).ForDialect(migrate.DialectSQLite).Status(ctx, source); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -177,6 +187,46 @@ for i := range status.SQL.Len() {
 ```
 
 You can also use `PendingGo`, `PendingSQL`, `PendingAll` for rollout orchestration.
+`PlanGo`, `PlanSQL`, `PlanAll` and their `DryRun*` aliases return the same pending sets without executing anything:
+
+```go
+plan, err := runner.DryRunAll(ctx,
+	[]migrate.Migration{
+		migrate.NewGoMigration("1", "create users", upUsers, downUsers),
+	},
+	&migrate.FileSource{FS: sqlFS, Dir: "migrations"},
+)
+if err != nil {
+	return err
+}
+if !plan.IsEmpty() {
+	fmt.Printf("pending go=%d sql=%d\n", plan.Go.Len(), plan.SQL.Len())
+}
+```
+
+Use validation before release when checksum drift should fail CI:
+
+```go
+report, err := runner.ValidateSQL(ctx, migrate.FileSource{FS: sqlFS, Dir: "migrations"})
+if err != nil {
+	return err
+}
+if !report.Valid() {
+	return fmt.Errorf("migration validation failed: %d issue(s)", report.Issues.Len())
+}
+```
+
+When adopting dbx on an existing database, baseline marks migrations as applied without executing them. Repair refreshes history checksums from current sources:
+
+```go
+if _, err := runner.BaselineSQL(ctx, migrate.FileSource{FS: sqlFS, Dir: "migrations"}); err != nil {
+	return err
+}
+
+if _, err := runner.RepairSQL(ctx, migrate.FileSource{FS: sqlFS, Dir: "migrations"}); err != nil {
+	return err
+}
+```
 
 For teams that want a single call for both sources, `ApplyAll` is available as an orchestration helper.
 It delegates to the low-level `Up*/Down*/Status*` methods and keeps those APIs unchanged.
@@ -207,6 +257,7 @@ if err := runner.ValidateApplyAll(migrate.MigrationApplySpec{
 _, err = runner.ApplyAll(ctx, migrate.MigrationApplySpec{
 	Direction: migrate.DirectionUp,
 	Target:    &migrate.MigrationTarget{Version: 1},
+	Database:  migrate.DialectSQLite,
 	GoMigrations: []migrate.Migration{
 		migrate.NewGoMigration("1", "create users", upUsers, downUsers),
 	},

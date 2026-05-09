@@ -3,6 +3,7 @@ package sqltmpl
 import (
 	"context"
 
+	"github.com/arcgolabs/dbx/dialect"
 	"github.com/arcgolabs/dbx/sqlexec"
 	"github.com/arcgolabs/dbx/sqlstmt"
 	"github.com/samber/mo"
@@ -29,9 +30,27 @@ func LoadScalarStatement[P any, T any](registry *Registry, name string) (ScalarS
 	return NewScalarStatement[P, T](template), nil
 }
 
+// LoadScalarStatementFor loads a template for d and wraps it as a typed scalar statement.
+func LoadScalarStatementFor[P any, T any](registry *Registry, name string, d dialect.Contract) (ScalarStatement[P, T], error) {
+	template, err := registry.TemplateFor(name, d)
+	if err != nil {
+		return ScalarStatement[P, T]{}, err
+	}
+	return NewScalarStatement[P, T](template), nil
+}
+
 // MustLoadScalarStatement is LoadScalarStatement and panics on error.
 func MustLoadScalarStatement[P any, T any](registry *Registry, name string) ScalarStatement[P, T] {
 	statement, err := LoadScalarStatement[P, T](registry, name)
+	if err != nil {
+		panic(err)
+	}
+	return statement
+}
+
+// MustLoadScalarStatementFor is LoadScalarStatementFor and panics on error.
+func MustLoadScalarStatementFor[P any, T any](registry *Registry, name string, d dialect.Contract) ScalarStatement[P, T] {
+	statement, err := LoadScalarStatementFor[P, T](registry, name, d)
 	if err != nil {
 		panic(err)
 	}

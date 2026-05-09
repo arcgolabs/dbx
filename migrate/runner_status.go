@@ -33,29 +33,7 @@ type MigrationStatus struct {
 
 // StatusGo returns the current status for provided Go migrations.
 func (r *Runner) StatusGo(ctx context.Context, migrations ...Migration) (*collectionx.List[MigrationStatus], error) {
-	migrations = r.filterGoMigrationsByDialect(migrations)
-	bundle, err := r.newRunnerEngineForGo(migrations)
-	if err != nil {
-		return nil, err
-	}
-	if bundle == nil || bundle.engine == nil {
-		return collectionx.NewList[MigrationStatus](), nil
-	}
-
-	indexed, err := r.appliedIndex(ctx)
-	if err != nil {
-		return nil, err
-	}
-	byVersion, err := indexGoMigrationsByVersion(migrations)
-	if err != nil {
-		return nil, err
-	}
-
-	statuses, err := pendingStatuses(ctx, bundle.engine, "go")
-	if err != nil {
-		return nil, err
-	}
-	return buildGoMigrationStatuses(statuses, bundle.metaByVersion, indexed, byVersion, r.options.ValidateHash), nil
+	return r.StatusGoFor(ctx, DialectAny, migrations...)
 }
 
 // StatusSQL returns versioned and repeatable SQL migration statuses from source files and history.

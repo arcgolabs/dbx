@@ -30,20 +30,27 @@ type QueryFeaturesProvider interface {
 // DefaultQueryFeatures returns features for known dialect names.
 // Used when a dialect does not implement QueryFeaturesProvider.
 func DefaultQueryFeatures(name string) QueryFeatures {
-	switch name {
-	case "postgres", "sqlite":
+	selector, err := ParseSelector(name)
+	if err != nil {
+		return QueryFeatures{}
+	}
+
+	switch selector {
+	case SelectorPostgres, SelectorSQLite:
 		return QueryFeatures{
 			UpsertVariant:     "on_conflict",
 			ExcludedRefStyle:  "excluded",
 			SupportsReturning: true,
 		}
-	case "mysql":
+	case SelectorMySQL:
 		return QueryFeatures{
 			InsertIgnoreForUpsertNothing: true,
 			UpsertVariant:                "on_duplicate_key",
 			ExcludedRefStyle:             "values",
 			SupportsReturning:            false,
 		}
+	case SelectorAny, SelectorSQLServer:
+		return QueryFeatures{}
 	default:
 		return QueryFeatures{}
 	}
