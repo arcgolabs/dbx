@@ -28,7 +28,17 @@ func NewWithOptions[E any, S repository.EntitySchema[E]](db *dbx.DB, schema S, o
 
 // Repository returns the underlying repository.
 func (s *Store[E, S]) Repository() *repository.Base[E, S] {
+	if s == nil {
+		return nil
+	}
 	return s.repository
+}
+
+func (s *Store[E, S]) requireRepository() (*repository.Base[E, S], error) {
+	if s == nil || s.repository == nil {
+		return nil, dbx.ErrNilDB
+	}
+	return s.repository, nil
 }
 
 // Create persists one entity and returns the wrapped model.
@@ -42,10 +52,11 @@ func (s *Store[E, S]) Create(ctx context.Context, entity *E) (*Model[E, S], erro
 
 // CreateReturning persists one entity using RETURNING and returns the refreshed model.
 func (s *Store[E, S]) CreateReturning(ctx context.Context, entity *E) (*Model[E, S], error) {
-	if s == nil || s.repository == nil {
-		return nil, dbx.ErrNilDB
+	repo, err := s.requireRepository()
+	if err != nil {
+		return nil, err
 	}
-	created, err := s.repository.CreateReturning(ctx, entity)
+	created, err := repo.CreateReturning(ctx, entity)
 	if err != nil {
 		return nil, fmt.Errorf("create returning entity: %w", err)
 	}
@@ -60,7 +71,11 @@ func (s *Store[E, S]) Wrap(entity *E) *Model[E, S] {
 
 // FindByKey loads a model by its repository key.
 func (s *Store[E, S]) FindByKey(ctx context.Context, key repository.Key) (*Model[E, S], error) {
-	entity, err := s.repository.GetByKey(ctx, key)
+	repo, err := s.requireRepository()
+	if err != nil {
+		return nil, err
+	}
+	entity, err := repo.GetByKey(ctx, key)
 	if err != nil {
 		return nil, fmt.Errorf("find entity by key: %w", err)
 	}
@@ -69,7 +84,11 @@ func (s *Store[E, S]) FindByKey(ctx context.Context, key repository.Key) (*Model
 
 // FindByKeyOption loads a model by its repository key and returns an empty option when absent.
 func (s *Store[E, S]) FindByKeyOption(ctx context.Context, key repository.Key) (mo.Option[*Model[E, S]], error) {
-	entity, err := s.repository.GetByKeyOption(ctx, key)
+	repo, err := s.requireRepository()
+	if err != nil {
+		return mo.None[*Model[E, S]](), err
+	}
+	entity, err := repo.GetByKeyOption(ctx, key)
 	if err != nil {
 		return mo.None[*Model[E, S]](), fmt.Errorf("find entity by key: %w", err)
 	}
@@ -78,9 +97,44 @@ func (s *Store[E, S]) FindByKeyOption(ctx context.Context, key repository.Key) (
 	}), nil
 }
 
+// First returns the first model matching the provided repository specifications.
+func (s *Store[E, S]) First(ctx context.Context, specs ...repository.Spec) (*Model[E, S], error) {
+	repo, err := s.requireRepository()
+	if err != nil {
+		return nil, err
+	}
+	entity, err := repo.FirstSpec(ctx, specs...)
+	if err != nil {
+		return nil, fmt.Errorf("find first entity: %w", err)
+	}
+	return s.newKeyedModel(&entity, s.keyOf(&entity)), nil
+}
+
+// Find returns the first matching model as an option.
+func (s *Store[E, S]) Find(ctx context.Context, specs ...repository.Spec) (mo.Option[*Model[E, S]], error) {
+	repo, err := s.requireRepository()
+	if err != nil {
+		return mo.None[*Model[E, S]](), err
+	}
+	entity, err := repo.FirstSpecOption(ctx, specs...)
+	if err != nil {
+		return mo.None[*Model[E, S]](), fmt.Errorf("find entity: %w", err)
+	}
+	return s.wrapOption(entity), nil
+}
+
+// FirstOption returns the first matching model as an option.
+func (s *Store[E, S]) FirstOption(ctx context.Context, specs ...repository.Spec) (mo.Option[*Model[E, S]], error) {
+	return s.Find(ctx, specs...)
+}
+
 // List returns models matching the provided repository specifications.
 func (s *Store[E, S]) List(ctx context.Context, specs ...repository.Spec) (*collectionx.List[*Model[E, S]], error) {
-	items, err := s.repository.ListSpec(ctx, specs...)
+	repo, err := s.requireRepository()
+	if err != nil {
+		return nil, err
+	}
+	items, err := repo.ListSpec(ctx, specs...)
 	if err != nil {
 		return nil, fmt.Errorf("list entities: %w", err)
 	}
@@ -92,10 +146,11 @@ func (s *Store[E, S]) List(ctx context.Context, specs ...repository.Spec) (*coll
 
 // ListPage returns one page of models matching the provided repository specifications.
 func (s *Store[E, S]) ListPage(ctx context.Context, request paging.Request, specs ...repository.Spec) (paging.Result[*Model[E, S]], error) {
-	if s == nil || s.repository == nil {
-		return paging.Result[*Model[E, S]]{}, dbx.ErrNilDB
+	repo, err := s.requireRepository()
+	if err != nil {
+		return paging.Result[*Model[E, S]]{}, err
 	}
-	page, err := s.repository.ListPageSpecRequest(ctx, request, specs...)
+	page, err := repo.ListPageSpecRequest(ctx, request, specs...)
 	if err != nil {
 		return paging.Result[*Model[E, S]]{}, fmt.Errorf("list entity page: %w", err)
 	}

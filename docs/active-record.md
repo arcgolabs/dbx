@@ -9,7 +9,7 @@ weight: 20
 
 Package: `github.com/arcgolabs/dbx/activerecord`.
 
-`activerecord` is a small layer on top of `github.com/arcgolabs/dbx/repository`. It wraps entities in `Model` values that delegate persistence to the same `repository.Base` you would use in repository mode—no second query engine.
+`activerecord` is a small layer on top of `github.com/arcgolabs/dbx/repository`. It wraps entities in `Model` values that delegate persistence to the same `repository.Base` you would use in repository mode. There is no second query engine.
 
 ## When to Use
 
@@ -18,23 +18,25 @@ Package: `github.com/arcgolabs/dbx/activerecord`.
 
 ## `Store` and `Model`
 
-- `activerecord.New[E](db *dbx.DB, schema S) *Store[E, S]` — holds an internal `*repository.Base[E, S]`.
-- `activerecord.NewWithOptions[E](db *dbx.DB, schema S, opts ...repository.Option) *Store[E, S]` — passes repository options through at construction.
-- `Store.Repository() *repository.Base[E, S]` — escape hatch for bulk ops, specs, transactions, etc.
-- `Store.Wrap(entity *E) *Model[E, S]` — attach an entity pointer to the store.
-- `Store.FindByKey`, `Store.List` — return `*Model` (errors include `repository.ErrNotFound` when applicable).
-- `Store.FindByKeySet` — typed composite-key helper built from `repository.KeySet`.
-- `activerecord.By(store, Users.ID)` — typed single-column lookup helper for `Find`, `FindOption`, and `Exists`.
-- `Model.Entity() *E`, `Model.Key() repository.Key` — `Key` is a defensive copy of the current primary key map.
-- `Model.Save` — insert when key is empty or all key parts are zero; otherwise update by key (if update affects no row, falls back to create for the “row missing” case).
-- `Model.Reload`, `Model.Delete` — by key.
+- `activerecord.New[E](db *dbx.DB, schema S) *Store[E, S]` holds an internal `*repository.Base[E, S]`.
+- `activerecord.NewWithOptions[E](db *dbx.DB, schema S, opts ...repository.Option) *Store[E, S]` passes repository options through at construction.
+- `Store.Repository() *repository.Base[E, S]` is the escape hatch for bulk ops, specs, transactions, etc.
+- `Store.Wrap(entity *E) *Model[E, S]` attaches an entity pointer to the store.
+- `Store.FindByKey`, `Store.First`, and `Store.List` return `*Model` values. Errors include `repository.ErrNotFound` when applicable.
+- `Store.Find` / `Store.FirstOption` return optional spec-based single-row reads.
+- `Store.FindByKeySet` is the typed composite-key helper built from `repository.KeySet`.
+- `activerecord.By(store, Users.ID)` is the typed single-column lookup helper for `Find`, `FindOption`, and `Exists`.
+- `Model.Entity() *E`, `Model.Key() repository.Key`: `Key` is a defensive copy of the current primary key map.
+- `Model.Save` inserts when key is empty or all key parts are zero; otherwise it updates by key. If update affects no row, it falls back to create for the row-missing case.
+- `Model.Reload`, `Model.Delete`: operate by key.
 
-## Optional finds (`mo.Option`)
+## Optional Finds (`mo.Option`)
 
-Parallel to repository’s `*Option` reads:
+Parallel to repository's `*Option` reads:
 
 - `activerecord.By(store, Users.ID).FindOption(ctx, id)`
 - `Store.FindByKeyOption(ctx, key) (mo.Option[*Model[E, S]], error)`
+- `Store.Find(ctx, specs...)` / `Store.FirstOption(ctx, specs...)`
 
 When the row is missing, these return `mo.None[*Model[E, S]]()` with `nil` error, matching `repository.By(...).GetOption` / `GetByKeyOption` semantics. Other errors still return a non-nil `error`.
 
@@ -67,7 +69,7 @@ type User struct {
 type UserSchema struct {
 	schemax.Schema[User]
 	ID   columnx.IDColumn[User, int64, idgen.IDSnowflake] `dbx:"id,pk"`
-	Name columnx.Column[User, string] `dbx:"name"`
+	Name columnx.Column[User, string]                     `dbx:"name"`
 }
 
 var Users = schemax.MustSchema("users", UserSchema{})
@@ -88,12 +90,13 @@ func main() {
 	}
 	_, _ = opt.Get()
 
-	_, _ = store.Repository().ListSpec(ctx, repository.Where(Users.Name.Eq("alice")))
+	byName, _ := store.Find(ctx, repository.Where(Users.Name.Eq("alice")))
+	_, _ = byName.Get()
 }
 ```
 
-`FindOption` returns `mo.Option[*Model[User, UserSchema]]` from `github.com/samber/mo`; add that import if you reference `mo.Some` / `mo.None` explicitly.
+`FindOption` and `Find` return `mo.Option[*Model[User, UserSchema]]` from `github.com/samber/mo`; add that import if you reference `mo.Some` / `mo.None` explicitly.
 
 ## See Also
 
-- [Repository Mode](./repository) — underlying `repository.Base` API, specs, errors, and `mo.Option` read helpers.
+- [Repository Mode](./repository) - underlying `repository.Base` API, specs, errors, and `mo.Option` read helpers.

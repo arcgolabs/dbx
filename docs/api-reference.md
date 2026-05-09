@@ -52,6 +52,13 @@ weight: 18
 - `repository.Query(repo).Where(...).List(ctx)` / `Find(ctx)` / `FirstOption(ctx)` for fluent repository queries.
 - `repository.PageRequest` / `repository.PageResult[T]` are aliases of the shared `paging` pagination model.
 
+## Active Record
+
+- `activerecord.New[E](db, schema)` / `NewWithOptions[E](db, schema, opts...)`.
+- `store.First(ctx, specs...)` / `store.Find(ctx, specs...)` for spec-based single model reads.
+- `activerecord.By(store, Users.ID).Find(ctx, id)` / `FindOption(ctx, id)` for typed key reads.
+- `store.List(ctx, specs...)` / `store.ListPage(ctx, request, specs...)` for model collections.
+
 ## Migration and Schema Validation
 
 - `schemamigrate.PlanSchemaChanges(ctx, session, schemas...)`

@@ -56,6 +56,7 @@ func TestModelSaveReloadDelete(t *testing.T) {
 
 func TestStoreFindOptionAPIs(t *testing.T) {
 	ctx, store := openUserStore(t, "file:activerecord_option_test?mode=memory&cache=shared")
+	users := store.Repository().Schema()
 
 	model := store.Wrap(&User{Name: "alice"})
 	require.NoError(t, model.Save(ctx))
@@ -78,6 +79,18 @@ func TestStoreFindOptionAPIs(t *testing.T) {
 	again, ok := byKey.Get()
 	require.True(t, ok)
 	require.Equal(t, model.Entity().ID, again.Entity().ID)
+
+	first, err := store.First(ctx, repository.Where(users.Name.Eq("alice")))
+	require.NoError(t, err)
+	require.Equal(t, model.Entity().ID, first.Entity().ID)
+
+	bySpec, err := store.Find(ctx, repository.Where(users.Name.Eq("alice")))
+	require.NoError(t, err)
+	require.True(t, bySpec.IsPresent())
+
+	noneBySpec, err := store.FirstOption(ctx, repository.Where(users.Name.Eq("missing")))
+	require.NoError(t, err)
+	require.False(t, noneBySpec.IsPresent())
 }
 
 func TestStoreTypedKeyAPIs(t *testing.T) {
@@ -131,6 +144,34 @@ func TestStoreNewWithOptions(t *testing.T) {
 	store := activerecord.NewWithOptions[User](core, users, repository.WithKeyNotFoundAsError(true))
 	_, err = repository.By(store.Repository(), users.ID).Delete(ctx, int64(404))
 	require.ErrorIs(t, err, repository.ErrNotFound)
+}
+
+func TestStoreNilRepository(t *testing.T) {
+	ctx := context.Background()
+	var store *activerecord.Store[User, UserSchema]
+	require.Nil(t, store.Repository())
+
+	_, err := store.CreateReturning(ctx, &User{Name: "alice"})
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	_, err = store.FindByKey(ctx, repository.Key{"id": int64(1)})
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	byKey, err := store.FindByKeyOption(ctx, repository.Key{"id": int64(1)})
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	require.False(t, byKey.IsPresent())
+	_, err = store.First(ctx)
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	bySpec, err := store.Find(ctx)
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	require.False(t, bySpec.IsPresent())
+	_, err = store.List(ctx)
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	_, err = store.ListPageBy(ctx, 1, 20)
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	_, err = store.FindByKeySet(ctx, repository.KeySet())
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	byKeySet, err := store.FindByKeySetOption(ctx, repository.KeySet())
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	require.False(t, byKeySet.IsPresent())
 }
 
 func TestStoreListPageBy(t *testing.T) {

@@ -10,7 +10,11 @@ import (
 
 // FindByKeySet loads a model by a typed key set.
 func (s *Store[E, S]) FindByKeySet(ctx context.Context, key repository.TypedKeySet) (*Model[E, S], error) {
-	entity, err := s.repository.GetByKeySet(ctx, key)
+	repo, err := s.requireRepository()
+	if err != nil {
+		return nil, err
+	}
+	entity, err := repo.GetByKeySet(ctx, key)
 	if err != nil {
 		return nil, fmt.Errorf("find entity by typed key set: %w", err)
 	}
@@ -23,11 +27,15 @@ func (s *Store[E, S]) FindByKeySet(ctx context.Context, key repository.TypedKeyS
 
 // FindByKeySetOption loads a model by a typed key set and returns an empty option when absent.
 func (s *Store[E, S]) FindByKeySetOption(ctx context.Context, key repository.TypedKeySet) (mo.Option[*Model[E, S]], error) {
+	repo, err := s.requireRepository()
+	if err != nil {
+		return mo.None[*Model[E, S]](), err
+	}
 	legacyKey, err := key.Key()
 	if err != nil {
 		return mo.None[*Model[E, S]](), fmt.Errorf("build model key from typed key set: %w", err)
 	}
-	entity, err := s.repository.GetByKeySetOption(ctx, key)
+	entity, err := repo.GetByKeySetOption(ctx, key)
 	if err != nil {
 		return mo.None[*Model[E, S]](), fmt.Errorf("find entity by typed key set: %w", err)
 	}
