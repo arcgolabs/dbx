@@ -36,6 +36,7 @@ import (
 
 	"github.com/arcgolabs/dbx"
 	columnx "github.com/arcgolabs/dbx/column"
+	"github.com/arcgolabs/dbx/migrate"
 	"github.com/arcgolabs/dbx/dialect/sqlite"
 	"github.com/arcgolabs/dbx/idgen"
 	"github.com/arcgolabs/dbx/schemamigrate"
@@ -91,11 +92,96 @@ func main() {
 }
 ```
 
+## Flyway-Style SQL / Programmatic Go Migrations
+
+dbx supports both SQL-script migration and Go callback migration in the same runner abstraction.
+
+```go
+func runMigrations(ctx context.Context, core *dbx.DB) error {
+	runner := migrate.NewRunner(core.SQLDB(), core.Dialect(), migrate.RunnerOptions{
+		HistoryTable: "schema_history",
+		ValidateHash: true,
+	})
+
+	// Go migrations: apply exactly up to version 3.
+	if _, err := runner.UpGoTo(ctx, 3,
+		migrate.NewGoMigration("1", "create users", upUsers, downUsers),
+		migrate.NewGoMigration("2", "seed roles", upRoles, nil),
+		migrate.NewGoMigration("3", "add constraints", upConstraints, downConstraints),
+	); err != nil {
+		return err
+	}
+
+	// SQL migrations from embed.FS: supports V1/V2 ... and optional U2 rollback files.
+	source := migrate.FileSource{
+		FS:  sqlFS,
+		Dir: "migrations",
+	}
+	if _, err := runner.UpSQLTo(ctx, 2, source); err != nil {
+		return err
+	}
+	return nil
+}
+
+func downMigrations(ctx context.Context, core *dbx.DB) error {
+	runner := migrate.NewRunner(core.SQLDB(), core.Dialect(), migrate.RunnerOptions{ValidateHash: true})
+
+	// Roll back SQL migrations down to version 0 (all versioned migrations).
+	if _, err := runner.DownSQLTo(ctx, 0, migrate.FileSource{FS: sqlFS, Dir: "migrations"}); err != nil {
+		return err
+	}
+
+	// Roll back Go migrations to version 1.
+	_, err := runner.DownGoTo(ctx, 1,
+		migrate.NewGoMigration("1", "create users", upUsers, downUsers),
+		migrate.NewGoMigration("2", "seed roles", upRoles, nil),
+		migrate.NewGoMigration("3", "add constraints", upConstraints, downConstraints),
+	)
+	return err
+}
+```
+
+You can also inspect both Go and SQL status in one pass before applying.
+
+```go
+status, err := runner.StatusAll(ctx,
+	[]migrate.Migration{
+		migrate.NewGoMigration("1", "create users", upUsers, downUsers),
+	},
+	&migrate.FileSource{FS: sqlFS, Dir: "migrations"},
+)
+if err != nil {
+	return err
+}
+
+for i := range status.Go.Len() {
+	item, ok := status.Go.Get(i)
+	if !ok {
+		continue
+	}
+	if item.State != migrate.MigrationStateApplied {
+		fmt.Printf("go migration %s: %s\\n", item.Version, item.State)
+	}
+}
+for i := range status.SQL.Len() {
+	item, ok := status.SQL.Get(i)
+	if !ok {
+		continue
+	}
+	if item.State != migrate.MigrationStateApplied {
+		fmt.Printf("sql migration %s: %s\\n", item.Version, item.State)
+	}
+}
+```
+
+You can also use `PendingGo`, `PendingSQL`, `PendingAll` for rollout orchestration.
+
 ## Pitfalls
 
 - Treating `AutoMigrate` as a destructive migration engine is risky; keep manual migrations for breaking changes.
 - Skipping `PlanSchemaChanges().SQLPreview()` reduces deploy confidence.
 - Not validating against production-like snapshots can hide dialect-specific differences.
+- `schemamigrate` is intended for schema synchronization during development, while `migrate` is the durable path for explicit SQL/Go migration history.
 
 ## Verify
 

@@ -47,7 +47,7 @@ go run ./examples/id_generation
 | `mutation` | aggregate queries, subqueries, batch insert, insert-select, upsert, returning | [examples/mutation](https://github.com/arcgolabs/dbx/tree/main/examples/mutation) |
 | `query_advanced` | `WITH`, `UNION ALL`, `CASE WHEN`, named tables, result columns | [examples/query_advanced](https://github.com/arcgolabs/dbx/tree/main/examples/query_advanced) |
 | `relations` | alias + relation metadata + `JoinRelation`, plus `LoadBelongsTo` and `LoadManyToMany` | [examples/relations](https://github.com/arcgolabs/dbx/tree/main/examples/relations) |
-| `migration` | `PlanSchemaChanges`, `SQLPreview`, `AutoMigrate`, `ValidateSchemas`, `migrate.NewRunner(core.SQLDB(), core.Dialect(), ...).UpGo/UpSQL` | [examples/migration](https://github.com/arcgolabs/dbx/tree/main/examples/migration) |
+| `migration` | `PlanSchemaChanges`, `SQLPreview`, `AutoMigrate`, `ValidateSchemas`, `migrate.NewRunner(core.SQLDB(), core.Dialect(), ...).UpGo/UpGoTo/UpSQL/UpSQLTo` | [examples/migration](https://github.com/arcgolabs/dbx/tree/main/examples/migration) |
 | `pure_sql` | `sqltmpl` registry, shared `PageRequest` pagination, `sqlexec.List/Get/Find/Scalar`, statement-name logging, `tx.SQL().Exec(...)` | [examples/pure_sql](https://github.com/arcgolabs/dbx/tree/main/examples/pure_sql) |
 | `id_generation` | typed ID strategy markers: `IDAuto`, `IDSnowflake`, `IDUUIDv7`, and `IDColumn` | [examples/id_generation](https://github.com/arcgolabs/dbx/tree/main/examples/id_generation) |
 

@@ -53,6 +53,21 @@ weight: 18
 - `schemamigrate.ValidateSchemas(ctx, session, schemas...)`
 - `schemamigrate.AutoMigrate(ctx, session, schemas...)`
 - `plan.SQLPreview()`
+- `migrate.NewRunner(sqlDB, dialect, options)` - construct migration runner
+- `(*Runner).UpGo(ctx, migrations...)`
+- `(*Runner).UpGoTo(ctx, version, migrations...)`
+- `(*Runner).DownGoTo(ctx, version, migrations...)`
+- `(*Runner).UpSQL(ctx, source)`
+- `(*Runner).UpSQLTo(ctx, version, source)`
+- `(*Runner).DownSQLTo(ctx, version, source)`
+- `(*Runner).PendingGo(ctx, migrations...)`
+- `(*Runner).PendingSQL(ctx, source)`
+- `(*Runner).StatusGo(ctx, migrations...)`
+- `(*Runner).StatusSQL(ctx, source)`
+- `(*Runner).StatusAll(ctx, goMigrations, source)`
+- `(*Runner).PendingAll(ctx, goMigrations, source)`
+- `(*Runner).Applied(ctx)`
+- `migrate.MigrationStatusBundle`, `migrate.MigrationPendingBundle`
 
 ## ID Generation Options
 

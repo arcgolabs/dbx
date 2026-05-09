@@ -31,6 +31,56 @@ func (r *Runner) UpGo(ctx context.Context, migrations ...Migration) (RunReport, 
 	return buildRunReport(applied, bundle.metaByVersion, results)
 }
 
+// UpGoTo applies provided Go migrations up to, and including, the specified version.
+func (r *Runner) UpGoTo(ctx context.Context, toVersion int64, migrations ...Migration) (RunReport, error) {
+	if err := validateMigrationTarget(toVersion, true); err != nil {
+		return RunReport{}, err
+	}
+
+	bundle, err := r.newRunnerEngineForGo(migrations)
+	if err != nil {
+		return RunReport{}, err
+	}
+	if bundle.engine == nil {
+		return RunReport{Applied: collectionx.NewList[AppliedRecord]()}, nil
+	}
+
+	results, err := bundle.engine.UpTo(ctx, toVersion)
+	if err != nil {
+		return RunReport{}, fmt.Errorf("dbx/migrate: apply go migrations to version %d: %w", toVersion, err)
+	}
+	applied, err := r.Applied(ctx)
+	if err != nil {
+		return RunReport{}, err
+	}
+	return buildRunReport(applied, bundle.metaByVersion, results)
+}
+
+// DownGoTo rolls back Go migrations down to, but not including, the specified version.
+func (r *Runner) DownGoTo(ctx context.Context, toVersion int64, migrations ...Migration) (RunReport, error) {
+	if err := validateMigrationTarget(toVersion, false); err != nil {
+		return RunReport{}, err
+	}
+	bundle, err := r.newRunnerEngineForGo(migrations)
+	if err != nil {
+		return RunReport{}, err
+	}
+	if bundle.engine == nil {
+		return RunReport{Applied: collectionx.NewList[AppliedRecord]()}, nil
+	}
+
+	appliedBefore, err := r.Applied(ctx)
+	if err != nil {
+		return RunReport{}, err
+	}
+
+	results, err := bundle.engine.DownTo(ctx, toVersion)
+	if err != nil {
+		return RunReport{}, fmt.Errorf("dbx/migrate: rollback go migrations to version %d: %w", toVersion, err)
+	}
+	return buildRunReport(appliedBefore, bundle.metaByVersion, results)
+}
+
 // UpSQL applies versioned and repeatable SQL migrations from source.
 func (r *Runner) UpSQL(ctx context.Context, source FileSource) (RunReport, error) {
 	bundle, repeatables, err := r.newRunnerEngineForSQL(source)
@@ -55,6 +105,70 @@ func (r *Runner) UpSQL(ctx context.Context, source FileSource) (RunReport, error
 	}
 	report.Applied.Merge(repeatableRecords)
 	return report, nil
+}
+
+// UpSQLTo applies versioned SQL migrations up to, and including, the specified version, then applies repeatables.
+func (r *Runner) UpSQLTo(ctx context.Context, toVersion int64, source FileSource) (RunReport, error) {
+	if err := validateMigrationTarget(toVersion, true); err != nil {
+		return RunReport{}, err
+	}
+	bundle, repeatables, err := r.newRunnerEngineForSQL(source)
+	if err != nil {
+		return RunReport{}, err
+	}
+
+	report := RunReport{Applied: collectionx.NewListWithCapacity[AppliedRecord](8)}
+	if bundle != nil && bundle.engine != nil {
+		results, err := bundle.engine.UpTo(ctx, toVersion)
+		if err != nil {
+			return RunReport{}, fmt.Errorf("dbx/migrate: apply sql migrations to version %d: %w", toVersion, err)
+		}
+
+		applied, err := r.Applied(ctx)
+		if err != nil {
+			return RunReport{}, err
+		}
+		reportApplied, err := buildRunReport(applied, bundle.metaByVersion, results)
+		if err != nil {
+			return RunReport{}, err
+		}
+		report.Applied.Merge(reportApplied.Applied)
+	}
+
+	indexed, err := r.appliedIndex(ctx)
+	if err != nil {
+		return report, err
+	}
+	repeatableRecords, err := r.applyPendingRepeatables(ctx, repeatables, indexed)
+	if err != nil {
+		return report, err
+	}
+	report.Applied.Merge(repeatableRecords)
+	return report, nil
+}
+
+// DownSQLTo rolls back versioned SQL migrations down to, but not including, the specified version.
+func (r *Runner) DownSQLTo(ctx context.Context, toVersion int64, source FileSource) (RunReport, error) {
+	if err := validateMigrationTarget(toVersion, false); err != nil {
+		return RunReport{}, err
+	}
+	bundle, _, err := r.newRunnerEngineForSQL(source)
+	if err != nil {
+		return RunReport{}, err
+	}
+	if bundle == nil || bundle.engine == nil {
+		return RunReport{Applied: collectionx.NewList[AppliedRecord]()}, nil
+	}
+
+	appliedBefore, err := r.Applied(ctx)
+	if err != nil {
+		return RunReport{}, err
+	}
+	results, err := bundle.engine.DownTo(ctx, toVersion)
+	if err != nil {
+		return RunReport{}, fmt.Errorf("dbx/migrate: rollback sql migrations to version %d: %w", toVersion, err)
+	}
+	return buildRunReport(appliedBefore, bundle.metaByVersion, results)
 }
 
 func (r *Runner) versionedSQLRunReport(ctx context.Context, bundle *runnerEngine) (*collectionx.List[AppliedRecord], error) {
@@ -172,4 +286,11 @@ func (r *Runner) applySQLMigration(ctx context.Context, migration loadedSQLMigra
 	}
 	committed = true
 	return record, nil
+}
+
+func validateMigrationTarget(version int64, forUp bool) error {
+	if version < 0 || (forUp && version < 1) {
+		return fmt.Errorf("dbx/migrate: invalid migration target version %d", version)
+	}
+	return nil
 }
