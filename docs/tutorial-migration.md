@@ -178,10 +178,33 @@ You can also use `PendingGo`, `PendingSQL`, `PendingAll` for rollout orchestrati
 
 For teams that want a single call for both sources, `ApplyAll` is available as an orchestration helper.
 It delegates to the low-level `Up*/Down*/Status*` methods and keeps those APIs unchanged.
+`ValidateApplyAll` lets you validate direction/target parameters before executing.
 
 ```go
 _, err := runner.ApplyAll(ctx, migrate.MigrationApplySpec{
 	Direction: migrate.DirectionUp,
+	GoMigrations: []migrate.Migration{
+		migrate.NewGoMigration("1", "create users", upUsers, downUsers),
+	},
+	SQLSource: &migrate.FileSource{FS: sqlFS, Dir: "migrations"},
+})
+if err != nil {
+	return err
+}
+
+if err := runner.ValidateApplyAll(migrate.MigrationApplySpec{
+	Direction: migrate.DirectionUp,
+	Target:    &migrate.MigrationTarget{Version: 1},
+	GoMigrations: []migrate.Migration{
+		migrate.NewGoMigration("1", "create users", upUsers, downUsers),
+	},
+	SQLSource: &migrate.FileSource{FS: sqlFS, Dir: "migrations"},
+}); err != nil {
+	return err
+}
+_, err = runner.ApplyAll(ctx, migrate.MigrationApplySpec{
+	Direction: migrate.DirectionUp,
+	Target:    &migrate.MigrationTarget{Version: 1},
 	GoMigrations: []migrate.Migration{
 		migrate.NewGoMigration("1", "create users", upUsers, downUsers),
 	},

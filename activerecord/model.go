@@ -75,6 +75,27 @@ func (m *Model[E, S]) Delete(ctx context.Context) error {
 	return nil
 }
 
+// Load executes include loaders against this model.
+func (m *Model[E, S]) Load(ctx context.Context, includes ...repository.Include[E]) error {
+	if err := m.validateEntity(); err != nil {
+		return err
+	}
+	if len(includes) == 0 {
+		return nil
+	}
+	items := collectionx.NewList[E](*m.entity)
+	if err := repository.LoadIncludes(ctx, items, includes...); err != nil {
+		return fmt.Errorf("load model includes: %w", err)
+	}
+	item, ok := items.GetFirst()
+	if !ok {
+		return &repository.ValidationError{Message: "model load result is empty"}
+	}
+	*m.entity = item
+	m.key = m.store.keyOf(m.entity)
+	return nil
+}
+
 func (m *Model[E, S]) validateEntity() error {
 	if m == nil || m.store == nil || m.store.repository == nil {
 		return dbx.ErrNilDB

@@ -66,6 +66,7 @@ weight: 18
 - `(*Runner).StatusSQL(ctx, source)`
 - `(*Runner).StatusAll(ctx, goMigrations, source)`
 - `(*Runner).PendingAll(ctx, goMigrations, source)`
+- `(*Runner).ValidateApplyAll(spec migrate.MigrationApplySpec)` - validate high-level migration spec before execution.
 - `(*Runner).ApplyAll(ctx, spec migrate.MigrationApplySpec)` (high-level orchestration, low-level methods above remain)
 - `(*Runner).Applied(ctx)`
 - `migrate.MigrationStatusBundle`, `migrate.MigrationPendingBundle`, `migrate.MigrationApplySpec`, `migrate.MigrationTarget`

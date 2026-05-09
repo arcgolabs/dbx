@@ -2,6 +2,8 @@ package migrate
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 
 	collectionx "github.com/arcgolabs/collectionx/list"
 )
@@ -21,12 +23,30 @@ type MigrationApplySpec struct {
 	SQLSource    *FileSource
 }
 
+// ValidateApplyAll validates a migration orchestration spec without performing any migration.
+func (r *Runner) ValidateApplyAll(spec MigrationApplySpec) error {
+	if r == nil || r.db == nil {
+		return sql.ErrConnDone
+	}
+
+	direction := migrateDirection(spec.Direction)
+	if spec.Target == nil {
+		return nil
+	}
+
+	if err := validateMigrationTarget(spec.Target.Version, direction == DirectionUp); err != nil {
+		return fmt.Errorf("dbx/migrate: validate apply all spec: %w", err)
+	}
+	return nil
+}
+
 // ApplyAll executes migration operations for both Go and SQL sources in one call.
 // It delegates to existing low-level methods and merges their reports.
 func (r *Runner) ApplyAll(ctx context.Context, spec MigrationApplySpec) (RunReport, error) {
-	if spec.Direction != DirectionUp && spec.Direction != DirectionDown {
-		spec.Direction = DirectionUp
+	if err := r.ValidateApplyAll(spec); err != nil {
+		return RunReport{}, err
 	}
+	direction := migrateDirection(spec.Direction)
 
 	total := RunReport{
 		Applied: collectionx.NewList[AppliedRecord](),
@@ -37,7 +57,7 @@ func (r *Runner) ApplyAll(ctx context.Context, spec MigrationApplySpec) (RunRepo
 		err    error
 	)
 
-	switch spec.Direction {
+	switch direction {
 	case DirectionUp:
 		report, err = r.applyAllGoUp(ctx, spec.GoMigrations, spec.Target)
 		if err != nil {
@@ -65,6 +85,13 @@ func (r *Runner) ApplyAll(ctx context.Context, spec MigrationApplySpec) (RunRepo
 	}
 
 	return total, nil
+}
+
+func migrateDirection(direction Direction) Direction {
+	if direction == DirectionDown {
+		return DirectionDown
+	}
+	return DirectionUp
 }
 
 func (r *Runner) applyAllGoUp(ctx context.Context, migrations []Migration, target *MigrationTarget) (RunReport, error) {

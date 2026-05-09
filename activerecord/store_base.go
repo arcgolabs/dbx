@@ -31,6 +31,28 @@ func (s *Store[E, S]) Repository() *repository.Base[E, S] {
 	return s.repository
 }
 
+// Create persists one entity and returns the wrapped model.
+func (s *Store[E, S]) Create(ctx context.Context, entity *E) (*Model[E, S], error) {
+	model := s.Wrap(entity)
+	if err := model.Save(ctx); err != nil {
+		return nil, err
+	}
+	return model, nil
+}
+
+// CreateReturning persists one entity using RETURNING and returns the refreshed model.
+func (s *Store[E, S]) CreateReturning(ctx context.Context, entity *E) (*Model[E, S], error) {
+	if s == nil || s.repository == nil {
+		return nil, dbx.ErrNilDB
+	}
+	created, err := s.repository.CreateReturning(ctx, entity)
+	if err != nil {
+		return nil, fmt.Errorf("create returning entity: %w", err)
+	}
+	*entity = created
+	return s.newKeyedModel(entity, s.keyOf(entity)), nil
+}
+
 // Wrap binds an entity instance to a Model.
 func (s *Store[E, S]) Wrap(entity *E) *Model[E, S] {
 	return s.newModel(entity)
