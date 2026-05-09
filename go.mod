@@ -4,9 +4,9 @@ go 1.26.2
 
 require (
 	ariga.io/atlas v1.2.0
-	github.com/arcgolabs/collectionx/list v0.7.0
-	github.com/arcgolabs/collectionx/mapping v0.7.0
-	github.com/arcgolabs/collectionx/set v0.7.0
+	github.com/arcgolabs/collectionx/list v0.8.0
+	github.com/arcgolabs/collectionx/mapping v0.8.0
+	github.com/arcgolabs/collectionx/set v0.8.0
 	github.com/arcgolabs/pkg/option v0.0.3
 	github.com/google/uuid v1.6.0
 	github.com/oklog/ulid/v2 v2.1.1

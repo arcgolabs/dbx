@@ -81,22 +81,20 @@ func (r *Runner) validateHashRunner() *Runner {
 }
 
 func validateMigrationStatuses(statuses *collectionx.List[MigrationStatus]) MigrationValidationReport {
-	issues := collectionx.NewList[MigrationValidationIssue]()
 	if statuses == nil {
-		return MigrationValidationReport{Issues: issues}
+		return MigrationValidationReport{Issues: collectionx.NewList[MigrationValidationIssue]()}
 	}
-	statuses.Range(func(_ int, status MigrationStatus) bool {
+	issues := collectionx.FilterMapList[MigrationStatus, MigrationValidationIssue](statuses, func(_ int, status MigrationStatus) (MigrationValidationIssue, bool) {
 		if status.State != MigrationStateOutdated {
-			return true
+			return MigrationValidationIssue{}, false
 		}
-		issues.Add(MigrationValidationIssue{
+		return MigrationValidationIssue{
 			Version:     status.Version,
 			Description: status.Description,
 			Kind:        status.Kind,
 			State:       status.State,
 			Message:     fmt.Sprintf("%s migration %s checksum differs from history", status.Kind, status.Version),
-		})
-		return true
+		}, true
 	})
 	return MigrationValidationReport{Issues: issues}
 }

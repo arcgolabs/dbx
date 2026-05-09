@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"slices"
 	"strconv"
 
 	collectionx "github.com/arcgolabs/collectionx/list"
@@ -93,13 +92,9 @@ func (r *Runner) filterGoMigrationsByDialect(migrations []Migration) []Migration
 }
 
 func filterGoMigrationsByTarget(migrations []Migration, target DialectName) []Migration {
-	filtered := make([]Migration, 0, len(migrations))
-	for _, migration := range migrations {
-		if migrationMatchesDialect(migration, target) {
-			filtered = append(filtered, migration)
-		}
-	}
-	return filtered
+	return collectionx.FilterList[Migration](collectionx.NewList[Migration](migrations...), func(_ int, migration Migration) bool {
+		return migrationMatchesDialect(migration, target)
+	}).Values()
 }
 
 func (r *Runner) goMigrationDialectTarget() (DialectName, bool) {
@@ -118,7 +113,9 @@ func migrationMatchesDialect(migration Migration, target DialectName) bool {
 	if len(databases) == 0 {
 		return true
 	}
-	return slices.Contains(databases, target)
+	return collectionx.NewList[DialectName](databases...).AnyMatch(func(_ int, database DialectName) bool {
+		return database == target
+	})
 }
 
 func migrationDatabases(migration Migration) []DialectName {

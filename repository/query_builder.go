@@ -66,22 +66,20 @@ func (q QueryBuilder[E, S]) PageRequest(request paging.Request) QueryBuilder[E, 
 
 // Spec appends repository specs.
 func (q QueryBuilder[E, S]) Spec(specs ...Spec) QueryBuilder[E, S] {
-	for _, spec := range specs {
-		if spec != nil {
-			q.specs = append(q.specs, spec)
-		}
-	}
+	q.specs = append(q.specs, compactSpecs(specs...)...)
 	return q
 }
 
 // Include appends relation or custom include loaders to List, First, and ListPage.
 func (q QueryBuilder[E, S]) Include(includes ...Include[E]) QueryBuilder[E, S] {
-	for _, include := range includes {
-		if include != nil {
-			q.includes = append(q.includes, include)
-		}
-	}
+	q.includes = append(q.includes, compactIncludes(includes...)...)
 	return q
+}
+
+func compactIncludes[E any](includes ...Include[E]) []Include[E] {
+	return collectionx.FilterList[Include[E]](collectionx.NewList[Include[E]](includes...), func(_ int, include Include[E]) bool {
+		return include != nil
+	}).Values()
 }
 
 // WithDeleted bypasses repository default specs, including soft-delete filters.

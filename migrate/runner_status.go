@@ -75,22 +75,7 @@ func buildGoMigrationStatuses(
 	byVersion map[int64]Migration,
 	validateHash bool,
 ) *collectionx.List[MigrationStatus] {
-	out := collectionx.NewListWithCapacity[MigrationStatus](len(statuses))
-	collectionx.NewList[*goose.MigrationStatus](statuses...).Range(func(_ int, status *goose.MigrationStatus) bool {
-		_, ok := byVersion[status.Source.Version]
-		if !ok {
-			return true
-		}
-
-		record, ok := metaByVersion.Get(status.Source.Version)
-		if !ok {
-			return true
-		}
-
-		out.Add(buildMigrationStatusFromRecord(status.State, record, applied, validateHash))
-		return true
-	})
-	return out
+	return buildVersionedStatuses(statuses, metaByVersion, applied, byVersion, validateHash)
 }
 
 func buildSQLVersionedStatuses(
@@ -100,22 +85,31 @@ func buildSQLVersionedStatuses(
 	applied map[string]AppliedRecord,
 	validateHash bool,
 ) *collectionx.List[MigrationStatus] {
-	out := collectionx.NewListWithCapacity[MigrationStatus](len(statuses))
-	collectionx.NewList[*goose.MigrationStatus](statuses...).Range(func(_ int, status *goose.MigrationStatus) bool {
-		_, ok := versioned[status.Source.Version]
-		if !ok {
-			return true
-		}
+	return buildVersionedStatuses(statuses, metaByVersion, applied, versioned, validateHash)
+}
 
-		record, ok := metaByVersion.Get(status.Source.Version)
-		if !ok {
-			return true
-		}
+func buildVersionedStatuses[T any](
+	statuses []*goose.MigrationStatus,
+	metaByVersion *mappingx.Map[int64, AppliedRecord],
+	applied map[string]AppliedRecord,
+	available map[int64]T,
+	validateHash bool,
+) *collectionx.List[MigrationStatus] {
+	return collectionx.FilterMapList[*goose.MigrationStatus, MigrationStatus](
+		collectionx.NewList[*goose.MigrationStatus](statuses...),
+		func(_ int, status *goose.MigrationStatus) (MigrationStatus, bool) {
+			if _, ok := available[status.Source.Version]; !ok {
+				return MigrationStatus{}, false
+			}
 
-		out.Add(buildMigrationStatusFromRecord(status.State, record, applied, validateHash))
-		return true
-	})
-	return out
+			record, ok := metaByVersion.Get(status.Source.Version)
+			if !ok {
+				return MigrationStatus{}, false
+			}
+
+			return buildMigrationStatusFromRecord(status.State, record, applied, validateHash), true
+		},
+	)
 }
 
 func buildRepeatableStatuses(repeatables *collectionx.List[loadedSQLMigration], applied map[string]AppliedRecord) *collectionx.List[MigrationStatus] {

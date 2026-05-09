@@ -3,6 +3,7 @@ package repository
 import (
 	"time"
 
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	mapperx "github.com/arcgolabs/dbx/mapper"
 	"github.com/arcgolabs/dbx/querydsl"
@@ -31,12 +32,14 @@ func WithKeyNotFoundAsError(enabled bool) Option {
 // through Query(repo).WithDeleted().
 func WithDefaultSpecs(specs ...Spec) Option {
 	return func(opts *baseOptions) {
-		for _, spec := range specs {
-			if spec != nil {
-				opts.defaultSpecs = append(opts.defaultSpecs, spec)
-			}
-		}
+		opts.defaultSpecs = append(opts.defaultSpecs, compactSpecs(specs...)...)
 	}
+}
+
+func compactSpecs(specs ...Spec) []Spec {
+	return collectionx.FilterList[Spec](collectionx.NewList[Spec](specs...), func(_ int, spec Spec) bool {
+		return spec != nil
+	}).Values()
 }
 
 // SoftDeleteTimeColumn is the behavior needed for nullable timestamp soft delete columns.

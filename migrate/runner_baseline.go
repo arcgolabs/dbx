@@ -16,30 +16,31 @@ func (r *Runner) Baseline(ctx context.Context, records ...AppliedRecord) (*colle
 	if err := r.EnsureHistory(ctx); err != nil {
 		return nil, err
 	}
-	applied := collectionx.NewListWithCapacity[AppliedRecord](len(records))
-	for _, record := range records {
-		record = normalizeBaselineRecord(record)
-		if err := replaceAppliedRecordOnConn(ctx, r.db, r.dialect, r.options.HistoryTable, record); err != nil {
-			return nil, err
-		}
-		applied.Add(record)
-	}
-	return applied, nil
+	return collectionx.ReduceErrList[AppliedRecord, *collectionx.List[AppliedRecord]](
+		collectionx.NewList[AppliedRecord](records...),
+		collectionx.NewListWithCapacity[AppliedRecord](len(records)),
+		func(applied *collectionx.List[AppliedRecord], _ int, record AppliedRecord) (*collectionx.List[AppliedRecord], error) {
+			record = normalizeBaselineRecord(record)
+			if err := replaceAppliedRecordOnConn(ctx, r.db, r.dialect, r.options.HistoryTable, record); err != nil {
+				return nil, err
+			}
+			applied.Add(record)
+			return applied, nil
+		},
+	)
 }
 
 // BaselineGo records Go migrations as applied without executing them.
 func (r *Runner) BaselineGo(ctx context.Context, migrations ...Migration) (*collectionx.List[AppliedRecord], error) {
-	records := collectionx.NewListWithCapacity[AppliedRecord](len(migrations))
-	collectionx.NewList[Migration](migrations...).Range(func(_ int, migration Migration) bool {
-		records.Add(AppliedRecord{
+	records := collectionx.MapList[Migration, AppliedRecord](collectionx.NewList[Migration](migrations...), func(_ int, migration Migration) AppliedRecord {
+		return AppliedRecord{
 			Version:     migration.Version(),
 			Description: migration.Description(),
 			Kind:        KindGo,
 			Checksum:    checksumGoMigration(migration),
-		})
-		return true
+		}
 	})
-	return r.Baseline(ctx, records.Values()...)
+	return r.baselineRecordList(ctx, records)
 }
 
 // BaselineSQL records SQL migrations as applied without executing them.
@@ -56,7 +57,16 @@ func (r *Runner) BaselineSQL(ctx context.Context, source FileSource) (*collectio
 			Checksum:    migration.checksum,
 		}
 	})
-	return r.Baseline(ctx, records.Values()...)
+	return r.baselineRecordList(ctx, records)
+}
+
+func (r *Runner) baselineRecordList(ctx context.Context, records *collectionx.List[AppliedRecord]) (*collectionx.List[AppliedRecord], error) {
+	var applied *collectionx.List[AppliedRecord]
+	var err error
+	records.ViewValues(func(values []AppliedRecord) {
+		applied, err = r.Baseline(ctx, values...)
+	})
+	return applied, err
 }
 
 // Repair replaces Go migration history checksums with the current migration metadata.

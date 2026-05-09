@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
-	"slices"
 	"strings"
 
 	collectionx "github.com/arcgolabs/collectionx/list"
@@ -136,15 +135,18 @@ func (r *Registry) PreloadFor(d dialect.Contract, names ...string) (*collectionx
 	if r == nil {
 		return nil, sqlstmt.ErrNilStatement
 	}
-	templates := collectionx.NewListWithCapacity[*Template](len(names))
-	for _, name := range names {
-		template, err := r.TemplateFor(name, d)
-		if err != nil {
-			return nil, err
-		}
-		templates.Add(template)
-	}
-	return templates, nil
+	return collectionx.ReduceErrList[string, *collectionx.List[*Template]](
+		collectionx.NewList[string](names...),
+		collectionx.NewListWithCapacity[*Template](len(names)),
+		func(templates *collectionx.List[*Template], _ int, name string) (*collectionx.List[*Template], error) {
+			template, err := r.TemplateFor(name, d)
+			if err != nil {
+				return nil, err
+			}
+			templates.Add(template)
+			return templates, nil
+		},
+	)
 }
 
 // Names returns sorted template paths from the registry filesystem.
@@ -167,9 +169,7 @@ func (r *Registry) Names() (*collectionx.List[string], error) {
 		return nil, fmt.Errorf("walk templates: %w", err)
 	}
 
-	values := names.Values()
-	slices.Sort(values)
-	return collectionx.NewList(values...), nil
+	return names.Sort(strings.Compare), nil
 }
 
 // PreloadAll loads and caches every .sql template from the registry filesystem.
@@ -183,7 +183,11 @@ func (r *Registry) PreloadAllFor(d dialect.Contract) (*collectionx.List[*Templat
 	if err != nil {
 		return nil, err
 	}
-	return r.PreloadFor(d, names.Values()...)
+	var templates *collectionx.List[*Template]
+	names.ViewValues(func(values []string) {
+		templates, err = r.PreloadFor(d, values...)
+	})
+	return templates, err
 }
 
 // Check loads a template, renders it with params, and collects any available SQL analysis.
@@ -222,14 +226,12 @@ func (r *Registry) CheckAllFor(d dialect.Contract, samples map[string]any) (*col
 		return nil, err
 	}
 
-	reports := collectionx.NewListWithCapacity[CheckReport](names.Len())
-	names.Range(func(_ int, name string) bool {
+	reports := collectionx.MapList[string, CheckReport](names, func(_ int, name string) CheckReport {
 		report, checkErr := r.CheckFor(name, d, sampleForTemplate(samples, name))
 		if checkErr != nil {
 			report.Err = checkErr
 		}
-		reports.Add(report)
-		return true
+		return report
 	})
 	return reports, nil
 }

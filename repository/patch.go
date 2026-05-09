@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx"
 	"github.com/arcgolabs/dbx/querydsl"
 )
@@ -32,12 +33,14 @@ func PatchSet[E any, S EntitySchema[E]](repo *Base[E, S], key TypedKeySet) Patch
 
 // Set appends typed column assignments to this patch.
 func (p PatchBuilder[E, S]) Set(assignments ...querydsl.Assignment) PatchBuilder[E, S] {
-	for _, assignment := range assignments {
-		if assignment != nil {
-			p.assignments = append(p.assignments, assignment)
-		}
-	}
+	p.assignments = append(p.assignments, compactAssignments(assignments...)...)
 	return p
+}
+
+func compactAssignments(assignments ...querydsl.Assignment) []querydsl.Assignment {
+	return collectionx.FilterList[querydsl.Assignment](collectionx.NewList[querydsl.Assignment](assignments...), func(_ int, assignment querydsl.Assignment) bool {
+		return assignment != nil
+	}).Values()
 }
 
 // Version enables optimistic locking with the provided version column and current value.

@@ -144,26 +144,21 @@ func normalizeConflictColumns(columns, fallback *collectionx.List[string]) *coll
 	if items == nil || items.Len() == 0 {
 		items = fallback
 	}
-	ordered := setx.NewOrderedSet[string]()
-	items.Range(func(_ int, column string) bool {
-		if name := strings.TrimSpace(column); name != "" {
-			ordered.Add(name)
-		}
-		return true
+	names := collectionx.FilterMapList[string, string](items, func(_ int, column string) (string, bool) {
+		name := strings.TrimSpace(column)
+		return name, name != ""
 	})
-	result := collectionx.NewListWithCapacity[string](ordered.Len())
-	ordered.Range(func(item string) bool {
-		result.Add(item)
-		return true
+	ordered := setx.NewOrderedSetWithCapacity[string](names.Len())
+	names.ViewValues(func(values []string) {
+		ordered.Add(values...)
 	})
-	return result
+	return collectionx.NewList[string](ordered.Values()...)
 }
 
 func upsertUpdateAssignments[S querydsl.TableSource](schema S, fields *collectionx.List[mapperx.MappedField], conflictColumns *collectionx.List[string]) *collectionx.List[querydsl.Assignment] {
 	conflictSet := setx.NewSetWithCapacity[string](conflictColumns.Len())
-	conflictColumns.Range(func(_ int, column string) bool {
-		conflictSet.Add(column)
-		return true
+	conflictColumns.ViewValues(func(columns []string) {
+		conflictSet.Add(columns...)
 	})
 	return collectionx.FilterMapList[mapperx.MappedField, querydsl.Assignment](fields, func(_ int, field mapperx.MappedField) (querydsl.Assignment, bool) {
 		if conflictSet.Contains(field.Column) {

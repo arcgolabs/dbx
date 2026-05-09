@@ -9,6 +9,7 @@ import (
 
 	collectionx "github.com/arcgolabs/collectionx/list"
 	mappingx "github.com/arcgolabs/collectionx/mapping"
+	setx "github.com/arcgolabs/collectionx/set"
 )
 
 // ErrInvalidVersionedFilename reports an invalid versioned migration filename.
@@ -212,19 +213,13 @@ func normalizeMigrationDatabases(databases []DialectName) []DialectName {
 		return nil
 	}
 
-	normed := make([]DialectName, 0, len(databases))
-	seen := make(map[DialectName]struct{}, len(databases))
-	for _, database := range databases {
-		if !database.IsKnown() {
-			continue
-		}
-		if _, ok := seen[database]; ok {
-			continue
-		}
-		seen[database] = struct{}{}
-		normed = append(normed, database)
-	}
-	return normed
+	normed := setx.NewOrderedSetWithCapacity[DialectName](len(databases))
+	collectionx.NewList[DialectName](databases...).Where(func(_ int, database DialectName) bool {
+		return database.IsKnown()
+	}).Each(func(_ int, database DialectName) {
+		normed.Add(database)
+	})
+	return normed.Values()
 }
 
 func selectsVersionedFile(file VersionedFile, selectedDatabase DialectName) bool {

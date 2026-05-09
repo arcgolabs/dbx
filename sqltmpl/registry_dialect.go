@@ -3,6 +3,8 @@ package sqltmpl
 import (
 	"path"
 	"strings"
+
+	collectionx "github.com/arcgolabs/collectionx/list"
 )
 
 var dialectTemplateSuffixAliases = map[string][]string{
@@ -25,15 +27,12 @@ func dialectTemplateNames(name, dialectName string) []string {
 	if stem == "" {
 		return []string{name}
 	}
-	candidates := make([]string, 0, len(suffixes)*2)
-	for _, suffix := range suffixes {
-		candidates = append(
-			candidates,
-			dir+stem+"_"+suffix+ext,
-			dir+stem+"__"+suffix+ext,
-		)
-	}
-	return candidates
+	return collectionx.FlatMapList[string, string](collectionx.NewList[string](suffixes...), func(_ int, suffix string) []string {
+		return []string{
+			dir + stem + "_" + suffix + ext,
+			dir + stem + "__" + suffix + ext,
+		}
+	}).Values()
 }
 
 func isDialectTemplateName(name string) bool {
