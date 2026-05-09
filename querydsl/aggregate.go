@@ -55,19 +55,19 @@ func CountDistinct(expr Operand) Aggregate[int64] {
 	return Aggregate[int64]{Function: AggCount, Expr: expr, Distinct: true}
 }
 
-func Sum[T any](expr TypedColumn[T]) Aggregate[T] {
+func Sum[T any](expr TypedOperand[T]) Aggregate[T] {
 	return Aggregate[T]{Function: AggSum, Expr: expr}
 }
 
-func Avg[T any](expr TypedColumn[T]) Aggregate[float64] {
+func Avg[T any](expr TypedOperand[T]) Aggregate[float64] {
 	return Aggregate[float64]{Function: AggAvg, Expr: expr}
 }
 
-func Min[T any](expr TypedColumn[T]) Aggregate[T] {
+func Min[T any](expr TypedOperand[T]) Aggregate[T] {
 	return Aggregate[T]{Function: AggMin, Expr: expr}
 }
 
-func Max[T any](expr TypedColumn[T]) Aggregate[T] {
+func Max[T any](expr TypedOperand[T]) Aggregate[T] {
 	return Aggregate[T]{Function: AggMax, Expr: expr}
 }
 

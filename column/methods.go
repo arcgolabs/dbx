@@ -149,13 +149,35 @@ func (c Column[E, T]) Le(value T) querydsl.Predicate {
 }
 
 func (c Column[E, T]) In(values ...T) querydsl.Predicate {
-	return querydsl.Compare(c, querydsl.OpIn, collectionx.MapList[T, any](collectionx.NewList[T](values...), func(_ int, value T) any {
-		return value
-	}))
+	return querydsl.In(c, values...)
+}
+
+func (c Column[E, T]) InList(values *collectionx.List[T]) querydsl.Predicate {
+	return querydsl.InList(c, values)
+}
+
+func (c Column[E, T]) NotIn(values ...T) querydsl.Predicate {
+	return querydsl.NotIn(c, values...)
+}
+
+func (c Column[E, T]) NotInList(values *collectionx.List[T]) querydsl.Predicate {
+	return querydsl.NotInList(c, values)
 }
 
 func (c Column[E, T]) InQuery(query querydsl.SelectResult[T]) querydsl.Predicate {
-	return querydsl.Compare(c, querydsl.OpIn, query.Subquery())
+	return querydsl.InQuery(c, query)
+}
+
+func (c Column[E, T]) NotInQuery(query querydsl.SelectResult[T]) querydsl.Predicate {
+	return querydsl.NotInQuery(c, query)
+}
+
+func (c Column[E, T]) Between(lower, upper T) querydsl.Predicate {
+	return querydsl.Between(c, lower, upper)
+}
+
+func (c Column[E, T]) NotBetween(lower, upper T) querydsl.Predicate {
+	return querydsl.NotBetween(c, lower, upper)
 }
 
 func (c Column[E, T]) IsNull() querydsl.Predicate {

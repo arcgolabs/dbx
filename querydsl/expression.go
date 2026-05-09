@@ -104,6 +104,8 @@ func (v ValueOperand[T]) RenderOperand(s *State) (string, error) {
 	return s.Bind(any(v.Value)), nil
 }
 
+func (ValueOperand[T]) ColumnType(T) {}
+
 func Value[T any](value T) ValueOperand[T] {
 	return ValueOperand[T]{Value: value}
 }
@@ -140,10 +142,6 @@ func OrList(predicates *collectionx.List[Predicate]) Predicate {
 
 func Not(predicate Predicate) Predicate {
 	return notPredicate{Predicate: predicate}
-}
-
-func Like(left TypedColumn[string], pattern string) Predicate {
-	return Compare(left, OpLike, Value(pattern))
 }
 
 func Exists(query *SelectQuery) Predicate {

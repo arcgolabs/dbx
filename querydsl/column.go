@@ -149,13 +149,35 @@ func (c Column[T]) LeQuery(query SelectResult[T]) Predicate {
 }
 
 func (c Column[T]) In(values ...T) Predicate {
-	return Compare(c, OpIn, collectionx.MapList[T, any](collectionx.NewList[T](values...), func(_ int, value T) any {
-		return value
-	}))
+	return In(c, values...)
+}
+
+func (c Column[T]) InList(values *collectionx.List[T]) Predicate {
+	return InList(c, values)
+}
+
+func (c Column[T]) NotIn(values ...T) Predicate {
+	return NotIn(c, values...)
+}
+
+func (c Column[T]) NotInList(values *collectionx.List[T]) Predicate {
+	return NotInList(c, values)
 }
 
 func (c Column[T]) InQuery(query SelectResult[T]) Predicate {
-	return Compare(c, OpIn, query.Subquery())
+	return InQuery(c, query)
+}
+
+func (c Column[T]) NotInQuery(query SelectResult[T]) Predicate {
+	return NotInQuery(c, query)
+}
+
+func (c Column[T]) Between(lower, upper T) Predicate {
+	return Between(c, lower, upper)
+}
+
+func (c Column[T]) NotBetween(lower, upper T) Predicate {
+	return NotBetween(c, lower, upper)
 }
 
 func (c Column[T]) IsNull() Predicate {

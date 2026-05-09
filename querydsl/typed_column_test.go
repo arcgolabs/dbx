@@ -3,6 +3,7 @@ package querydsl_test
 import (
 	"testing"
 
+	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/querydsl"
 )
 
@@ -31,12 +32,14 @@ func TestTypedColumnComparisonsBuildSQLite(t *testing.T) {
 
 func TestTypedAggregatesBuildSQLite(t *testing.T) {
 	users := MustSchema("users", UserSchema{})
+	activeScore := querydsl.CaseWhen[int](users.Status.Eq(1), 1).Else(0)
 
 	query := Select(
 		querydsl.Sum(users.ID).As("sum_id"),
 		querydsl.Avg(users.Status).As("avg_status"),
 		querydsl.Min(users.Username).As("first_username"),
 		querydsl.Max(querydsl.Col[int64](users, "role_id")).As("max_role_id"),
+		querydsl.Sum(activeScore).As("active_score"),
 	).From(users)
 
 	bound, err := query.Build(testSQLiteDialect{})
@@ -44,7 +47,7 @@ func TestTypedAggregatesBuildSQLite(t *testing.T) {
 		t.Fatalf("Build returned error: %v", err)
 	}
 
-	expectedSQL := `SELECT SUM("users"."id") AS "sum_id", AVG("users"."status") AS "avg_status", MIN("users"."username") AS "first_username", MAX("users"."role_id") AS "max_role_id" FROM "users"`
+	expectedSQL := `SELECT SUM("users"."id") AS "sum_id", AVG("users"."status") AS "avg_status", MIN("users"."username") AS "first_username", MAX("users"."role_id") AS "max_role_id", SUM(CASE WHEN "users"."status" = ? THEN ? ELSE ? END) AS "active_score" FROM "users"`
 	if bound.SQL != expectedSQL {
 		t.Fatalf("unexpected typed aggregate SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
@@ -65,5 +68,51 @@ func TestTypedLikeBuildSQLite(t *testing.T) {
 	expectedSQL := `SELECT "active_users"."username" FROM "active_users" WHERE "active_users"."username" LIKE ?`
 	if bound.SQL != expectedSQL {
 		t.Fatalf("unexpected typed like SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+}
+
+func TestTypedPredicateHelpersBuildSQLite(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+	activeUsers := View("active_users")
+	activeID := querydsl.Col[int64](activeUsers, "id")
+
+	query := SelectFrom(users, users.ID).
+		Where(And(
+			querydsl.NotLike(users.Username, "%bot%"),
+			users.Status.NotInList(collectionx.NewList[int](0, 9)),
+			users.ID.Between(10, 20),
+			users.RoleID.NotInQuery(querydsl.SelectValue(activeID).From(activeUsers)),
+		))
+
+	bound, err := query.Build(testSQLiteDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := `SELECT "users"."id" FROM "users" WHERE ("users"."username" NOT LIKE ? AND "users"."status" NOT IN (?, ?) AND "users"."id" BETWEEN ? AND ? AND "users"."role_id" NOT IN (SELECT "active_users"."id" FROM "active_users"))`
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected typed predicate SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+}
+
+func TestAdhocColumnTypedPredicateHelpersBuildSQLite(t *testing.T) {
+	activeUsers := View("active_users")
+	activeID := querydsl.Col[int64](activeUsers, "id")
+	activeStatus := querydsl.Col[int](activeUsers, "status")
+
+	query := SelectFrom(activeUsers, activeID).
+		Where(And(
+			activeID.NotBetween(100, 200),
+			activeStatus.NotIn(0, 9),
+		))
+
+	bound, err := query.Build(testSQLiteDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := `SELECT "active_users"."id" FROM "active_users" WHERE ("active_users"."id" NOT BETWEEN ? AND ? AND "active_users"."status" NOT IN (?, ?))`
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected ad-hoc typed predicate SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
 }

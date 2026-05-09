@@ -9,16 +9,18 @@ type JoinType string
 type AggregateFunction string
 
 const (
-	OpEq    ComparisonOperator = "="
-	OpNe    ComparisonOperator = "<>"
-	OpGt    ComparisonOperator = ">"
-	OpGe    ComparisonOperator = ">="
-	OpLt    ComparisonOperator = "<"
-	OpLe    ComparisonOperator = "<="
-	OpIn    ComparisonOperator = "IN"
-	OpLike  ComparisonOperator = "LIKE"
-	OpIs    ComparisonOperator = "IS"
-	OpIsNot ComparisonOperator = "IS NOT"
+	OpEq      ComparisonOperator = "="
+	OpNe      ComparisonOperator = "<>"
+	OpGt      ComparisonOperator = ">"
+	OpGe      ComparisonOperator = ">="
+	OpLt      ComparisonOperator = "<"
+	OpLe      ComparisonOperator = "<="
+	OpIn      ComparisonOperator = "IN"
+	OpNotIn   ComparisonOperator = "NOT IN"
+	OpLike    ComparisonOperator = "LIKE"
+	OpNotLike ComparisonOperator = "NOT LIKE"
+	OpIs      ComparisonOperator = "IS"
+	OpIsNot   ComparisonOperator = "IS NOT"
 )
 
 const (
