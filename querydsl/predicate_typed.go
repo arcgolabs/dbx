@@ -16,6 +16,18 @@ type betweenPredicate struct {
 func (betweenPredicate) QueryExpression() {}
 func (betweenPredicate) QueryPredicate()  {}
 
+func CompareValue[T any](left TypedOperand[T], op ComparisonOperator, right T) Predicate {
+	return Compare(left, op, Value(right))
+}
+
+func CompareOperand[T any](left TypedOperand[T], op ComparisonOperator, right TypedOperand[T]) Predicate {
+	return Compare(left, op, right)
+}
+
+func CompareQuery[T any](left TypedOperand[T], op ComparisonOperator, query SelectResult[T]) Predicate {
+	return Compare(left, op, query.Subquery())
+}
+
 func In[T any](left TypedOperand[T], values ...T) Predicate {
 	return InList(left, collectionx.NewList[T](values...))
 }

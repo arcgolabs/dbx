@@ -28,6 +28,7 @@ weight: 18
 - `querydsl.SelectValue(column).From(schema).Where(...)` for typed scalar subqueries
 - `querydsl.From(schema).Select(columns...).Where(...)`
 - `querydsl.Like(stringExpr, pattern)` / `querydsl.NotLike(stringExpr, pattern)` for string-only predicates.
+- `querydsl.CompareValue(expr, op, value)` / `CompareOperand(expr, op, other)` / `CompareQuery(expr, op, subquery)` for typed operand comparisons.
 - `column.In(...)` / `column.NotIn(...)` / `column.InQuery(...)` / `column.NotInQuery(...)` for typed set predicates.
 - `column.Between(lower, upper)` / `column.NotBetween(lower, upper)` for typed range predicates.
 - `querydsl.Sum(expr)` / `Avg(expr)` / `Min(expr)` / `Max(expr)` accept typed operands, including columns and typed CASE expressions.

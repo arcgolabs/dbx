@@ -75,13 +75,16 @@ func TestTypedPredicateHelpersBuildSQLite(t *testing.T) {
 	users := MustSchema("users", UserSchema{})
 	activeUsers := View("active_users")
 	activeID := querydsl.Col[int64](activeUsers, "id")
+	activeScore := querydsl.CaseWhen[int](users.Status.Eq(1), 1).Else(0)
 
 	query := SelectFrom(users, users.ID).
 		Where(And(
+			querydsl.CompareValue(activeScore, querydsl.OpGe, 0),
+			querydsl.CompareOperand(activeScore, querydsl.OpLe, users.Status),
 			querydsl.NotLike(users.Username, "%bot%"),
 			users.Status.NotInList(collectionx.NewList[int](0, 9)),
 			users.ID.Between(10, 20),
-			users.RoleID.NotInQuery(querydsl.SelectValue(activeID).From(activeUsers)),
+			querydsl.CompareQuery(users.RoleID, querydsl.OpNotIn, querydsl.SelectValue(activeID).From(activeUsers)),
 		))
 
 	bound, err := query.Build(testSQLiteDialect{})
@@ -89,7 +92,7 @@ func TestTypedPredicateHelpersBuildSQLite(t *testing.T) {
 		t.Fatalf("Build returned error: %v", err)
 	}
 
-	expectedSQL := `SELECT "users"."id" FROM "users" WHERE ("users"."username" NOT LIKE ? AND "users"."status" NOT IN (?, ?) AND "users"."id" BETWEEN ? AND ? AND "users"."role_id" NOT IN (SELECT "active_users"."id" FROM "active_users"))`
+	expectedSQL := `SELECT "users"."id" FROM "users" WHERE (CASE WHEN "users"."status" = ? THEN ? ELSE ? END >= ? AND CASE WHEN "users"."status" = ? THEN ? ELSE ? END <= "users"."status" AND "users"."username" NOT LIKE ? AND "users"."status" NOT IN (?, ?) AND "users"."id" BETWEEN ? AND ? AND "users"."role_id" NOT IN (SELECT "active_users"."id" FROM "active_users"))`
 	if bound.SQL != expectedSQL {
 		t.Fatalf("unexpected typed predicate SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
