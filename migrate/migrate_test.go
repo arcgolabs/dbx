@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"path/filepath"
 	"testing"
+	"testing/fstest"
 
 	"github.com/arcgolabs/dbx/migrate"
 	"github.com/stretchr/testify/require"
@@ -54,6 +55,161 @@ func TestFileSourceList_RejectsPathTraversal(t *testing.T) {
 	_, err := source.List()
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "path traversal")
+}
+
+func TestParseVersionedFilenameWithDatabaseSelector(t *testing.T) {
+	t.Parallel()
+
+	parsed, err := migrate.ParseVersionedFilename("V1__create_user.sql")
+	require.NoError(t, err)
+	require.Equal(t, "1", parsed.Version)
+	require.Equal(t, "create user", parsed.Description)
+	require.Equal(t, migrate.KindSQL, parsed.Kind)
+	require.Equal(t, migrate.DirectionUp, parsed.Direction)
+	require.Equal(t, migrate.DialectAny, parsed.Database)
+
+	parsed, err = migrate.ParseVersionedFilename("V12__create_user__sqlite.sql")
+	require.NoError(t, err)
+	require.Equal(t, "12", parsed.Version)
+	require.Equal(t, "create user", parsed.Description)
+	require.Equal(t, migrate.DialectSQLite, parsed.Database)
+
+	parsed, err = migrate.ParseVersionedFilename("R__refresh_cache__MySQL.sql")
+	require.NoError(t, err)
+	require.Equal(t, "", parsed.Version)
+	require.Equal(t, "refresh cache", parsed.Description)
+	require.Equal(t, migrate.KindRepeatable, parsed.Kind)
+	require.Equal(t, migrate.DirectionUp, parsed.Direction)
+	require.Equal(t, migrate.DialectMySQL, parsed.Database)
+}
+
+func TestFileSourceList_RespectsDatabaseFilter(t *testing.T) {
+	t.Parallel()
+
+	baseSource := migrate.FileSource{
+		FS: fstest.MapFS{
+			"sql/V1__create_users.sql":           &fstest.MapFile{Data: []byte("CREATE TABLE users (id INTEGER PRIMARY KEY);\n")},
+			"sql/V2__seed_users__sqlite.sql":     &fstest.MapFile{Data: []byte("INSERT INTO users (id) VALUES (1);\n")},
+			"sql/V2__seed_users__mysql.sql":      &fstest.MapFile{Data: []byte("INSERT INTO users (id) VALUES (1);\n")},
+			"sql/V3__seed_roles__sqlite.sql":     &fstest.MapFile{Data: []byte("INSERT INTO roles (id) VALUES (1);\n")},
+			"sql/V4__seed_roles__postgresql.sql": &fstest.MapFile{Data: []byte("INSERT INTO roles (id) VALUES (1);\n")},
+		},
+		Dir: "sql",
+	}
+
+	items, err := baseSource.List()
+	require.NoError(t, err)
+	require.Equal(t, 5, items.Len())
+	var hasV1Any, hasV2Sqlite, hasV2Mysql, hasV3Sqlite, hasV4Pg bool
+	for i := 0; i < items.Len(); i++ {
+		item, ok := items.Get(i)
+		require.True(t, ok)
+		switch item.Version {
+		case "1":
+			hasV1Any = hasV1Any || item.Database == migrate.DialectAny
+		case "2":
+			if item.Database == migrate.DialectSQLite {
+				hasV2Sqlite = true
+			}
+			if item.Database == migrate.DialectMySQL {
+				hasV2Mysql = true
+			}
+		case "3":
+			hasV3Sqlite = true
+		case "4":
+			hasV4Pg = true
+		}
+	}
+	require.True(t, hasV1Any)
+	require.True(t, hasV2Sqlite)
+	require.True(t, hasV2Mysql)
+	require.True(t, hasV3Sqlite)
+	require.True(t, hasV4Pg)
+
+	items, err = migrate.FileSource{
+		FS:       baseSource.FS,
+		Dir:      baseSource.Dir,
+		Database: migrate.DialectSQLite,
+	}.List()
+	require.NoError(t, err)
+	require.Equal(t, 3, items.Len())
+	versions := make(map[string]struct{}, items.Len())
+	databases := make(map[migrate.DialectName]int, items.Len())
+	for i := 0; i < items.Len(); i++ {
+		item, ok := items.Get(i)
+		require.True(t, ok)
+		versions[item.Version] = struct{}{}
+		databases[item.Database]++
+	}
+	var hasV1, hasV2, hasV3 bool
+	_, hasV1 = versions["1"]
+	_, hasV2 = versions["2"]
+	_, hasV3 = versions["3"]
+	require.True(t, hasV1)
+	require.True(t, hasV2)
+	require.True(t, hasV3)
+	require.Equal(t, 1, databases[migrate.DialectAny])
+	require.Equal(t, 2, databases[migrate.DialectSQLite])
+
+	items, err = migrate.FileSource{
+		FS:       baseSource.FS,
+		Dir:      baseSource.Dir,
+		Database: migrate.DialectMySQL,
+	}.List()
+	require.NoError(t, err)
+	require.Equal(t, 2, items.Len())
+	versions = make(map[string]struct{}, items.Len())
+	for i := 0; i < items.Len(); i++ {
+		item, ok := items.Get(i)
+		require.True(t, ok)
+		versions[item.Version] = struct{}{}
+	}
+	_, hasV1 = versions["1"]
+	_, hasV2 = versions["2"]
+	require.True(t, hasV1)
+	require.True(t, hasV2)
+}
+
+func TestParseDialectName(t *testing.T) {
+	t.Parallel()
+
+	parsed, err := migrate.ParseDialectName("mysql")
+	require.NoError(t, err)
+	require.Equal(t, migrate.DialectMySQL, parsed)
+
+	parsed, err = migrate.ParseDialectName("PostgreSQL")
+	require.NoError(t, err)
+	require.Equal(t, migrate.DialectPostgres, parsed)
+
+	parsed, err = migrate.ParseDialectName("  sqlite3  ")
+	require.NoError(t, err)
+	require.Equal(t, migrate.DialectSQLite, parsed)
+
+	_, err = migrate.ParseDialectName("oracle")
+	require.Error(t, err)
+}
+
+type testDialectContract struct{}
+
+func (testDialectContract) Name() string {
+	return "sqlite"
+}
+
+func (testDialectContract) BindVar(_ int) string { return "" }
+
+func (testDialectContract) QuoteIdent(ident string) string { return ident }
+
+func (testDialectContract) RenderLimitOffset(*int, *int) (string, error) { return "", nil }
+
+func TestDialectFromDialect(t *testing.T) {
+	t.Parallel()
+
+	database, err := migrate.DialectFromDialect(testDialectContract{})
+	require.NoError(t, err)
+	require.Equal(t, migrate.DialectSQLite, database)
+
+	_, err = migrate.DialectFromDialect(nil)
+	require.Error(t, err)
 }
 
 type fakeFSWithEntry struct {

@@ -54,12 +54,12 @@ weight: 18
 - `schemamigrate.AutoMigrate(ctx, session, schemas...)`
 - `plan.SQLPreview()`
 - `migrate.NewRunner(sqlDB, dialect, options)` - construct migration runner
+- `migrate.NewGoMigration(version, description, up, down, databases...)` - optional `databases` names bind a Go migration to one or more dialects; empty means run for all
 - `(*Runner).UpGo(ctx, migrations...)`
 - `(*Runner).UpGoTo(ctx, version, migrations...)`
 - `(*Runner).DownGoTo(ctx, version, migrations...)`
-- `(*Runner).UpSQL(ctx, source)`
-- `(*Runner).UpSQLTo(ctx, version, source)`
-- `(*Runner).DownSQLTo(ctx, version, source)`
+- `(*Runner).UpSQL(ctx, source)` / `(*Runner).UpSQLTo(ctx, version, source)` / `(*Runner).DownSQLTo(ctx, version, source)`
+- `FileSource.Database`: set explicit SQL migration dialect suffix filter, e.g. `FileSource{FS: fs, Dir: "migrations", Database: migrate.DialectMySQL}`
 - `(*Runner).PendingGo(ctx, migrations...)`
 - `(*Runner).PendingSQL(ctx, source)`
 - `(*Runner).StatusGo(ctx, migrations...)`

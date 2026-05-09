@@ -33,6 +33,7 @@ type MigrationStatus struct {
 
 // StatusGo returns the current status for provided Go migrations.
 func (r *Runner) StatusGo(ctx context.Context, migrations ...Migration) (*collectionx.List[MigrationStatus], error) {
+	migrations = r.filterGoMigrationsByDialect(migrations)
 	bundle, err := r.newRunnerEngineForGo(migrations)
 	if err != nil {
 		return nil, err

@@ -11,6 +11,7 @@ import (
 
 // PendingGo returns Go migrations that have not yet been applied.
 func (r *Runner) PendingGo(ctx context.Context, migrations ...Migration) (*collectionx.List[Migration], error) {
+	migrations = r.filterGoMigrationsByDialect(migrations)
 	bundle, err := r.newRunnerEngineForGo(migrations)
 	if err != nil {
 		return nil, err

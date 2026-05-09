@@ -29,6 +29,7 @@ type sqlEngineBuildState struct {
 }
 
 func (r *Runner) newRunnerEngineForGo(migrations []Migration) (*runnerEngine, error) {
+	migrations = r.filterGoMigrationsByDialect(migrations)
 	if len(migrations) == 0 {
 		return &runnerEngine{runner: r, metaByVersion: mappingx.NewMap[int64, AppliedRecord]()}, nil
 	}
@@ -63,7 +64,75 @@ func (r *Runner) newRunnerEngineForGo(migrations []Migration) (*runnerEngine, er
 	return r.newRunnerEngine(state.gooseMigrations.Values(), state.metaByVersion)
 }
 
+func (r *Runner) filterGoMigrationsByDialect(migrations []Migration) []Migration {
+	if len(migrations) == 0 {
+		return migrations
+	}
+	if r == nil || r.dialect == nil {
+		return migrations
+	}
+
+	target, err := DialectFromDialect(r.dialect)
+	if err != nil || target.IsAny() {
+		return migrations
+	}
+
+	filtered := make([]Migration, 0, len(migrations))
+	for _, migration := range migrations {
+		databases := migrationDatabases(migration)
+		if len(databases) == 0 {
+			filtered = append(filtered, migration)
+			continue
+		}
+
+		matched := false
+		for _, database := range databases {
+			if database == target {
+				matched = true
+				break
+			}
+		}
+		if matched {
+			filtered = append(filtered, migration)
+		}
+	}
+
+	return filtered
+}
+
+func migrationDatabases(migration Migration) []DialectName {
+	type databaseAwareMigration interface {
+		Databases() []DialectName
+	}
+
+	databaseAware, ok := migration.(databaseAwareMigration)
+	if !ok {
+		return nil
+	}
+	return databaseAware.Databases()
+}
+
+func (r *Runner) sqlSourceForDialect(source FileSource) FileSource {
+	if source.Database.IsKnown() {
+		return source
+	}
+	if !source.Database.IsValid() || r == nil || r.dialect == nil {
+		return source
+	}
+
+	database, err := DialectFromDialect(r.dialect)
+	if err != nil {
+		return source
+	}
+	if database.IsAny() {
+		return source
+	}
+	source.Database = database
+	return source
+}
+
 func (r *Runner) newRunnerEngineForSQL(source FileSource) (*runnerEngine, *collectionx.List[loadedSQLMigration], error) {
+	source = r.sqlSourceForDialect(source)
 	loaded, err := loadSQLMigrations(source)
 	if err != nil {
 		return nil, nil, err

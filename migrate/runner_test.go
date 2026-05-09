@@ -138,6 +138,66 @@ func TestRunnerUpSQLAppliesVersionedFiles(t *testing.T) {
 	require.True(t, sqliteTableExists(ctx, t, db, "schema_history"))
 }
 
+func TestRunnerUpSQLAppliesGenericAndMatchingDialectFiles(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-sql-dialect.db"))
+	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
+
+	source := migrate.FileSource{
+		FS: fstest.MapFS{
+			"sql/V1__create_generic.sql":                     &fstest.MapFile{Data: []byte("CREATE TABLE generic (id INTEGER PRIMARY KEY);\n")},
+			"sql/V2__create_sqlite_specific_tbl__sqlite.sql": &fstest.MapFile{Data: []byte("CREATE TABLE dialect_specific_table (id INTEGER PRIMARY KEY);\n")},
+			"sql/V2__create_mysql_specific__mysql.sql":       &fstest.MapFile{Data: []byte("CREATE TABLE mysql_specific_table (id INTEGER PRIMARY KEY);\n")},
+		},
+		Dir: "sql",
+	}
+
+	report, err := runner.UpSQL(ctx, source)
+	require.NoError(t, err)
+	require.Equal(t, 2, report.Applied.Len())
+	require.True(t, sqliteTableExists(ctx, t, db, "generic"))
+	require.True(t, sqliteTableExists(ctx, t, db, "dialect_specific_table"))
+	require.False(t, sqliteTableExists(ctx, t, db, "mysql_specific_table"))
+}
+
+func TestRunnerUpGoAppliesMatchingDialectOnly(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-go-dialect.db"))
+	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
+
+	migration1 := migrate.NewGoMigration("1", "create generic", func(ctx context.Context, tx *sql.Tx) error {
+		_, execErr := tx.ExecContext(ctx, `CREATE TABLE generic_go (id INTEGER PRIMARY KEY)`)
+		if execErr != nil {
+			return fmt.Errorf("create generic_go table: %w", execErr)
+		}
+		return nil
+	}, nil)
+	migration2 := migrate.NewGoMigration("2", "create sqlite", func(ctx context.Context, tx *sql.Tx) error {
+		_, execErr := tx.ExecContext(ctx, `CREATE TABLE migration_sqlite (id INTEGER PRIMARY KEY)`)
+		if execErr != nil {
+			return fmt.Errorf("create migration_sqlite table: %w", execErr)
+		}
+		return nil
+	}, nil, migrate.DialectSQLite)
+	migration3 := migrate.NewGoMigration("3", "create mysql", func(ctx context.Context, tx *sql.Tx) error {
+		_, execErr := tx.ExecContext(ctx, `CREATE TABLE mysql_migration (id INTEGER PRIMARY KEY)`)
+		if execErr != nil {
+			return fmt.Errorf("create mysql_migration table: %w", execErr)
+		}
+		return nil
+	}, nil, migrate.DialectMySQL)
+
+	_, err := runner.UpGo(ctx, migration1, migration2, migration3)
+	require.NoError(t, err)
+	require.True(t, sqliteTableExists(ctx, t, db, "generic_go"))
+	require.True(t, sqliteTableExists(ctx, t, db, "migration_sqlite"))
+	require.False(t, sqliteTableExists(ctx, t, db, "mysql_migration"))
+}
+
 func TestRunnerUpGoToAndDownGoTo(t *testing.T) {
 	ctx := context.Background()
 	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-go-to.db"))

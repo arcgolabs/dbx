@@ -352,6 +352,9 @@ _, err = runner.UpGo(ctx, migrate.NewGoMigration("1", "create users", up, nil))
 if err != nil {
     panic(err)
 }
+
+// Optionally, tie a Go migration to a dialect:
+// migrate.NewGoMigration("2", "seed defaults", upSeeds, nil, migrate.DialectSQLite)
 ```
 
 Current behavior:

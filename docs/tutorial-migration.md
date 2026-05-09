@@ -106,13 +106,14 @@ func runMigrations(ctx context.Context, core *dbx.DB) error {
 	// Go migrations: apply exactly up to version 3.
 	if _, err := runner.UpGoTo(ctx, 3,
 		migrate.NewGoMigration("1", "create users", upUsers, downUsers),
-		migrate.NewGoMigration("2", "seed roles", upRoles, nil),
-		migrate.NewGoMigration("3", "add constraints", upConstraints, downConstraints),
+		migrate.NewGoMigration("2", "seed roles", upRoles, nil, migrate.DialectSQLite), // only runs on sqlite
+		migrate.NewGoMigration("3", "add constraints", upConstraints, downConstraints, migrate.DialectMySQL, migrate.DialectPostgres),
 	); err != nil {
 		return err
 	}
 
-	// SQL migrations from embed.FS: supports V1/V2 ... and optional U2 rollback files.
+	// SQL migrations from embed.FS.
+	// Supported naming: V2__seed_users.sql (all dialects), or V2__seed_users__sqlite.sql (only sqlite).
 	source := migrate.FileSource{
 		FS:  sqlFS,
 		Dir: "migrations",
@@ -169,7 +170,7 @@ for i := range status.SQL.Len() {
 		continue
 	}
 	if item.State != migrate.MigrationStateApplied {
-		fmt.Printf("sql migration %s: %s\\n", item.Version, item.State)
+		fmt.Printf("sql migration %s (%s): %s\\n", item.Version, item.Description, item.State)
 	}
 }
 ```
