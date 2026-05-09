@@ -176,6 +176,22 @@ for i := range status.SQL.Len() {
 
 You can also use `PendingGo`, `PendingSQL`, `PendingAll` for rollout orchestration.
 
+For teams that want a single call for both sources, `ApplyAll` is available as an orchestration helper.
+It delegates to the low-level `Up*/Down*/Status*` methods and keeps those APIs unchanged.
+
+```go
+_, err := runner.ApplyAll(ctx, migrate.MigrationApplySpec{
+	Direction: migrate.DirectionUp,
+	GoMigrations: []migrate.Migration{
+		migrate.NewGoMigration("1", "create users", upUsers, downUsers),
+	},
+	SQLSource: &migrate.FileSource{FS: sqlFS, Dir: "migrations"},
+})
+if err != nil {
+	return err
+}
+```
+
 ## Pitfalls
 
 - Treating `AutoMigrate` as a destructive migration engine is risky; keep manual migrations for breaking changes.
