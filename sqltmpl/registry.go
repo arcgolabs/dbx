@@ -1,6 +1,7 @@
 package sqltmpl
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"path"
@@ -39,19 +40,29 @@ func (r *Registry) Template(name string) (*Template, error) {
 	if cached, ok := r.cache.Peek(normalized); ok {
 		return cached, nil
 	}
-
-	content, err := fs.ReadFile(r.fsys, normalized)
+	resolved, err := r.resolveTemplateName(normalized)
 	if err != nil {
-		return nil, fmt.Errorf("read template %q: %w", normalized, err)
+		return nil, err
 	}
-	template, err := r.engine.CompileNamed(normalized, string(content))
-	if err != nil {
-		return nil, fmt.Errorf("compile template %q: %w", normalized, err)
-	}
-
-	if cached, ok := r.cache.Peek(normalized); ok {
+	if cached, ok := r.cache.Peek(resolved); ok {
+		r.cache.Set(normalized, cached)
 		return cached, nil
 	}
+
+	content, err := fs.ReadFile(r.fsys, resolved)
+	if err != nil {
+		return nil, fmt.Errorf("read template %q: %w", resolved, err)
+	}
+	template, err := r.engine.CompileNamed(resolved, string(content))
+	if err != nil {
+		return nil, fmt.Errorf("compile template %q: %w", resolved, err)
+	}
+
+	if cached, ok := r.cache.Peek(resolved); ok {
+		r.cache.Set(normalized, cached)
+		return cached, nil
+	}
+	r.cache.Set(resolved, template)
 	r.cache.Set(normalized, template)
 	return template, nil
 }
@@ -166,4 +177,57 @@ func (r *Registry) CheckAll(samples map[string]any) (*collectionx.List[CheckRepo
 func normalizeTemplateName(name string) string {
 	normalized := path.Clean(strings.TrimSpace(name))
 	return strings.TrimPrefix(normalized, "/")
+}
+
+func (r *Registry) resolveTemplateName(name string) (string, error) {
+	if isDialectTemplateName(name) {
+		return name, nil
+	}
+	dialectName := registryDialectName(r)
+	if dialectName == "" {
+		return name, nil
+	}
+	candidate := dialectTemplateName(name, dialectName)
+	if candidate == name {
+		return name, nil
+	}
+	if _, err := fs.Stat(r.fsys, candidate); err == nil {
+		return candidate, nil
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		return "", fmt.Errorf("stat template %q: %w", candidate, err)
+	}
+	return name, nil
+}
+
+func registryDialectName(r *Registry) string {
+	if r == nil || r.engine == nil || r.engine.dialect == nil {
+		return ""
+	}
+	return sanitizeDialectTemplateSuffix(r.engine.dialect.Name())
+}
+
+func dialectTemplateName(name, dialectName string) string {
+	dialectName = sanitizeDialectTemplateSuffix(dialectName)
+	if dialectName == "" {
+		return name
+	}
+	dir, file := path.Split(name)
+	ext := path.Ext(file)
+	stem := strings.TrimSuffix(file, ext)
+	if stem == "" {
+		return name
+	}
+	return dir + stem + "__" + dialectName + ext
+}
+
+func isDialectTemplateName(name string) bool {
+	_, file := path.Split(name)
+	ext := path.Ext(file)
+	stem := strings.TrimSuffix(file, ext)
+	_, suffix, ok := strings.Cut(stem, "__")
+	return ok && strings.TrimSpace(suffix) != ""
+}
+
+func sanitizeDialectTemplateSuffix(name string) string {
+	return strings.ToLower(strings.TrimSpace(name))
 }

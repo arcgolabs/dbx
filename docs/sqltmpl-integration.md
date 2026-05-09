@@ -144,6 +144,21 @@ items, err := sqlexec.ListTyped[FindActiveParams, UserSummary](
 )
 ```
 
+## Dialect-Specific Templates
+
+`Registry` resolves dialect-specific files before the base file. Call sites keep using the logical name:
+
+```go
+stmt := registry.MustStatement("sql/user/find_active.sql")
+```
+
+With a SQLite registry, the lookup order is:
+
+- `sql/user/find_active__sqlite.sql`
+- `sql/user/find_active.sql`
+
+Use the same suffix convention for other dialect names, for example `__mysql` or `__postgres`. Passing an explicit dialect file such as `sql/user/find_active__mysql.sql` loads that exact file.
+
 ## When to Use It
 
 - SQL is complex and easier to maintain as `.sql` files.

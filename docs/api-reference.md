@@ -98,6 +98,7 @@ weight: 18
 - `sqltmpl.WithValidator(validator)` - validate rendered SQL during development or CI.
 - `sqltmpl.NewRegistry(fs, dialect)`
 - `registry.MustStatement(path)`
+- `registry.Statement("sql/user/find.sql")` resolves `sql/user/find__<dialect>.sql` first, then falls back to the base file.
 - `sqltmpl.Page(page, pageSize)` / `sqltmpl.NewPageRequest(page, pageSize)`
 - `sqltmpl.WithPage(params, request)` / `sqltmpl.WithTypedPage[P](params, request)`
 - `template.RenderPage(params, request)` / `template.BindPage(params, request)`

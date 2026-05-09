@@ -116,6 +116,60 @@ order by id
 	require.Equal(t, []any{2}, bound.Args.Values())
 }
 
+func TestRegistryPrefersDialectTemplate(t *testing.T) {
+	registry := sqltmpl.NewRegistry(fstest.MapFS{
+		"sql/user/find.sql": {
+			Data: []byte(`select 'base' as flavor`),
+		},
+		"sql/user/find__sqlite.sql": {
+			Data: []byte(`select 'sqlite' as flavor`),
+		},
+	}, sqlite.New())
+
+	template, err := registry.Template("sql/user/find.sql")
+	require.NoError(t, err)
+	require.Equal(t, "sql/user/find__sqlite.sql", template.StatementName())
+
+	bound, err := template.Bind(nil)
+	require.NoError(t, err)
+	require.Contains(t, bound.SQL, "'sqlite'")
+
+	again, err := registry.Template("/sql/user/find.sql")
+	require.NoError(t, err)
+	require.Same(t, template, again)
+}
+
+func TestRegistryResolvesDialectTemplateWithoutBaseTemplate(t *testing.T) {
+	registry := sqltmpl.NewRegistry(fstest.MapFS{
+		"sql/user/find__sqlite.sql": {
+			Data: []byte(`select 'sqlite' as flavor`),
+		},
+	}, sqlite.New())
+
+	template, err := registry.Statement("sql/user/find.sql")
+	require.NoError(t, err)
+	require.Equal(t, "sql/user/find__sqlite.sql", template.StatementName())
+}
+
+func TestRegistryLoadsExplicitDialectTemplateName(t *testing.T) {
+	registry := sqltmpl.NewRegistry(fstest.MapFS{
+		"sql/user/find__mysql.sql": {
+			Data: []byte(`select 'mysql' as flavor`),
+		},
+		"sql/user/find__sqlite.sql": {
+			Data: []byte(`select 'sqlite' as flavor`),
+		},
+	}, sqlite.New())
+
+	template, err := registry.Template("sql/user/find__mysql.sql")
+	require.NoError(t, err)
+	require.Equal(t, "sql/user/find__mysql.sql", template.StatementName())
+
+	bound, err := template.Bind(nil)
+	require.NoError(t, err)
+	require.Contains(t, bound.SQL, "'mysql'")
+}
+
 func TestRegistryPreloadAndPreloadAll(t *testing.T) {
 	registry := sqltmpl.NewRegistry(fstest.MapFS{
 		"sql/user/find_active.sql": {
