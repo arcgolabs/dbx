@@ -22,7 +22,7 @@ func (s *Store[E, S]) keyOf(entity *E) repository.Key {
 		return nil
 	}
 	root := reflect.ValueOf(entity)
-	if root.Kind() != reflect.Ptr || root.IsNil() {
+	if root.Kind() != reflect.Pointer || root.IsNil() {
 		return nil
 	}
 	root = root.Elem()
@@ -101,7 +101,7 @@ func mappedStructField(value reflect.Value, fieldName string, index int) (reflec
 }
 
 func requireStructValue(value reflect.Value, fieldName string) (reflect.Value, error) {
-	if value.Kind() == reflect.Ptr {
+	if value.Kind() == reflect.Pointer {
 		if value.IsNil() {
 			return reflect.Value{}, fmt.Errorf("dbx: nil pointer for field %s", fieldName)
 		}
@@ -114,7 +114,7 @@ func requireStructValue(value reflect.Value, fieldName string) (reflect.Value, e
 }
 
 func dereferenceMappedValue(value reflect.Value) reflect.Value {
-	for value.Kind() == reflect.Ptr {
+	for value.Kind() == reflect.Pointer {
 		if value.IsNil() {
 			return reflect.Zero(value.Type().Elem())
 		}
@@ -153,5 +153,5 @@ func isZeroKeyValue(value any) bool {
 
 func isNilKeyValue(value reflect.Value) bool {
 	kind := value.Kind()
-	return (kind == reflect.Ptr || kind == reflect.Interface) && value.IsNil()
+	return (kind == reflect.Pointer || kind == reflect.Interface) && value.IsNil()
 }
