@@ -18,7 +18,12 @@ import (
 type Registry struct {
 	engine *Engine
 	fsys   fs.FS
-	cache  *hot.HotCache[string, *Template]
+	cache  *hot.HotCache[registryCacheKey, *Template]
+}
+
+type registryCacheKey struct {
+	name    string
+	dialect string
 }
 
 // NewRegistry returns a template registry backed by the provided filesystem.
@@ -26,26 +31,35 @@ func NewRegistry(fsys fs.FS, d dialect.Contract, opts ...Option) *Registry {
 	return &Registry{
 		engine: New(d, opts...),
 		fsys:   fsys,
-		cache:  hot.NewHotCache[string, *Template](hot.LRU, 256).Build(),
+		cache:  hot.NewHotCache[registryCacheKey, *Template](hot.LRU, 256).Build(),
 	}
 }
 
 // Template loads or returns a cached template by name.
 func (r *Registry) Template(name string) (*Template, error) {
-	if r == nil || r.engine == nil || r.fsys == nil {
-		return nil, sqlstmt.ErrNilStatement
+	return r.TemplateFor(name, registryDialect(r))
+}
+
+// TemplateFor loads or returns a cached template by name using d for dialect
+// suffix resolution and template rendering.
+func (r *Registry) TemplateFor(name string, d dialect.Contract) (*Template, error) {
+	if err := r.validateTemplateRequest(d); err != nil {
+		return nil, err
 	}
 
 	normalized := normalizeTemplateName(name)
-	if cached, ok := r.cache.Peek(normalized); ok {
+	dialectName := sanitizeDialectTemplateSuffix(d.Name())
+	cacheKey := registryCacheKey{name: normalized, dialect: dialectName}
+	if cached, ok := r.cache.Peek(cacheKey); ok {
 		return cached, nil
 	}
-	resolved, err := r.resolveTemplateName(normalized)
+	resolved, err := r.resolveTemplateName(normalized, dialectName)
 	if err != nil {
 		return nil, err
 	}
-	if cached, ok := r.cache.Peek(resolved); ok {
-		r.cache.Set(normalized, cached)
+	resolvedKey := registryCacheKey{name: resolved, dialect: dialectName}
+	if cached, ok := r.cache.Peek(resolvedKey); ok {
+		r.cache.Set(cacheKey, cached)
 		return cached, nil
 	}
 
@@ -53,18 +67,25 @@ func (r *Registry) Template(name string) (*Template, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read template %q: %w", resolved, err)
 	}
-	template, err := r.engine.CompileNamed(resolved, string(content))
+	template, err := compileTemplate(resolved, string(content), d, r.engine.cfg)
 	if err != nil {
 		return nil, fmt.Errorf("compile template %q: %w", resolved, err)
 	}
 
-	if cached, ok := r.cache.Peek(resolved); ok {
-		r.cache.Set(normalized, cached)
+	if cached, ok := r.cache.Peek(resolvedKey); ok {
+		r.cache.Set(cacheKey, cached)
 		return cached, nil
 	}
-	r.cache.Set(resolved, template)
-	r.cache.Set(normalized, template)
+	r.cache.Set(resolvedKey, template)
+	r.cache.Set(cacheKey, template)
 	return template, nil
+}
+
+func (r *Registry) validateTemplateRequest(d dialect.Contract) error {
+	if r == nil || r.engine == nil || r.fsys == nil || d == nil {
+		return sqlstmt.ErrNilStatement
+	}
+	return nil
 }
 
 // MustTemplate loads a template and panics on error.
@@ -76,9 +97,23 @@ func (r *Registry) MustTemplate(name string) *Template {
 	return template
 }
 
+// MustTemplateFor loads a template for d and panics on error.
+func (r *Registry) MustTemplateFor(name string, d dialect.Contract) *Template {
+	template, err := r.TemplateFor(name, d)
+	if err != nil {
+		panic(err)
+	}
+	return template
+}
+
 // Statement loads or returns a cached statement template by name.
 func (r *Registry) Statement(name string) (*Template, error) {
 	return r.Template(name)
+}
+
+// StatementFor loads or returns a cached statement template by name for d.
+func (r *Registry) StatementFor(name string, d dialect.Contract) (*Template, error) {
+	return r.TemplateFor(name, d)
 }
 
 // MustStatement loads a statement template and panics on error.
@@ -86,14 +121,24 @@ func (r *Registry) MustStatement(name string) *Template {
 	return r.MustTemplate(name)
 }
 
+// MustStatementFor loads a statement template for d and panics on error.
+func (r *Registry) MustStatementFor(name string, d dialect.Contract) *Template {
+	return r.MustTemplateFor(name, d)
+}
+
 // Preload loads and caches the named templates.
 func (r *Registry) Preload(names ...string) (*collectionx.List[*Template], error) {
+	return r.PreloadFor(registryDialect(r), names...)
+}
+
+// PreloadFor loads and caches the named templates for d.
+func (r *Registry) PreloadFor(d dialect.Contract, names ...string) (*collectionx.List[*Template], error) {
 	if r == nil {
 		return nil, sqlstmt.ErrNilStatement
 	}
 	templates := collectionx.NewListWithCapacity[*Template](len(names))
 	for _, name := range names {
-		template, err := r.Template(name)
+		template, err := r.TemplateFor(name, d)
 		if err != nil {
 			return nil, err
 		}
@@ -129,20 +174,30 @@ func (r *Registry) Names() (*collectionx.List[string], error) {
 
 // PreloadAll loads and caches every .sql template from the registry filesystem.
 func (r *Registry) PreloadAll() (*collectionx.List[*Template], error) {
+	return r.PreloadAllFor(registryDialect(r))
+}
+
+// PreloadAllFor loads and caches every .sql template from the registry filesystem for d.
+func (r *Registry) PreloadAllFor(d dialect.Contract) (*collectionx.List[*Template], error) {
 	names, err := r.Names()
 	if err != nil {
 		return nil, err
 	}
-	return r.Preload(names.Values()...)
+	return r.PreloadFor(d, names.Values()...)
 }
 
 // Check loads a template, renders it with params, and collects any available SQL analysis.
 func (r *Registry) Check(name string, params any) (CheckReport, error) {
+	return r.CheckFor(name, registryDialect(r), params)
+}
+
+// CheckFor loads a template for d, renders it with params, and collects SQL analysis.
+func (r *Registry) CheckFor(name string, d dialect.Contract, params any) (CheckReport, error) {
 	if r == nil {
 		report := CheckReport{Stage: CheckStageLoad, Err: sqlstmt.ErrNilStatement}
 		return report, report.Err
 	}
-	template, err := r.Template(name)
+	template, err := r.TemplateFor(name, d)
 	if err != nil {
 		report := CheckReport{
 			Name:           normalizeTemplateName(name),
@@ -157,6 +212,11 @@ func (r *Registry) Check(name string, params any) (CheckReport, error) {
 
 // CheckAll loads every .sql template from the registry and checks each using samples[name].
 func (r *Registry) CheckAll(samples map[string]any) (*collectionx.List[CheckReport], error) {
+	return r.CheckAllFor(registryDialect(r), samples)
+}
+
+// CheckAllFor loads every .sql template from the registry and checks each for d.
+func (r *Registry) CheckAllFor(d dialect.Contract, samples map[string]any) (*collectionx.List[CheckReport], error) {
 	names, err := r.Names()
 	if err != nil {
 		return nil, err
@@ -164,7 +224,7 @@ func (r *Registry) CheckAll(samples map[string]any) (*collectionx.List[CheckRepo
 
 	reports := collectionx.NewListWithCapacity[CheckReport](names.Len())
 	names.Range(func(_ int, name string) bool {
-		report, checkErr := r.Check(name, samples[name])
+		report, checkErr := r.CheckFor(name, d, sampleForTemplate(samples, name))
 		if checkErr != nil {
 			report.Err = checkErr
 		}
@@ -179,55 +239,42 @@ func normalizeTemplateName(name string) string {
 	return strings.TrimPrefix(normalized, "/")
 }
 
-func (r *Registry) resolveTemplateName(name string) (string, error) {
+func (r *Registry) resolveTemplateName(name, dialectName string) (string, error) {
 	if isDialectTemplateName(name) {
 		return name, nil
 	}
-	dialectName := registryDialectName(r)
 	if dialectName == "" {
 		return name, nil
 	}
-	candidate := dialectTemplateName(name, dialectName)
-	if candidate == name {
-		return name, nil
-	}
-	if _, err := fs.Stat(r.fsys, candidate); err == nil {
-		return candidate, nil
-	} else if !errors.Is(err, fs.ErrNotExist) {
-		return "", fmt.Errorf("stat template %q: %w", candidate, err)
+	for _, candidate := range dialectTemplateNames(name, dialectName) {
+		if candidate == name {
+			continue
+		}
+		if _, err := fs.Stat(r.fsys, candidate); err == nil {
+			return candidate, nil
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			return "", fmt.Errorf("stat template %q: %w", candidate, err)
+		}
 	}
 	return name, nil
 }
 
-func registryDialectName(r *Registry) string {
+func registryDialect(r *Registry) dialect.Contract {
 	if r == nil || r.engine == nil || r.engine.dialect == nil {
-		return ""
+		return nil
 	}
-	return sanitizeDialectTemplateSuffix(r.engine.dialect.Name())
+	return r.engine.dialect
 }
 
-func dialectTemplateName(name, dialectName string) string {
-	dialectName = sanitizeDialectTemplateSuffix(dialectName)
-	if dialectName == "" {
-		return name
+func sampleForTemplate(samples map[string]any, name string) any {
+	if len(samples) == 0 {
+		return nil
 	}
-	dir, file := path.Split(name)
-	ext := path.Ext(file)
-	stem := strings.TrimSuffix(file, ext)
-	if stem == "" {
-		return name
+	if sample, ok := samples[name]; ok {
+		return sample
 	}
-	return dir + stem + "__" + dialectName + ext
-}
-
-func isDialectTemplateName(name string) bool {
-	_, file := path.Split(name)
-	ext := path.Ext(file)
-	stem := strings.TrimSuffix(file, ext)
-	_, suffix, ok := strings.Cut(stem, "__")
-	return ok && strings.TrimSpace(suffix) != ""
-}
-
-func sanitizeDialectTemplateSuffix(name string) string {
-	return strings.ToLower(strings.TrimSpace(name))
+	if logical := logicalTemplateName(name); logical != name {
+		return samples[logical]
+	}
+	return nil
 }

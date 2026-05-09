@@ -113,12 +113,13 @@ func runMigrations(ctx context.Context, core *dbx.DB) error {
 	}
 
 	// SQL migrations from embed.FS.
-	// Supported naming: V2__seed_users.sql (all dialects), or V2__seed_users__sqlite.sql (only sqlite).
+	// Supported naming: V2__seed_users.sql (all dialects),
+	// V2__seed_users_sqlite.sql, or V2__seed_users__sqlite.sql (only sqlite).
 	source := migrate.FileSource{
 		FS:  sqlFS,
 		Dir: "migrations",
 	}
-	if _, err := runner.UpSQLTo(ctx, 2, source); err != nil {
+	if _, err := runner.UpSQLToFor(ctx, 2, migrate.DialectSQLite, source); err != nil {
 		return err
 	}
 	return nil

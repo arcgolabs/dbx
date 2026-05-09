@@ -12,10 +12,8 @@ import (
 	"testing/fstest"
 	"time"
 
-	collectionx "github.com/arcgolabs/collectionx/list"
 	"github.com/arcgolabs/dbx/migrate"
 	"github.com/stretchr/testify/require"
-	_ "modernc.org/sqlite"
 )
 
 func TestRunnerUpGoCreatesHistoryAndAppliesMigration(t *testing.T) {
@@ -150,16 +148,43 @@ func TestRunnerUpSQLAppliesGenericAndMatchingDialectFiles(t *testing.T) {
 			"sql/V1__create_generic.sql":                     &fstest.MapFile{Data: []byte("CREATE TABLE generic (id INTEGER PRIMARY KEY);\n")},
 			"sql/V2__create_sqlite_specific_tbl__sqlite.sql": &fstest.MapFile{Data: []byte("CREATE TABLE dialect_specific_table (id INTEGER PRIMARY KEY);\n")},
 			"sql/V2__create_mysql_specific__mysql.sql":       &fstest.MapFile{Data: []byte("CREATE TABLE mysql_specific_table (id INTEGER PRIMARY KEY);\n")},
+			"sql/V3__create_sqlite_single_sqlite.sql":        &fstest.MapFile{Data: []byte("CREATE TABLE dialect_single_table (id INTEGER PRIMARY KEY);\n")},
 		},
 		Dir: "sql",
 	}
 
 	report, err := runner.UpSQL(ctx, source)
 	require.NoError(t, err)
-	require.Equal(t, 2, report.Applied.Len())
+	require.Equal(t, 3, report.Applied.Len())
 	require.True(t, sqliteTableExists(ctx, t, db, "generic"))
 	require.True(t, sqliteTableExists(ctx, t, db, "dialect_specific_table"))
+	require.True(t, sqliteTableExists(ctx, t, db, "dialect_single_table"))
 	require.False(t, sqliteTableExists(ctx, t, db, "mysql_specific_table"))
+}
+
+func TestRunnerUpSQLForUsesCallTimeDialect(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-sql-calltime-dialect.db"))
+	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
+
+	source := migrate.FileSource{
+		FS: fstest.MapFS{
+			"sql/V1__create_generic.sql":               &fstest.MapFile{Data: []byte("CREATE TABLE generic_runtime (id INTEGER PRIMARY KEY);\n")},
+			"sql/V2__create_sqlite_runtime_sqlite.sql": &fstest.MapFile{Data: []byte("CREATE TABLE dialect_runtime (id INTEGER PRIMARY KEY);\n")},
+			"sql/V2__create_mysql_runtime_mysql.sql":   &fstest.MapFile{Data: []byte("CREATE TABLE mysql_runtime (id INTEGER PRIMARY KEY);\n")},
+		},
+		Dir:      "sql",
+		Database: migrate.DialectSQLite,
+	}
+
+	report, err := runner.UpSQLFor(ctx, migrate.DialectMySQL, source)
+	require.NoError(t, err)
+	require.Equal(t, 2, report.Applied.Len())
+	require.True(t, sqliteTableExists(ctx, t, db, "generic_runtime"))
+	require.False(t, sqliteTableExists(ctx, t, db, "dialect_runtime"))
+	require.True(t, sqliteTableExists(ctx, t, db, "mysql_runtime"))
 }
 
 func TestRunnerUpGoAppliesMatchingDialectOnly(t *testing.T) {
@@ -196,522 +221,4 @@ func TestRunnerUpGoAppliesMatchingDialectOnly(t *testing.T) {
 	require.True(t, sqliteTableExists(ctx, t, db, "generic_go"))
 	require.True(t, sqliteTableExists(ctx, t, db, "migration_sqlite"))
 	require.False(t, sqliteTableExists(ctx, t, db, "mysql_migration"))
-}
-
-func TestRunnerUpGoToAndDownGoTo(t *testing.T) {
-	ctx := context.Background()
-	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-go-to.db"))
-	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
-
-	migration1 := migrate.NewGoMigration("1", "create logs", func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `CREATE TABLE logs (id INTEGER PRIMARY KEY)`)
-		if execErr != nil {
-			return fmt.Errorf("create logs table: %w", execErr)
-		}
-		return nil
-	}, nil)
-	migration2 := migrate.NewGoMigration("2", "create users", func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `CREATE TABLE users (id INTEGER PRIMARY KEY)`)
-		if execErr != nil {
-			return fmt.Errorf("create users table: %w", execErr)
-		}
-		return nil
-	}, func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `DROP TABLE users`)
-		if execErr != nil {
-			return fmt.Errorf("drop users table: %w", execErr)
-		}
-		return nil
-	})
-
-	report, err := runner.UpGoTo(ctx, 1, migration1, migration2)
-	require.NoError(t, err)
-	require.Equal(t, 1, report.Applied.Len())
-	require.True(t, sqliteTableExists(ctx, t, db, "logs"))
-	require.False(t, sqliteTableExists(ctx, t, db, "users"))
-
-	report, err = runner.UpGoTo(ctx, 2, migration1, migration2)
-	require.NoError(t, err)
-	require.Equal(t, 1, report.Applied.Len())
-	require.True(t, sqliteTableExists(ctx, t, db, "users"))
-
-	report, err = runner.DownGoTo(ctx, 1, migration1, migration2)
-	require.NoError(t, err)
-	require.Equal(t, 1, report.Applied.Len())
-	require.False(t, sqliteTableExists(ctx, t, db, "users"))
-	require.True(t, sqliteTableExists(ctx, t, db, "logs"))
-
-	migrationCleanup := migrate.NewGoMigration("3", "create cleanup table", func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `CREATE TABLE tmp_cleanup (id INTEGER PRIMARY KEY)`)
-		if execErr != nil {
-			return fmt.Errorf("create tmp cleanup table: %w", execErr)
-		}
-		return nil
-	}, func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `DROP TABLE tmp_cleanup`)
-		if execErr != nil {
-			return fmt.Errorf("drop tmp cleanup table: %w", execErr)
-		}
-		return nil
-	})
-
-	_, err = runner.UpGo(ctx, migrationCleanup)
-	require.NoError(t, err)
-	require.True(t, sqliteTableExists(ctx, t, db, "tmp_cleanup"))
-
-	report, err = runner.DownGoTo(ctx, 0, migration1, migration2, migrationCleanup)
-	require.NoError(t, err)
-	require.Equal(t, 2, report.Applied.Len())
-	require.False(t, sqliteTableExists(ctx, t, db, "tmp_cleanup"))
-	require.False(t, sqliteTableExists(ctx, t, db, "users"))
-	require.True(t, sqliteTableExists(ctx, t, db, "logs"))
-}
-
-func TestRunnerUpGoToAndDownGoToInvalidTarget(t *testing.T) {
-	ctx := context.Background()
-	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-go-to-invalid.db"))
-	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
-
-	report, err := runner.UpGoTo(ctx, 0)
-	require.Error(t, err)
-	require.Equal(t, 0, report.Applied.Len())
-
-	report, err = runner.DownGoTo(ctx, -1)
-	require.Error(t, err)
-	require.Equal(t, 0, report.Applied.Len())
-}
-
-func TestRunnerUpSQLToAndDownSQLTo(t *testing.T) {
-	ctx := context.Background()
-	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-sql-to.db"))
-	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
-
-	source := migrate.FileSource{
-		FS: fstest.MapFS{
-			"sql/V1__create_logs.sql":  &fstest.MapFile{Data: []byte("CREATE TABLE logs (id INTEGER PRIMARY KEY);\n")},
-			"sql/V2__create_users.sql": &fstest.MapFile{Data: []byte("CREATE TABLE users (id INTEGER PRIMARY KEY);\n")},
-			"sql/U2__create_users.sql": &fstest.MapFile{Data: []byte("DROP TABLE users;\n")},
-		},
-		Dir: "sql",
-	}
-
-	report, err := runner.UpSQLTo(ctx, 1, source)
-	require.NoError(t, err)
-	require.Equal(t, 1, report.Applied.Len())
-	require.True(t, sqliteTableExists(ctx, t, db, "logs"))
-	require.False(t, sqliteTableExists(ctx, t, db, "users"))
-
-	report, err = runner.UpSQLTo(ctx, 2, source)
-	require.NoError(t, err)
-	require.Equal(t, 1, report.Applied.Len())
-	require.True(t, sqliteTableExists(ctx, t, db, "users"))
-
-	report, err = runner.DownSQLTo(ctx, 1, source)
-	require.NoError(t, err)
-	require.Equal(t, 1, report.Applied.Len())
-	require.False(t, sqliteTableExists(ctx, t, db, "users"))
-	require.True(t, sqliteTableExists(ctx, t, db, "logs"))
-}
-
-func TestRunnerUpSQLToAndDownSQLToInvalidTarget(t *testing.T) {
-	ctx := context.Background()
-	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-sql-to-invalid.db"))
-	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
-
-	source := migrate.FileSource{FS: fstest.MapFS{}, Dir: "sql"}
-
-	_, err := runner.UpSQLTo(ctx, 0, source)
-	require.Error(t, err)
-
-	_, err = runner.DownSQLTo(ctx, -1, source)
-	require.Error(t, err)
-}
-
-func TestRunnerStatusGo(t *testing.T) {
-	ctx := context.Background()
-	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-status-go.db"))
-	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
-
-	migration1 := migrate.NewGoMigration("1", "create sample", func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `CREATE TABLE sample (id INTEGER PRIMARY KEY)`)
-		if execErr != nil {
-			return fmt.Errorf("create sample table: %w", execErr)
-		}
-		return nil
-	}, nil)
-	migration2 := migrate.NewGoMigration("2", "add flag", func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `ALTER TABLE sample ADD COLUMN flag INTEGER NOT NULL DEFAULT 0`)
-		if execErr != nil {
-			return fmt.Errorf("alter sample table: %w", execErr)
-		}
-		return nil
-	}, nil)
-
-	statuses, err := runner.StatusGo(ctx, migration1, migration2)
-	require.NoError(t, err)
-	require.Equal(t, 2, statuses.Len())
-	for i := range statuses.Len() {
-		status, ok := statuses.Get(i)
-		require.True(t, ok)
-		require.Equal(t, migrate.MigrationStatePending, status.State)
-		require.Nil(t, status.AppliedAt)
-	}
-
-	_, err = runner.UpGo(ctx, migration1, migration2)
-	require.NoError(t, err)
-
-	statuses, err = runner.StatusGo(ctx, migration1, migration2)
-	require.NoError(t, err)
-	require.Equal(t, 2, statuses.Len())
-	for i := range statuses.Len() {
-		status, ok := statuses.Get(i)
-		require.True(t, ok)
-		require.Equal(t, migrate.MigrationStateApplied, status.State)
-		require.NotNil(t, status.AppliedAt)
-	}
-}
-
-func TestRunnerStatusAll(t *testing.T) {
-	ctx := context.Background()
-	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-status-all.db"))
-	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
-
-	migration1 := migrate.NewGoMigration("1", "create sample", func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `CREATE TABLE sample (id INTEGER PRIMARY KEY)`)
-		if execErr != nil {
-			return fmt.Errorf("create sample table: %w", execErr)
-		}
-		return nil
-	}, nil)
-	source := migrate.FileSource{
-		FS: fstest.MapFS{
-			"sql/V1__create_logs.sql": &fstest.MapFile{Data: []byte("CREATE TABLE logs (id INTEGER PRIMARY KEY);\n")},
-		},
-		Dir: "sql",
-	}
-
-	report, err := runner.UpGo(ctx, migration1)
-	require.NoError(t, err)
-	require.Equal(t, 1, report.Applied.Len())
-	_, err = runner.UpSQL(ctx, source)
-	require.NoError(t, err)
-
-	status, err := runner.StatusAll(ctx, []migrate.Migration{migration1}, &source)
-	require.NoError(t, err)
-	require.Equal(t, 1, status.Go.Len())
-	require.Equal(t, 1, status.SQL.Len())
-	for i := range status.Go.Len() {
-		item, ok := status.Go.Get(i)
-		require.True(t, ok)
-		require.Equal(t, migrate.MigrationStateApplied, item.State)
-	}
-	for i := range status.SQL.Len() {
-		item, ok := status.SQL.Get(i)
-		require.True(t, ok)
-		require.Equal(t, migrate.MigrationStateApplied, item.State)
-	}
-}
-
-func TestRunnerStatusAllWithoutSQLSource(t *testing.T) {
-	ctx := context.Background()
-	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-status-all-nosql.db"))
-	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
-
-	migration1 := migrate.NewGoMigration("1", "create sample", func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `CREATE TABLE sample (id INTEGER PRIMARY KEY)`)
-		if execErr != nil {
-			return fmt.Errorf("create sample table: %w", execErr)
-		}
-		return nil
-	}, nil)
-
-	_, err := runner.UpGo(ctx, migration1)
-	require.NoError(t, err)
-
-	status, err := runner.StatusAll(ctx, []migrate.Migration{migration1}, nil)
-	require.NoError(t, err)
-	require.NotNil(t, status.Go)
-	require.NotNil(t, status.SQL)
-	require.Equal(t, 1, status.Go.Len())
-	require.Equal(t, 0, status.SQL.Len())
-}
-
-func TestRunnerStatusSQLDetectsRepeatableOutdated(t *testing.T) {
-	ctx := context.Background()
-	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-sql-status.db"))
-	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
-
-	baseSource := migrate.FileSource{
-		FS: fstest.MapFS{
-			"sql/V1__create_logs.sql":  &fstest.MapFile{Data: []byte("CREATE TABLE logs (id INTEGER PRIMARY KEY);\n")},
-			"sql/R__refresh_cache.sql": &fstest.MapFile{Data: []byte("SELECT 1;\n")},
-		},
-		Dir: "sql",
-	}
-	_, err := runner.UpSQL(ctx, baseSource)
-	require.NoError(t, err)
-
-	nextSource := migrate.FileSource{
-		FS: fstest.MapFS{
-			"sql/V1__create_logs.sql":  &fstest.MapFile{Data: []byte("CREATE TABLE logs (id INTEGER PRIMARY KEY);\n")},
-			"sql/R__refresh_cache.sql": &fstest.MapFile{Data: []byte("SELECT 2;\n")},
-		},
-		Dir: "sql",
-	}
-
-	statuses, err := runner.StatusSQL(ctx, nextSource)
-	require.NoError(t, err)
-	require.Equal(t, 2, statuses.Len())
-
-	var repeatableStatus *migrate.MigrationStatus
-	for i := range statuses.Len() {
-		status, ok := statuses.Get(i)
-		require.True(t, ok)
-		if status.Kind == migrate.KindRepeatable {
-			repeatableStatus = &status
-			break
-		}
-	}
-	require.NotNil(t, repeatableStatus)
-	require.Equal(t, migrate.MigrationStateOutdated, repeatableStatus.State)
-}
-
-func TestRunnerPendingAll(t *testing.T) {
-	ctx := context.Background()
-	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-pending-all.db"))
-	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
-
-	migration1 := migrate.NewGoMigration("1", "create sample", func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `CREATE TABLE sample (id INTEGER PRIMARY KEY)`)
-		if execErr != nil {
-			return fmt.Errorf("create sample table: %w", execErr)
-		}
-		return nil
-	}, nil)
-	source := migrate.FileSource{
-		FS: fstest.MapFS{
-			"sql/V1__create_logs.sql":  &fstest.MapFile{Data: []byte("CREATE TABLE logs (id INTEGER PRIMARY KEY);\n")},
-			"sql/R__refresh_cache.sql": &fstest.MapFile{Data: []byte("SELECT 1;\n")},
-		},
-		Dir: "sql",
-	}
-
-	pending, err := runner.PendingAll(ctx, []migrate.Migration{migration1}, &source)
-	require.NoError(t, err)
-	require.Equal(t, 1, pending.Go.Len())
-	require.Equal(t, 2, pending.SQL.Len())
-	require.Equal(t, "1", mustMigrationVersion(t, pending.Go, 0))
-	require.Equal(t, "1", mustSQLMigrationVersion(t, pending.SQL, 0))
-}
-
-func TestRunnerPendingAllWithoutSQLSource(t *testing.T) {
-	ctx := context.Background()
-	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-pending-all-nosql.db"))
-	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
-
-	migration1 := migrate.NewGoMigration("1", "create sample", func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `CREATE TABLE sample (id INTEGER PRIMARY KEY)`)
-		if execErr != nil {
-			return fmt.Errorf("create sample table: %w", execErr)
-		}
-		return nil
-	}, nil)
-
-	pending, err := runner.PendingAll(ctx, []migrate.Migration{migration1}, nil)
-	require.NoError(t, err)
-	require.NotNil(t, pending.Go)
-	require.NotNil(t, pending.SQL)
-	require.Equal(t, 1, pending.Go.Len())
-	require.Equal(t, 0, pending.SQL.Len())
-}
-
-func TestRunnerApplyAllUpAndDown(t *testing.T) {
-	ctx := context.Background()
-	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-apply-all.db"))
-	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
-
-	migration1 := migrate.NewGoMigration("1", "create logs", func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `CREATE TABLE logs (id INTEGER PRIMARY KEY)`)
-		if execErr != nil {
-			return fmt.Errorf("create logs table: %w", execErr)
-		}
-		return nil
-	}, func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `DROP TABLE logs`)
-		if execErr != nil {
-			return fmt.Errorf("drop logs table: %w", execErr)
-		}
-		return nil
-	})
-	source := migrate.FileSource{
-		FS: fstest.MapFS{
-			"sql/V1__create_users.sql": &fstest.MapFile{Data: []byte("CREATE TABLE users (id INTEGER PRIMARY KEY);\n")},
-			"sql/U1__create_users.sql": &fstest.MapFile{Data: []byte("DROP TABLE users;\n")},
-		},
-		Dir: "sql",
-	}
-
-	upReport, err := runner.ApplyAll(ctx, migrate.MigrationApplySpec{
-		Direction:    migrate.DirectionUp,
-		GoMigrations: []migrate.Migration{migration1},
-		SQLSource:    &source,
-	})
-	require.NoError(t, err)
-	require.Equal(t, 2, upReport.Applied.Len())
-	require.True(t, sqliteTableExists(ctx, t, db, "logs"))
-	require.True(t, sqliteTableExists(ctx, t, db, "users"))
-
-	downReport, err := runner.ApplyAll(ctx, migrate.MigrationApplySpec{
-		Direction:    migrate.DirectionDown,
-		GoMigrations: []migrate.Migration{migration1},
-		SQLSource:    &source,
-	})
-	require.NoError(t, err)
-	require.Equal(t, 2, downReport.Applied.Len())
-	require.False(t, sqliteTableExists(ctx, t, db, "logs"))
-	require.False(t, sqliteTableExists(ctx, t, db, "users"))
-}
-
-func TestRunnerApplyAllWithTarget(t *testing.T) {
-	ctx := context.Background()
-	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-apply-all-target.db"))
-	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
-
-	migration1 := migrate.NewGoMigration("1", "create logs", func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `CREATE TABLE logs (id INTEGER PRIMARY KEY)`)
-		if execErr != nil {
-			return fmt.Errorf("create logs table: %w", execErr)
-		}
-		return nil
-	}, func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `DROP TABLE logs`)
-		if execErr != nil {
-			return fmt.Errorf("drop logs table: %w", execErr)
-		}
-		return nil
-	})
-	migration2 := migrate.NewGoMigration("2", "create users", func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `CREATE TABLE users (id INTEGER PRIMARY KEY)`)
-		if execErr != nil {
-			return fmt.Errorf("create users table: %w", execErr)
-		}
-		return nil
-	}, func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `DROP TABLE users`)
-		if execErr != nil {
-			return fmt.Errorf("drop users table: %w", execErr)
-		}
-		return nil
-	})
-	source := migrate.FileSource{
-		FS: fstest.MapFS{
-			"sql/V1__create_orders.sql":   &fstest.MapFile{Data: []byte("CREATE TABLE orders (id INTEGER PRIMARY KEY);\n")},
-			"sql/U1__create_orders.sql":   &fstest.MapFile{Data: []byte("DROP TABLE orders;\n")},
-			"sql/V2__create_products.sql": &fstest.MapFile{Data: []byte("CREATE TABLE products (id INTEGER PRIMARY KEY);\n")},
-			"sql/U2__create_products.sql": &fstest.MapFile{Data: []byte("DROP TABLE products;\n")},
-		},
-		Dir: "sql",
-	}
-
-	upReport, err := runner.ApplyAll(ctx, migrate.MigrationApplySpec{
-		Direction:    migrate.DirectionUp,
-		Target:       &migrate.MigrationTarget{Version: 1},
-		GoMigrations: []migrate.Migration{migration1, migration2},
-		SQLSource:    &source,
-	})
-	require.NoError(t, err)
-	require.Equal(t, 2, upReport.Applied.Len())
-	require.True(t, sqliteTableExists(ctx, t, db, "logs"))
-	require.True(t, sqliteTableExists(ctx, t, db, "orders"))
-	require.False(t, sqliteTableExists(ctx, t, db, "users"))
-	require.False(t, sqliteTableExists(ctx, t, db, "products"))
-}
-
-func TestRunnerValidateApplyAll(t *testing.T) {
-	ctx := context.Background()
-	db := openSQLiteRunnerDB(t, filepath.Join(t.TempDir(), "runner-validate-apply-all.db"))
-	runner := migrate.NewRunner(db, testDialect{}, migrate.RunnerOptions{ValidateHash: true})
-
-	migration := migrate.NewGoMigration("1", "create logs", func(ctx context.Context, tx *sql.Tx) error {
-		_, execErr := tx.ExecContext(ctx, `CREATE TABLE logs (id INTEGER PRIMARY KEY)`)
-		if execErr != nil {
-			return fmt.Errorf("create logs table: %w", execErr)
-		}
-		return nil
-	}, nil)
-
-	err := runner.ValidateApplyAll(migrate.MigrationApplySpec{
-		Direction:    migrate.DirectionUp,
-		GoMigrations: []migrate.Migration{migration},
-		Target:       &migrate.MigrationTarget{Version: 1},
-	})
-	require.NoError(t, err)
-
-	err = runner.ValidateApplyAll(migrate.MigrationApplySpec{
-		Direction:    migrate.DirectionDown,
-		GoMigrations: []migrate.Migration{migration},
-		Target:       &migrate.MigrationTarget{Version: 0},
-	})
-	require.NoError(t, err)
-
-	err = runner.ValidateApplyAll(migrate.MigrationApplySpec{
-		Direction:    migrate.DirectionUp,
-		GoMigrations: []migrate.Migration{migration},
-		Target:       &migrate.MigrationTarget{Version: 0},
-	})
-	require.Error(t, err)
-
-	err = runner.ValidateApplyAll(migrate.MigrationApplySpec{
-		Direction:    migrate.DirectionDown,
-		GoMigrations: []migrate.Migration{migration},
-		Target:       &migrate.MigrationTarget{Version: -1},
-	})
-	require.Error(t, err)
-
-	err = runner.ValidateApplyAll(migrate.MigrationApplySpec{
-		Direction:    migrate.Direction("INVALID"),
-		GoMigrations: []migrate.Migration{migration},
-		Target:       nil,
-	})
-	require.NoError(t, err)
-
-	err = runner.ValidateApplyAll(migrate.MigrationApplySpec{
-		Direction:    migrate.DirectionUp,
-		GoMigrations: []migrate.Migration{migration},
-		Target:       &migrate.MigrationTarget{Version: 1},
-		SQLSource: &migrate.FileSource{
-			FS: fstest.MapFS{
-				"sql/V1__noop.sql": &fstest.MapFile{Data: []byte("SELECT 1;\n")},
-			},
-			Dir: "sql",
-		},
-	})
-	require.NoError(t, err)
-
-	err = runner.ValidateApplyAll(migrate.MigrationApplySpec{})
-	require.NoError(t, err)
-
-	_, err = runner.ApplyAll(ctx, migrate.MigrationApplySpec{
-		Direction: migrate.DirectionUp,
-		Target:    &migrate.MigrationTarget{Version: 0},
-	})
-	require.Error(t, err)
-
-	var nilRunner *migrate.Runner
-	err = nilRunner.ValidateApplyAll(migrate.MigrationApplySpec{
-		Direction: migrate.DirectionUp,
-	})
-	require.Error(t, err)
-}
-
-func mustMigrationVersion(t *testing.T, list *collectionx.List[migrate.Migration], index int) string {
-	item, ok := list.Get(index)
-	require.True(t, ok)
-	return item.Version()
-}
-
-func mustSQLMigrationVersion(t *testing.T, list *collectionx.List[migrate.SQLMigration], index int) string {
-	item, ok := list.Get(index)
-	require.True(t, ok)
-	return item.Version
 }

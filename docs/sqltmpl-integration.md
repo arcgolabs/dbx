@@ -154,10 +154,17 @@ stmt := registry.MustStatement("sql/user/find_active.sql")
 
 With a SQLite registry, the lookup order is:
 
+- `sql/user/find_active_sqlite.sql`
 - `sql/user/find_active__sqlite.sql`
 - `sql/user/find_active.sql`
 
-Use the same suffix convention for other dialect names, for example `__mysql` or `__postgres`. Passing an explicit dialect file such as `sql/user/find_active__mysql.sql` loads that exact file.
+Use the same suffix convention for other dialect names, for example `_mysql` or `_postgres`. The double-underscore form remains supported for compatibility. Passing an explicit dialect file such as `sql/user/find_active_mysql.sql` loads that exact file.
+
+You can also choose the dialect at the call site instead of using the registry default:
+
+```go
+postgresStmt := registry.MustStatementFor("sql/user/find_active.sql", postgres.New())
+```
 
 ## When to Use It
 

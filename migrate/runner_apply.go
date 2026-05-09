@@ -6,8 +6,6 @@ import (
 	"time"
 
 	collectionx "github.com/arcgolabs/collectionx/list"
-	mappingx "github.com/arcgolabs/collectionx/mapping"
-	"github.com/pressly/goose/v3"
 )
 
 // UpGo applies the provided Go migrations.
@@ -118,22 +116,11 @@ func (r *Runner) UpSQLTo(ctx context.Context, toVersion int64, source FileSource
 	}
 
 	report := RunReport{Applied: collectionx.NewListWithCapacity[AppliedRecord](8)}
-	if bundle != nil && bundle.engine != nil {
-		results, err := bundle.engine.UpTo(ctx, toVersion)
-		if err != nil {
-			return RunReport{}, fmt.Errorf("dbx/migrate: apply sql migrations to version %d: %w", toVersion, err)
-		}
-
-		applied, err := r.Applied(ctx)
-		if err != nil {
-			return RunReport{}, err
-		}
-		reportApplied, err := buildRunReport(applied, bundle.metaByVersion, results)
-		if err != nil {
-			return RunReport{}, err
-		}
-		report.Applied.Merge(reportApplied.Applied)
+	applied, err := r.versionedSQLRunReportTo(ctx, toVersion, bundle)
+	if err != nil {
+		return RunReport{}, err
 	}
+	report.Applied.Merge(applied)
 
 	indexed, err := r.appliedIndex(ctx)
 	if err != nil {
@@ -171,6 +158,30 @@ func (r *Runner) DownSQLTo(ctx context.Context, toVersion int64, source FileSour
 	return buildRunReport(appliedBefore, bundle.metaByVersion, results)
 }
 
+func (r *Runner) versionedSQLRunReportTo(
+	ctx context.Context,
+	toVersion int64,
+	bundle *runnerEngine,
+) (*collectionx.List[AppliedRecord], error) {
+	if bundle == nil || bundle.engine == nil {
+		return collectionx.NewList[AppliedRecord](), nil
+	}
+
+	results, err := bundle.engine.UpTo(ctx, toVersion)
+	if err != nil {
+		return nil, fmt.Errorf("dbx/migrate: apply sql migrations to version %d: %w", toVersion, err)
+	}
+	applied, err := r.Applied(ctx)
+	if err != nil {
+		return nil, err
+	}
+	report, err := buildRunReport(applied, bundle.metaByVersion, results)
+	if err != nil {
+		return nil, err
+	}
+	return report.Applied, nil
+}
+
 func (r *Runner) versionedSQLRunReport(ctx context.Context, bundle *runnerEngine) (*collectionx.List[AppliedRecord], error) {
 	if bundle == nil || bundle.engine == nil {
 		return collectionx.NewList[AppliedRecord](), nil
@@ -189,33 +200,6 @@ func (r *Runner) versionedSQLRunReport(ctx context.Context, bundle *runnerEngine
 		return nil, err
 	}
 	return report.Applied, nil
-}
-
-func buildRunReport(
-	applied *collectionx.List[AppliedRecord],
-	metaByVersion *mappingx.Map[int64, AppliedRecord],
-	results []*goose.MigrationResult,
-) (RunReport, error) {
-	reportApplied, err := collectionx.ReduceErrList[*goose.MigrationResult, *collectionx.List[AppliedRecord]](
-		collectionx.NewList[*goose.MigrationResult](results...),
-		collectionx.NewListWithCapacity[AppliedRecord](len(results)),
-		func(items *collectionx.List[AppliedRecord], _ int, result *goose.MigrationResult) (*collectionx.List[AppliedRecord], error) {
-			record, ok := metaByVersion.Get(result.Source.Version)
-			if !ok {
-				return items, nil
-			}
-			current, currentErr := appliedRecordForVersion(applied, record)
-			if currentErr != nil {
-				return nil, currentErr
-			}
-			items.Add(current)
-			return items, nil
-		},
-	)
-	if err != nil {
-		return RunReport{}, fmt.Errorf("dbx/migrate: build run report: %w", err)
-	}
-	return RunReport{Applied: reportApplied}, nil
 }
 
 func (r *Runner) applyPendingRepeatables(

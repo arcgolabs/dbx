@@ -279,10 +279,14 @@ var sqlFS embed.FS
 
 registry := sqltmpl.NewRegistry(sqlFS, core.Dialect())
 
+// With a SQLite dialect, find_active.sql can be backed by find_active_sqlite.sql
+// or find_active__sqlite.sql. Use StatementFor to choose a dialect at call time.
+stmt := registry.MustStatement("sql/user/find_active.sql")
+
 items, err := sqlexec.List[UserSummary](
 	ctx,
 	core,
-	registry.MustStatement("sql/user/find_active.sql"),
+	stmt,
 	sqltmpl.WithPage(struct {
 		Status int `dbx:"status"`
 	}{Status: 1}, sqltmpl.Page(1, 20)),
@@ -355,6 +359,9 @@ if err != nil {
 
 // Optionally, tie a Go migration to a dialect:
 // migrate.NewGoMigration("2", "seed defaults", upSeeds, nil, migrate.DialectSQLite)
+
+// SQL migration files can use V2__seed_users_sqlite.sql or V2__seed_users__sqlite.sql.
+// The dialect can be selected with source.ForDialect(...) or runner.UpSQLFor(...).
 ```
 
 Current behavior:

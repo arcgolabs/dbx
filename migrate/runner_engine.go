@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 	"strconv"
 
 	collectionx "github.com/arcgolabs/collectionx/list"
@@ -68,36 +69,38 @@ func (r *Runner) filterGoMigrationsByDialect(migrations []Migration) []Migration
 	if len(migrations) == 0 {
 		return migrations
 	}
-	if r == nil || r.dialect == nil {
-		return migrations
-	}
 
-	target, err := DialectFromDialect(r.dialect)
-	if err != nil || target.IsAny() {
+	target, ok := r.goMigrationDialectTarget()
+	if !ok {
 		return migrations
 	}
 
 	filtered := make([]Migration, 0, len(migrations))
 	for _, migration := range migrations {
-		databases := migrationDatabases(migration)
-		if len(databases) == 0 {
-			filtered = append(filtered, migration)
-			continue
-		}
-
-		matched := false
-		for _, database := range databases {
-			if database == target {
-				matched = true
-				break
-			}
-		}
-		if matched {
+		if migrationMatchesDialect(migration, target) {
 			filtered = append(filtered, migration)
 		}
 	}
-
 	return filtered
+}
+
+func (r *Runner) goMigrationDialectTarget() (DialectName, bool) {
+	if r == nil || r.dialect == nil {
+		return DialectAny, false
+	}
+	target, err := DialectFromDialect(r.dialect)
+	if err != nil || target.IsAny() {
+		return DialectAny, false
+	}
+	return target, true
+}
+
+func migrationMatchesDialect(migration Migration, target DialectName) bool {
+	databases := migrationDatabases(migration)
+	if len(databases) == 0 {
+		return true
+	}
+	return slices.Contains(databases, target)
 }
 
 func migrationDatabases(migration Migration) []DialectName {

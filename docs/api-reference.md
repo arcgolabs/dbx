@@ -72,11 +72,14 @@ weight: 18
 - `(*Runner).UpGoTo(ctx, version, migrations...)`
 - `(*Runner).DownGoTo(ctx, version, migrations...)`
 - `(*Runner).UpSQL(ctx, source)` / `(*Runner).UpSQLTo(ctx, version, source)` / `(*Runner).DownSQLTo(ctx, version, source)`
-- `FileSource.Database`: set explicit SQL migration dialect suffix filter, e.g. `FileSource{FS: fs, Dir: "migrations", Database: migrate.DialectMySQL}`
+- `(*Runner).UpSQLFor(ctx, dialect, source)` / `(*Runner).UpSQLToFor(ctx, version, dialect, source)` / `(*Runner).DownSQLToFor(ctx, version, dialect, source)`
+- `FileSource.Database` or `FileSource.ForDialect(...)`: set explicit SQL migration dialect suffix filter, e.g. `source.ForDialect(migrate.DialectMySQL)`
 - `(*Runner).PendingGo(ctx, migrations...)`
 - `(*Runner).PendingSQL(ctx, source)`
+- `(*Runner).PendingSQLFor(ctx, dialect, source)`
 - `(*Runner).StatusGo(ctx, migrations...)`
 - `(*Runner).StatusSQL(ctx, source)`
+- `(*Runner).StatusSQLFor(ctx, dialect, source)`
 - `(*Runner).StatusAll(ctx, goMigrations, source)`
 - `(*Runner).PendingAll(ctx, goMigrations, source)`
 - `(*Runner).ValidateApplyAll(spec migrate.MigrationApplySpec)` - validate high-level migration spec before execution.
@@ -98,7 +101,8 @@ weight: 18
 - `sqltmpl.WithValidator(validator)` - validate rendered SQL during development or CI.
 - `sqltmpl.NewRegistry(fs, dialect)`
 - `registry.MustStatement(path)`
-- `registry.Statement("sql/user/find.sql")` resolves `sql/user/find__<dialect>.sql` first, then falls back to the base file.
+- `registry.Statement("sql/user/find.sql")` resolves `sql/user/find_<dialect>.sql`, then `sql/user/find__<dialect>.sql`, then the base file.
+- `registry.StatementFor("sql/user/find.sql", dialect)` uses a call-site dialect for suffix resolution and placeholder rendering.
 - `sqltmpl.Page(page, pageSize)` / `sqltmpl.NewPageRequest(page, pageSize)`
 - `sqltmpl.WithPage(params, request)` / `sqltmpl.WithTypedPage[P](params, request)`
 - `template.RenderPage(params, request)` / `template.BindPage(params, request)`
