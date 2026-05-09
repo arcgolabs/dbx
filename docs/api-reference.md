@@ -49,6 +49,7 @@ weight: 18
 - `repository.Page(page, pageSize)` and `repository.PageByRequest(request)` specs.
 - `repo.ListPage(ctx, query, page, pageSize)` and `repo.ListPageRequest(ctx, query, request)`.
 - `repo.ListPageSpec(ctx, page, pageSize, specs...)` and `repo.ListPageSpecRequest(ctx, request, specs...)`.
+- `repository.Query(repo).Where(...).List(ctx)` / `Find(ctx)` / `FirstOption(ctx)` for fluent repository queries.
 - `repository.PageRequest` / `repository.PageResult[T]` are aliases of the shared `paging` pagination model.
 
 ## Migration and Schema Validation

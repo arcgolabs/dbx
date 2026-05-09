@@ -4,8 +4,10 @@ import (
 	"context"
 
 	collectionx "github.com/arcgolabs/collectionx/list"
+	"github.com/arcgolabs/dbx"
 	"github.com/arcgolabs/dbx/paging"
 	"github.com/arcgolabs/dbx/querydsl"
+	"github.com/samber/mo"
 )
 
 // QueryBuilder accumulates repository specs and executes them against one repo.
@@ -18,6 +20,13 @@ type QueryBuilder[E any, S EntitySchema[E]] struct {
 // Query starts a fluent repository query bound to repo.
 func Query[E any, S EntitySchema[E]](repo *Base[E, S]) QueryBuilder[E, S] {
 	return QueryBuilder[E, S]{repo: repo}
+}
+
+func (q QueryBuilder[E, S]) boundRepo() (*Base[E, S], error) {
+	if q.repo == nil || q.repo.session == nil {
+		return nil, dbx.ErrNilDB
+	}
+	return q.repo, nil
 }
 
 // Where appends a predicate spec.
@@ -80,7 +89,11 @@ func (q QueryBuilder[E, S]) Select() *querydsl.SelectQuery {
 
 // List executes the accumulated query and returns every matched entity.
 func (q QueryBuilder[E, S]) List(ctx context.Context) (*collectionx.List[E], error) {
-	items, err := q.repo.List(ctx, q.Select())
+	repo, err := q.boundRepo()
+	if err != nil {
+		return nil, err
+	}
+	items, err := repo.List(ctx, q.Select())
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +105,12 @@ func (q QueryBuilder[E, S]) List(ctx context.Context) (*collectionx.List[E], err
 
 // First executes the accumulated query and returns the first matched entity.
 func (q QueryBuilder[E, S]) First(ctx context.Context) (E, error) {
-	item, err := q.repo.First(ctx, q.Select())
+	repo, err := q.boundRepo()
+	if err != nil {
+		var zero E
+		return zero, err
+	}
+	item, err := repo.First(ctx, q.Select())
 	if err != nil {
 		var zero E
 		return zero, err
@@ -109,19 +127,41 @@ func (q QueryBuilder[E, S]) First(ctx context.Context) (E, error) {
 	return loaded, nil
 }
 
+// Find returns the first matched entity as an option.
+func (q QueryBuilder[E, S]) Find(ctx context.Context) (mo.Option[E], error) {
+	return optionFromResult(q.First(ctx))
+}
+
+// FirstOption returns the first matched entity as an option.
+func (q QueryBuilder[E, S]) FirstOption(ctx context.Context) (mo.Option[E], error) {
+	return q.Find(ctx)
+}
+
 // Count executes the accumulated query as a count.
 func (q QueryBuilder[E, S]) Count(ctx context.Context) (int64, error) {
-	return q.repo.Count(ctx, q.Select())
+	repo, err := q.boundRepo()
+	if err != nil {
+		return 0, err
+	}
+	return repo.Count(ctx, q.Select())
 }
 
 // Exists reports whether the accumulated query matches at least one row.
 func (q QueryBuilder[E, S]) Exists(ctx context.Context) (bool, error) {
-	return q.repo.Exists(ctx, q.Select())
+	repo, err := q.boundRepo()
+	if err != nil {
+		return false, err
+	}
+	return repo.Exists(ctx, q.Select())
 }
 
 // ListPage executes the accumulated query and returns a page result.
 func (q QueryBuilder[E, S]) ListPage(ctx context.Context, request paging.Request) (paging.Result[E], error) {
-	page, err := q.repo.ListPageRequest(ctx, q.Select(), request)
+	repo, err := q.boundRepo()
+	if err != nil {
+		return paging.Result[E]{}, err
+	}
+	page, err := repo.ListPageRequest(ctx, q.Select(), request)
 	if err != nil {
 		return paging.Result[E]{}, err
 	}

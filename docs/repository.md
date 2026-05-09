@@ -74,7 +74,7 @@ func main() {
 - Transactions: `InTx`
 - Specs: `Where`, `OrderBy`, `Limit`, `Offset`, `Page`, `PageByRequest`
 - Fluent query: `repository.Query(repo).Where(...).OrderBy(...).List(ctx)`
-- Optional single-row reads: `repository.By(...).GetOption`, `GetByKeyOption`, `GetByKeySetOption`, `FirstOption`, `FirstSpecOption` (see below)
+- Optional single-row reads: `repository.By(...).GetOption`, `GetByKeyOption`, `GetByKeySetOption`, `FirstOption`, `FirstSpecOption`, `repository.Query(repo).Find(ctx)` (see below)
 
 ## Pagination
 
@@ -121,7 +121,14 @@ if err != nil {
 	return err
 }
 
-_, _ = items, total
+maybeUser, err := repository.Query(repo).
+	Where(Users.Name.Eq("alice")).
+	Find(ctx)
+if err != nil {
+	return err
+}
+
+_, _ = items, total, maybeUser
 ```
 
 ## Typed key access
@@ -200,6 +207,7 @@ For “maybe one row” queries, you can use parallel methods that return `githu
 
 - `repository.By(repo, Users.ID).GetOption(ctx, id)`
 - `GetByKeyOption`, `GetByKeySetOption`, `FirstOption`, `FirstSpecOption`
+- `repository.Query(repo).Find(ctx)` / `repository.Query(repo).FirstOption(ctx)`
 
 Semantics:
 

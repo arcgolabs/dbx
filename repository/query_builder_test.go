@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	collectionx "github.com/arcgolabs/collectionx/list"
+	"github.com/arcgolabs/dbx"
 	"github.com/arcgolabs/dbx/paging"
 	repository "github.com/arcgolabs/dbx/repository"
 	"github.com/stretchr/testify/require"
@@ -31,6 +32,17 @@ func TestQueryBuilderListsCountsAndFinds(t *testing.T) {
 	exists, err := query.Where(users.Name.Eq("alice")).Exists(ctx)
 	require.NoError(t, err)
 	require.True(t, exists)
+
+	found, err := query.Where(users.Name.Eq("alice")).Find(ctx)
+	require.NoError(t, err)
+	require.True(t, found.IsPresent())
+	foundUser, ok := found.Get()
+	require.True(t, ok)
+	require.Equal(t, "alice", foundUser.Name)
+
+	missing, err := query.Where(users.Name.Eq("nobody")).FirstOption(ctx)
+	require.NoError(t, err)
+	require.False(t, missing.IsPresent())
 }
 
 func TestQueryBuilderListPage(t *testing.T) {
@@ -85,4 +97,23 @@ func TestQueryBuilderIncludeLoadsResults(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "alice-loaded", pageItem.Name)
 	require.Equal(t, 4, loaded)
+}
+
+func TestQueryBuilderNilRepository(t *testing.T) {
+	ctx := context.Background()
+	query := repository.Query[User, UserSchema](nil)
+
+	_, err := query.List(ctx)
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	_, err = query.First(ctx)
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	option, err := query.Find(ctx)
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	require.False(t, option.IsPresent())
+	_, err = query.Count(ctx)
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	_, err = query.Exists(ctx)
+	require.ErrorIs(t, err, dbx.ErrNilDB)
+	_, err = query.ListPage(ctx, paging.NewRequest(1, 20))
+	require.ErrorIs(t, err, dbx.ErrNilDB)
 }
