@@ -158,6 +158,9 @@ func (r *Base[E, S]) UpdateByKeySet(ctx context.Context, key TypedKeySet, assign
 	if r.keyNotFoundAsError && !hasAffectedRows(result) {
 		return nil, ErrNotFound
 	}
+	if err := r.auditUpdatedByKeySet(ctx, result, key); err != nil {
+		return result, err
+	}
 	return result, nil
 }
 
@@ -165,6 +168,10 @@ func (r *Base[E, S]) UpdateByKeySet(ctx context.Context, key TypedKeySet, assign
 func (r *Base[E, S]) DeleteByKeySet(ctx context.Context, key TypedKeySet) (sql.Result, error) {
 	if r == nil || r.session == nil {
 		return nil, dbx.ErrNilDB
+	}
+	item, err := r.entityForDeleteAuditByKeySet(ctx, key)
+	if err != nil {
+		return nil, err
 	}
 	predicate, err := key.Predicate()
 	if err != nil {
@@ -176,6 +183,9 @@ func (r *Base[E, S]) DeleteByKeySet(ctx context.Context, key TypedKeySet) (sql.R
 	}
 	if r.keyNotFoundAsError && !hasAffectedRows(result) {
 		return nil, ErrNotFound
+	}
+	if err := r.auditDeletedValue(ctx, result, item); err != nil {
+		return result, err
 	}
 	return result, nil
 }

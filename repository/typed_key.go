@@ -63,6 +63,9 @@ func (k TypedKey[E, S, T]) Update(ctx context.Context, value T, assignments ...q
 	if k.repo.keyNotFoundAsError && !hasAffectedRows(result) {
 		return nil, ErrNotFound
 	}
+	if err := k.auditUpdated(ctx, result, value); err != nil {
+		return result, err
+	}
 	return result, nil
 }
 
@@ -71,12 +74,19 @@ func (k TypedKey[E, S, T]) Delete(ctx context.Context, value T) (sql.Result, err
 	if k.repo == nil {
 		return nil, dbx.ErrNilDB
 	}
+	item, err := k.entityForDeleteAudit(ctx, value)
+	if err != nil {
+		return nil, err
+	}
 	result, err := k.repo.Delete(ctx, querydsl.DeleteFrom(k.repo.schema).Where(k.column.Eq(value)))
 	if err != nil {
 		return nil, err
 	}
 	if k.repo.keyNotFoundAsError && !hasAffectedRows(result) {
 		return nil, ErrNotFound
+	}
+	if err := k.repo.auditDeletedValue(ctx, result, item); err != nil {
+		return result, err
 	}
 	return result, nil
 }

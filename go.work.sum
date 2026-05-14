@@ -92,6 +92,7 @@ github.com/arcgolabs/collectionx/prefix v0.2.0 h1:gaIC2D1ojWQi3ADfMbfRhHTGhvQxbk
 github.com/arcgolabs/collectionx/prefix v0.2.0/go.mod h1:LVRPRDZR5neCRwW7mQhCHFhevPntlYrjScXQC83VEwM=
 github.com/arcgolabs/collectionx/tree v0.2.0 h1:+pAPgKek5Q7IQO360cixcPd46eC+ALlswBGzI4yJUfQ=
 github.com/arcgolabs/collectionx/tree v0.2.0/go.mod h1:iW9OQ+LPZ20sLpdGpxR4otICRjnMD8uyrAWBqhv8XE4=
+github.com/arcgolabs/dbx v0.1.7/go.mod h1:UjHgI+XVwvUdRn18DMgyrhwvY2FEJy97p7xoYUmK+Tc=
 github.com/armon/go-metrics v0.4.1 h1:hR91U9KYmb6bLBYLQjyM+3j+rcd/UhE+G78SFnF8gJA=
 github.com/armon/go-metrics v0.4.1/go.mod h1:E6amYzXo6aW1tqzoZGT755KkbgrJsSdpwZ+3JqfkOG4=
 github.com/aws/aws-sdk-go-v2 v1.39.2 h1:EJLg8IdbzgeD7xgvZ+I8M1e0fL0ptn/M47lianzth0I=

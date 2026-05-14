@@ -23,6 +23,7 @@ type Base[E any, S EntitySchema[E]] struct {
 	defaultSpecs       []Spec
 	softDeleteAssign   func() querydsl.Assignment
 	softDeleteSpec     Spec
+	auditWriter        AuditWriter
 }
 
 // DB returns the database bound to the repository.

@@ -21,7 +21,14 @@ func CreateReturning[E any, S EntitySchema[E]](ctx context.Context, repo *Base[E
 		var zero E
 		return zero, dbx.ErrNilDB
 	}
-	return createReturningWithMapper(ctx, repo, entity, repo.mapper, items...)
+	item, err := createReturningWithMapper(ctx, repo, entity, repo.mapper, items...)
+	if err != nil {
+		return item, err
+	}
+	if err := repo.writeAuditValue(ctx, AuditOperationInsert, item); err != nil {
+		return item, err
+	}
+	return item, nil
 }
 
 // CreateReturningInto inserts entity and scans the RETURNING row into R.
@@ -83,6 +90,9 @@ func UpsertReturning[E any, S EntitySchema[E]](ctx context.Context, repo *Base[E
 	if err != nil {
 		return zero, wrapMutationError(fmt.Errorf("upsert returning: %w", err))
 	}
+	if err := repo.writeAuditValue(ctx, AuditOperationUpsert, item); err != nil {
+		return item, err
+	}
 	return item, nil
 }
 
@@ -96,7 +106,14 @@ func UpdateReturning[E any, S EntitySchema[E]](ctx context.Context, repo *Base[E
 	if repo == nil {
 		return nil, dbx.ErrNilDB
 	}
-	return updateReturningWithMapper(ctx, repo, query, repo.mapper, items...)
+	rows, err := updateReturningWithMapper(ctx, repo, query, repo.mapper, items...)
+	if err != nil {
+		return rows, err
+	}
+	if err := writeAuditRows(ctx, repo, AuditOperationUpdate, rows); err != nil {
+		return rows, err
+	}
+	return rows, nil
 }
 
 // UpdateReturningInto executes an UPDATE ... RETURNING query and scans rows into R.
@@ -136,7 +153,14 @@ func DeleteReturning[E any, S EntitySchema[E]](ctx context.Context, repo *Base[E
 	if repo == nil {
 		return nil, dbx.ErrNilDB
 	}
-	return deleteReturningWithMapper(ctx, repo, query, repo.mapper, items...)
+	rows, err := deleteReturningWithMapper(ctx, repo, query, repo.mapper, items...)
+	if err != nil {
+		return rows, err
+	}
+	if err := writeAuditRows(ctx, repo, AuditOperationDelete, rows); err != nil {
+		return rows, err
+	}
+	return rows, nil
 }
 
 // DeleteReturningInto executes a DELETE ... RETURNING query and scans rows into R.
@@ -191,4 +215,16 @@ func ensureDeleteReturning[E any, S EntitySchema[E]](repo *Base[E, S], query *qu
 	if query.ReturningItems.Len() == 0 {
 		query.ReturningItems = returningItems(repo)
 	}
+}
+
+func writeAuditRows[E any, S EntitySchema[E]](ctx context.Context, repo *Base[E, S], operation AuditOperation, rows *collectionx.List[E]) error {
+	if repo == nil || rows == nil || !repo.hasAuditWriter() {
+		return nil
+	}
+	var auditErr error
+	rows.Range(func(_ int, item E) bool {
+		auditErr = repo.writeAuditValue(ctx, operation, item)
+		return auditErr == nil
+	})
+	return auditErr
 }

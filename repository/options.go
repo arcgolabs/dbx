@@ -18,6 +18,7 @@ type baseOptions struct {
 	defaultSpecs       []Spec
 	softDeleteAssign   func() querydsl.Assignment
 	softDeleteSpec     Spec
+	auditWriter        AuditWriter
 }
 
 func defaultOptions() baseOptions { return baseOptions{} }
@@ -104,5 +105,6 @@ func NewWithOptions[E any, S EntitySchema[E]](db *dbx.DB, schema S, opts ...Opti
 		defaultSpecs:       append([]Spec(nil), config.defaultSpecs...),
 		softDeleteAssign:   config.softDeleteAssign,
 		softDeleteSpec:     config.softDeleteSpec,
+		auditWriter:        config.auditWriter,
 	}
 }

@@ -52,6 +52,8 @@ These are implementation details. The exposed API is still `dbx`, `dbx/sqltmpl`,
     - `github.com/arcgolabs/dbx/sqltmpl`
 - Migration runner package:
     - `github.com/arcgolabs/dbx/migrate`
+- Audit trail package:
+    - `github.com/arcgolabs/dbx/audit` (see [Audit](./docs/audit.md))
 
 ## Documentation Map
 
@@ -65,6 +67,7 @@ These are implementation details. The exposed API is still `dbx`, `dbx/sqltmpl`,
 - Index declaration and migration behavior: [Indexes](./indexes)
 - Runtime options: [Options](./options)
 - Logging and hooks: [Observability](./observability)
+- Explicit audit tables and repository audit hooks: [Audit](./docs/audit.md)
 - Production rollout checklist: [Production Checklist](./production-checklist)
 - API quick lookup: [API Quick Reference](./api-reference)
 - Generic repository abstraction: [Repository Mode](./repository)
@@ -79,6 +82,7 @@ These are implementation details. The exposed API is still `dbx`, `dbx/sqltmpl`,
 
 ```bash
 go get github.com/arcgolabs/dbx@latest
+go get github.com/arcgolabs/dbx/audit@latest
 go get github.com/arcgolabs/dbx/sqltmpl@latest
 go get github.com/arcgolabs/dbx/migrate@latest
 ```

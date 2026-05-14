@@ -34,6 +34,9 @@ func (r *Base[E, S]) UpdateByKey(ctx context.Context, key Key, assignments ...qu
 	if r.keyNotFoundAsError && !hasAffectedRows(result) {
 		return nil, ErrNotFound
 	}
+	if err := r.auditUpdatedByKey(ctx, result, key); err != nil {
+		return result, err
+	}
 	return result, nil
 }
 
@@ -42,12 +45,19 @@ func (r *Base[E, S]) DeleteByKey(ctx context.Context, key Key) (sql.Result, erro
 	if len(key) == 0 {
 		return nil, &ValidationError{Message: "key is empty"}
 	}
+	item, err := r.entityForDeleteAuditByKey(ctx, key)
+	if err != nil {
+		return nil, err
+	}
 	result, err := r.Delete(ctx, querydsl.DeleteFrom(r.schema).Where(keyPredicate(r.schema, key)))
 	if err != nil {
 		return nil, err
 	}
 	if r.keyNotFoundAsError && !hasAffectedRows(result) {
 		return nil, ErrNotFound
+	}
+	if err := r.auditDeletedValue(ctx, result, item); err != nil {
+		return result, err
 	}
 	return result, nil
 }

@@ -27,6 +27,10 @@ func (r *Base[E, S]) InTx(ctx context.Context, opts *sql.TxOptions, fn func(tx *
 		schema:             r.schema,
 		mapper:             r.mapper,
 		keyNotFoundAsError: r.keyNotFoundAsError,
+		defaultSpecs:       append([]Spec(nil), r.defaultSpecs...),
+		softDeleteAssign:   r.softDeleteAssign,
+		softDeleteSpec:     r.softDeleteSpec,
+		auditWriter:        r.auditWriter,
 	}
 	runErr := fn(tx, txRepo)
 	if runErr != nil {

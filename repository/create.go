@@ -35,6 +35,10 @@ func (r *Base[E, S]) Create(ctx context.Context, entity *E) error {
 		dbx.LogRuntimeNode(r.session, "repository.create.error", "table", r.schema.TableName(), "stage", "exec", "error", wrapped)
 		return wrapped
 	}
+	if err := r.writeAudit(ctx, AuditOperationInsert, entity); err != nil {
+		dbx.LogRuntimeNode(r.session, "repository.create.error", "table", r.schema.TableName(), "stage", "audit", "error", err)
+		return err
+	}
 	dbx.LogRuntimeNode(r.session, "repository.create.done", "table", r.schema.TableName())
 	return nil
 }
@@ -73,6 +77,10 @@ func (r *Base[E, S]) CreateMany(ctx context.Context, entities ...*E) error {
 		dbx.LogRuntimeNode(r.session, "repository.create_many.error", "table", r.schema.TableName(), "stage", "exec", "error", wrapped)
 		return wrapped
 	}
+	if err := r.writeAuditEntities(ctx, AuditOperationInsert, entities...); err != nil {
+		dbx.LogRuntimeNode(r.session, "repository.create_many.error", "table", r.schema.TableName(), "stage", "audit", "error", err)
+		return err
+	}
 	dbx.LogRuntimeNode(r.session, "repository.create_many.done", "table", r.schema.TableName(), "entities", len(entities))
 	return nil
 }
@@ -100,6 +108,10 @@ func (r *Base[E, S]) Upsert(ctx context.Context, entity *E, conflictColumns ...s
 		wrapped := wrapMutationError(err)
 		dbx.LogRuntimeNode(r.session, "repository.upsert.error", "table", r.schema.TableName(), "stage", "exec", "error", wrapped)
 		return wrapped
+	}
+	if err := r.writeAudit(ctx, AuditOperationUpsert, entity); err != nil {
+		dbx.LogRuntimeNode(r.session, "repository.upsert.error", "table", r.schema.TableName(), "stage", "audit", "error", err)
+		return err
 	}
 	dbx.LogRuntimeNode(r.session, "repository.upsert.done", "table", r.schema.TableName(), "conflict_columns", targetColumns)
 	return nil

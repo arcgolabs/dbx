@@ -46,6 +46,9 @@ func (r *Base[E, S]) UpdateByVersionSet(ctx context.Context, key TypedKeySet, ve
 		dbx.LogRuntimeNode(r.session, "repository.update_by_version_set.conflict", "table", r.schema.TableName(), "version", currentVersion)
 		return nil, &VersionConflictError{Err: ErrVersionConflict}
 	}
+	if err := r.auditUpdatedByKeySet(ctx, result, key); err != nil {
+		return result, err
+	}
 	dbx.LogRuntimeNode(r.session, "repository.update_by_version_set.done", "table", r.schema.TableName(), "version", nextVersion)
 	return result, nil
 }
