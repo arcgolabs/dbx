@@ -73,7 +73,7 @@ func (r *Runner) ValidateAll(ctx context.Context, migrations []Migration, source
 
 func (r *Runner) validateHashRunner() *Runner {
 	if r == nil {
-		return r
+		return nil
 	}
 	cloned := *r
 	cloned.options.ValidateHash = true

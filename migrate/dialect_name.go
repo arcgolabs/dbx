@@ -47,7 +47,7 @@ func MustDialectName(raw string) DialectName {
 func DialectFromDialect(d dialect.Contract) (DialectName, error) {
 	selector, err := dialect.SelectorFromContract(d)
 	if err != nil {
-		return DialectAny, fmt.Errorf("%w: %v", errInvalidDialect, err)
+		return DialectAny, fmt.Errorf("%w: %w", errInvalidDialect, err)
 	}
 	return selector, nil
 }

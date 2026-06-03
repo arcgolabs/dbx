@@ -28,10 +28,6 @@ type sqlEngineBuildState struct {
 	repeatables     *collectionx.List[loadedSQLMigration]
 }
 
-func (r *Runner) newRunnerEngineForGo(migrations []Migration) (*runnerEngine, error) {
-	return r.newRunnerEngineFromGoMigrations(r.filterGoMigrationsByDialect(migrations))
-}
-
 func (r *Runner) newRunnerEngineForGoWithDialect(migrations []Migration, database DialectName) (*runnerEngine, error) {
 	return r.newRunnerEngineFromGoMigrations(r.selectGoMigrationsForDialect(migrations, database))
 }

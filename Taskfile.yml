@@ -14,12 +14,12 @@ tasks:
   test:workspace:
     desc: Run tests for every module in go.work.
     cmds:
-      - GOCACHE="$PWD/.cache/go-build" go test ./... ./examples/... ./migrate/... ./sqltmpl/... ./sqltmpl/validate/... ./sqltmpl/validate/mysqlparser/... ./sqltmpl/validate/postgresparser/... ./sqltmpl/validate/sqliteparser/...
+      - GOCACHE="$PWD/.cache/go-build" go test ./... ./audit/... ./examples/... ./migrate/... ./sqltmpl/... ./sqltmpl/validate/... ./sqltmpl/validate/mysqlparser/... ./sqltmpl/validate/postgresparser/... ./sqltmpl/validate/sqliteparser/...
 
   vet:workspace:
     desc: Run go vet for every module in go.work.
     cmds:
-      - GOCACHE="$PWD/.cache/go-build" go vet ./... ./examples/... ./migrate/... ./sqltmpl/... ./sqltmpl/validate/... ./sqltmpl/validate/mysqlparser/... ./sqltmpl/validate/postgresparser/... ./sqltmpl/validate/sqliteparser/...
+      - GOCACHE="$PWD/.cache/go-build" go vet ./... ./audit/... ./examples/... ./migrate/... ./sqltmpl/... ./sqltmpl/validate/... ./sqltmpl/validate/mysqlparser/... ./sqltmpl/validate/postgresparser/... ./sqltmpl/validate/sqliteparser/...
 
   lint:
     desc: Run golangci-lint for the root module.
@@ -36,6 +36,9 @@ tasks:
     desc: Run golangci-lint for every module in go.work.
     cmds:
       - task: lint
+      - task: lint:module
+        vars:
+          MODULE: audit
       - task: lint:module
         vars:
           MODULE: examples

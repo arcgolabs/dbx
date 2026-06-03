@@ -69,7 +69,7 @@ func (r *Runner) baselineRecordList(ctx context.Context, records *collectionx.Li
 	return applied, err
 }
 
-// Repair replaces Go migration history checksums with the current migration metadata.
+// RepairGo replaces Go migration history checksums with the current migration metadata.
 func (r *Runner) RepairGo(ctx context.Context, migrations ...Migration) (*collectionx.List[AppliedRecord], error) {
 	return r.BaselineGo(ctx, migrations...)
 }
