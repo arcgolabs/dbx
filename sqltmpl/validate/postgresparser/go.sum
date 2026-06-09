@@ -1,9 +1,5 @@
 github.com/arcgolabs/collectionx v0.4.0 h1:Mbm8QJybX7Yvm+TXubEhSikhkNvz+6CZgFkpok/4Vlk=
 github.com/arcgolabs/collectionx v0.4.0/go.mod h1:J2RrOQPBUX6SlYRCFxpAQ5hzrXoLkKlXs2x/G0QlhxY=
-github.com/arcgolabs/dbx v0.1.1 h1:dt5DpKhAzgro9YC5M1Fufgp9H7Tcx9C+rXkc8r2zvPY=
-github.com/arcgolabs/dbx v0.1.1/go.mod h1:dxLWzHsnwcPzJxeFsA7ZRU8Xno4ZI7PGygWtYdpCl8w=
-github.com/arcgolabs/dbx/sqltmpl/validate v0.1.0 h1:6WakvjMVmsvwnQr8X2xFG6UdQmakDvISoQLSuPOsz6Q=
-github.com/arcgolabs/dbx/sqltmpl/validate v0.1.0/go.mod h1:NC09Z909R8ZyY+QfZHT5RNZ+TIO7uDlAfVuEduVi1Rg=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
@@ -22,12 +18,16 @@ github.com/wasilibs/go-pgquery v0.0.0-20260406132815-2d1882eb027f h1:5CXdoxvUtc3
 github.com/wasilibs/go-pgquery v0.0.0-20260406132815-2d1882eb027f/go.mod h1:tV/3fSJxdiuRAz6BcLZ5o95nB2fT0lAm2JT7SzzPeBo=
 github.com/wasilibs/go-pgquery v0.0.0-20260602005934-b9208c775dfd h1:NrIqAioMCj7FCvqIPG7umnqHucJtEEyXGuWYSDRJF6U=
 github.com/wasilibs/go-pgquery v0.0.0-20260602005934-b9208c775dfd/go.mod h1:ZSyYLCRbk2xPqu7lgfrDSSHm+g/7Rxk6JK4KE2cxJ3s=
+github.com/wasilibs/go-pgquery v0.0.0-20260609010136-660d982fa4df h1:BJXiB20TQqVyarRmRsVbVBmIk4XpmzKnPp9TrGwosFc=
+github.com/wasilibs/go-pgquery v0.0.0-20260609010136-660d982fa4df/go.mod h1:ZSyYLCRbk2xPqu7lgfrDSSHm+g/7Rxk6JK4KE2cxJ3s=
 github.com/wasilibs/wazero-helpers v0.0.0-20250123031827-cd30c44769bb h1:gQ+ZV4wJke/EBKYciZ2MshEouEHFuinB85dY3f5s1q8=
 github.com/wasilibs/wazero-helpers v0.0.0-20250123031827-cd30c44769bb/go.mod h1:jMeV4Vpbi8osrE/pKUxRZkVaA0EX7NZN0A9/oRzgpgY=
 golang.org/x/sys v0.43.0 h1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=
 golang.org/x/sys v0.43.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
 golang.org/x/sys v0.45.0 h1:dO4czNzziLiiXplLQgBCEpCvXQ3dnkn0SdaZSYdQ+FY=
 golang.org/x/sys v0.45.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
+golang.org/x/sys v0.46.0 h1:noSf2Fq6F8DBgS+LysIkx7rIExoNHJsxOAtPp4rthXw=
+golang.org/x/sys v0.46.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
 google.golang.org/protobuf v1.36.11 h1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=
 google.golang.org/protobuf v1.36.11/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=

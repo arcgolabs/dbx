@@ -8,6 +8,7 @@ require (
 	github.com/arcgolabs/collectionx/set v0.9.0
 	github.com/expr-lang/expr v1.17.8
 	github.com/samber/hot v0.13.0
+	github.com/samber/mo v1.17.0
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -25,8 +26,7 @@ require (
 	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/samber/go-singleflightx v0.3.2 // indirect
-	github.com/samber/mo v1.17.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
