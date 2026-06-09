@@ -5,7 +5,6 @@ go 1.26.2
 require vitess.io/vitess v0.24.1
 
 require (
-	github.com/arcgolabs/collectionx v0.4.0 // indirect
 	github.com/golang/glog v1.2.5 // indirect
 	github.com/lmittmann/tint v1.1.3 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
