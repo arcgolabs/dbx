@@ -221,6 +221,6 @@ func (c Column[E, T]) columnRef() schemax.ColumnMeta {
 	return c.meta
 }
 
-func (c Column[E, T]) As(alias string) querydsl.SelectItem {
-	return querydsl.Alias(c, alias)
+func (c Column[E, T]) As(alias string) querydsl.TypedSelectItem[T] {
+	return querydsl.TypedAlias(c, alias)
 }

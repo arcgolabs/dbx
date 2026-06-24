@@ -18,6 +18,11 @@ type SelectResult[R any] struct {
 	query *SelectQuery
 }
 
+// SelectResultQuery is implemented by typed SELECT wrappers.
+type SelectResultQuery interface {
+	Query() *SelectQuery
+}
+
 // SelectInto starts a SELECT query whose result rows scan into R.
 func SelectInto[R any](items ...SelectItem) SelectResult[R] {
 	return SelectResult[R]{query: Select(items...)}
@@ -79,6 +84,16 @@ func (q SelectResult[R]) DistinctOn() SelectResult[R] {
 // With adds a CTE to the typed query.
 func (q SelectResult[R]) With(name string, query *SelectQuery) SelectResult[R] {
 	q.ensure().With(name, query)
+	return q
+}
+
+// WithTyped adds a typed CTE to the typed query.
+func (q SelectResult[R]) WithTyped(name string, query SelectResultQuery) SelectResult[R] {
+	if query == nil {
+		q.ensure().With(name, nil)
+		return q
+	}
+	q.ensure().With(name, query.Query())
 	return q
 }
 
@@ -166,9 +181,21 @@ func (q SelectResult[R]) Union(query *SelectQuery) SelectResult[R] {
 	return q
 }
 
+// UnionTyped appends a typed UNION query while preserving this query's result type.
+func (q SelectResult[R]) UnionTyped(query SelectResult[R]) SelectResult[R] {
+	q.ensure().Union(query.Query())
+	return q
+}
+
 // UnionAll appends a UNION ALL query.
 func (q SelectResult[R]) UnionAll(query *SelectQuery) SelectResult[R] {
 	q.ensure().UnionAll(query)
+	return q
+}
+
+// UnionAllTyped appends a typed UNION ALL query while preserving this query's result type.
+func (q SelectResult[R]) UnionAllTyped(query SelectResult[R]) SelectResult[R] {
+	q.ensure().UnionAll(query.Query())
 	return q
 }
 

@@ -13,13 +13,45 @@ tasks:
 
   test:workspace:
     desc: Run tests for every module in go.work.
+    dir: '{{.TASKFILE_DIR}}'
     cmds:
-      - go test ./... ./audit/... ./examples/... ./migrate/... ./sqltmpl/... ./sqltmpl/validate/... ./sqltmpl/validate/mysqlparser/... ./sqltmpl/validate/postgresparser/... ./sqltmpl/validate/sqliteparser/...
+      - |
+        set -eu
+        root="$PWD"
+        status=0
+        modules_file="$(mktemp)"
+        trap 'rm -f "$modules_file"' EXIT
+        go list -m -f '{{"{{.Dir}}"}}' > "$modules_file"
+        while IFS= read -r module; do
+          label="${module#$root/}"
+          if [ "$label" = "$module" ]; then label="."; fi
+          echo "==> go test $label"
+          if ! (cd "$module" && go test ./...); then
+            status=1
+          fi
+        done < "$modules_file"
+        exit "$status"
 
   vet:workspace:
     desc: Run go vet for every module in go.work.
+    dir: '{{.TASKFILE_DIR}}'
     cmds:
-      - go vet ./... ./audit/... ./examples/... ./migrate/... ./sqltmpl/... ./sqltmpl/validate/... ./sqltmpl/validate/mysqlparser/... ./sqltmpl/validate/postgresparser/... ./sqltmpl/validate/sqliteparser/...
+      - |
+        set -eu
+        root="$PWD"
+        status=0
+        modules_file="$(mktemp)"
+        trap 'rm -f "$modules_file"' EXIT
+        go list -m -f '{{"{{.Dir}}"}}' > "$modules_file"
+        while IFS= read -r module; do
+          label="${module#$root/}"
+          if [ "$label" = "$module" ]; then label="."; fi
+          echo "==> go vet $label"
+          if ! (cd "$module" && go vet ./...); then
+            status=1
+          fi
+        done < "$modules_file"
+        exit "$status"
 
   lint:
     desc: Run golangci-lint for the root module.
@@ -34,32 +66,24 @@ tasks:
 
   lint:workspace:
     desc: Run golangci-lint for every module in go.work.
+    dir: '{{.TASKFILE_DIR}}'
     cmds:
-      - task: lint
-      - task: lint:module
-        vars:
-          MODULE: audit
-      - task: lint:module
-        vars:
-          MODULE: examples
-      - task: lint:module
-        vars:
-          MODULE: migrate
-      - task: lint:module
-        vars:
-          MODULE: sqltmpl
-      - task: lint:module
-        vars:
-          MODULE: sqltmpl/validate
-      - task: lint:module
-        vars:
-          MODULE: sqltmpl/validate/mysqlparser
-      - task: lint:module
-        vars:
-          MODULE: sqltmpl/validate/postgresparser
-      - task: lint:module
-        vars:
-          MODULE: sqltmpl/validate/sqliteparser
+      - |
+        set -eu
+        root="$PWD"
+        status=0
+        modules_file="$(mktemp)"
+        trap 'rm -f "$modules_file"' EXIT
+        go list -m -f '{{"{{.Dir}}"}}' > "$modules_file"
+        while IFS= read -r module; do
+          label="${module#$root/}"
+          if [ "$label" = "$module" ]; then label="."; fi
+          echo "==> golangci-lint $label"
+          if ! (cd "$module" && go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4 run --allow-parallel-runners ./...); then
+            status=1
+          fi
+        done < "$modules_file"
+        exit "$status"
 
   bench:typed-query:
     desc: Benchmark typed single-row and scalar query helpers.

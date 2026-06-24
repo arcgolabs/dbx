@@ -196,8 +196,8 @@ func (c Column[T]) Desc() Order {
 	return columnOrder[T]{Column: c, Descending: true}
 }
 
-func (c Column[T]) As(alias string) SelectItem {
-	return Alias(c, alias)
+func (c Column[T]) As(alias string) TypedSelectItem[T] {
+	return TypedAlias(c, alias)
 }
 
 func (o columnOrder[T]) QueryOrder() {}

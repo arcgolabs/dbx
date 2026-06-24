@@ -102,12 +102,12 @@ func (b *CaseBuilder[T]) End() CaseExpression[T] {
 	}
 }
 
-func (a Aggregate[T]) As(alias string) SelectItem {
-	return Alias(a, alias)
+func (a Aggregate[T]) As(alias string) TypedSelectItem[T] {
+	return TypedAlias(a, alias)
 }
 
-func (c CaseExpression[T]) As(alias string) SelectItem {
-	return Alias(c, alias)
+func (c CaseExpression[T]) As(alias string) TypedSelectItem[T] {
+	return TypedAlias(c, alias)
 }
 
 func (a Aggregate[T]) Eq(value T) Predicate { return Compare(a, OpEq, Value(value)) }
