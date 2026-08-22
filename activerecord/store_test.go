@@ -37,7 +37,7 @@ type userNameRow struct {
 
 func TestModelSaveReloadDelete(t *testing.T) {
 	ctx, store := openUserStore(t, "file:activerecord_model_test?mode=memory&cache=shared")
-	byID := activerecord.By(store, store.Repository().Schema().ID)
+	byID := store.By(store.Repository().Schema().ID)
 
 	model := store.Wrap(&User{Name: "alice"})
 	require.NoError(t, model.Save(ctx))
@@ -67,7 +67,7 @@ func TestStoreFindOptionAPIs(t *testing.T) {
 	model := store.Wrap(&User{Name: "alice"})
 	require.NoError(t, model.Save(ctx))
 
-	byID := activerecord.By(store, store.Repository().Schema().ID)
+	byID := store.By(store.Repository().Schema().ID)
 	noneByID, err := byID.FindOption(ctx, int64(99999))
 	require.NoError(t, err)
 	require.False(t, noneByID.IsPresent())
@@ -106,7 +106,7 @@ func TestStoreTypedKeyAPIs(t *testing.T) {
 	model := store.Wrap(&User{Name: "alice"})
 	require.NoError(t, model.Save(ctx))
 
-	byID := activerecord.By(store, users.ID)
+	byID := store.By(users.ID)
 	exists, err := byID.Exists(ctx, model.Entity().ID)
 	require.NoError(t, err)
 	require.True(t, exists)
@@ -119,7 +119,7 @@ func TestStoreTypedKeyAPIs(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, none.IsPresent())
 
-	byName := activerecord.By(store, users.Name)
+	byName := store.By(users.Name)
 	foundByName, err := byName.Find(ctx, "alice")
 	require.NoError(t, err)
 	require.Equal(t, model.Entity().ID, foundByName.Entity().ID)
@@ -143,23 +143,23 @@ func TestStoreTypedQueryResultAPIs(t *testing.T) {
 
 	query := querydsl.SelectFromInto[userNameRow](users, users.ID, users.Name).
 		Where(users.Name.Eq("alice"))
-	items, err := activerecord.ListResult[userNameRow](ctx, store, query)
+	items, err := store.ListResult(ctx, query)
 	require.NoError(t, err)
 	require.Equal(t, 1, items.Len())
 
-	first, err := activerecord.GetResult[userNameRow](ctx, store, query)
+	first, err := store.GetResult(ctx, query)
 	require.NoError(t, err)
 	require.Equal(t, model.Entity().ID, first.ID)
 
-	found, err := activerecord.FindResult[userNameRow](ctx, store, query)
+	found, err := store.FindResult(ctx, query)
 	require.NoError(t, err)
 	require.True(t, found.IsPresent())
 
-	id, err := activerecord.ScalarResult[int64](ctx, store, querydsl.SelectValue(users.ID).From(users).Where(users.Name.Eq("alice")))
+	id, err := store.ScalarResult(ctx, querydsl.SelectValue(users.ID).From(users).Where(users.Name.Eq("alice")))
 	require.NoError(t, err)
 	require.Equal(t, model.Entity().ID, id)
 
-	none, err := activerecord.ScalarResultOption[int64](ctx, store, querydsl.SelectValue(users.ID).From(users).Where(users.Name.Eq("missing")))
+	none, err := store.ScalarResultOption(ctx, querydsl.SelectValue(users.ID).From(users).Where(users.Name.Eq("missing")))
 	require.NoError(t, err)
 	require.False(t, none.IsPresent())
 }
@@ -178,7 +178,7 @@ func TestStoreNewWithOptions(t *testing.T) {
 	require.NoError(t, err)
 
 	store := activerecord.NewWithOptions[User](core, users, repository.WithKeyNotFoundAsError(true))
-	_, err = repository.By(store.Repository(), users.ID).Delete(ctx, int64(404))
+	_, err = store.Repository().By(users.ID).Delete(ctx, int64(404))
 	require.ErrorIs(t, err, repository.ErrNotFound)
 }
 

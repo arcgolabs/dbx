@@ -25,8 +25,8 @@ Package: `github.com/arcgolabs/dbx/activerecord`.
 - `Store.FindByKey`, `Store.First`, and `Store.List` return `*Model` values. Errors include `repository.ErrNotFound` when applicable.
 - `Store.Find` / `Store.FirstOption` return optional spec-based single-row reads.
 - `Store.FindByKeySet` is the typed composite-key helper built from `repository.KeySet`.
-- `activerecord.By(store, Users.ID)` is the typed single-column lookup helper for `Find`, `FindOption`, and `Exists`.
-- `activerecord.ListResult[T](ctx, store, typedQuery)` and `ScalarResult[T]` execute typed querydsl projections through the underlying repository.
+- `store.By(Users.ID)` is the typed single-column lookup helper for `Find`, `FindOption`, and `Exists`.
+- `store.ListResult(ctx, typedQuery)` and `ScalarResult` execute typed querydsl projections through the underlying repository.
 - `Model.Entity() *E`, `Model.Key() repository.Key`: `Key` is a defensive copy of the current primary key map.
 - `Model.Save` inserts when key is empty or all key parts are zero; otherwise it updates by key. If update affects no row, it falls back to create for the row-missing case.
 - `Model.Reload`, `Model.Delete`: operate by key.
@@ -35,11 +35,11 @@ Package: `github.com/arcgolabs/dbx/activerecord`.
 
 Parallel to repository's `*Option` reads:
 
-- `activerecord.By(store, Users.ID).FindOption(ctx, id)`
+- `store.By(Users.ID).FindOption(ctx, id)`
 - `Store.FindByKeyOption(ctx, key) (mo.Option[*Model[E, S]], error)`
 - `Store.Find(ctx, specs...)` / `Store.FirstOption(ctx, specs...)`
 
-When the row is missing, these return `mo.None[*Model[E, S]]()` with `nil` error, matching `repository.By(...).GetOption` / `GetByKeyOption` semantics. Other errors still return a non-nil `error`.
+When the row is missing, these return `mo.None[*Model[E, S]]()` with `nil` error, matching `repo.By(...).GetOption` / `GetByKeyOption` semantics. Other errors still return a non-nil `error`.
 
 ## Complete Example
 
@@ -85,7 +85,7 @@ func main() {
 	m := store.Wrap(&User{Name: "alice"})
 	_ = m.Save(ctx)
 
-	opt, err := activerecord.By(store, Users.ID).FindOption(ctx, m.Entity().ID)
+	opt, err := store.By(Users.ID).FindOption(ctx, m.Entity().ID)
 	if err != nil {
 		return
 	}
@@ -109,7 +109,7 @@ type UserSummary struct {
 query := querydsl.SelectFromInto[UserSummary](Users, Users.ID, Users.Name).
 	Where(Users.Name.Eq("alice"))
 
-rows, err := activerecord.ListResult[UserSummary](ctx, store, query)
+rows, err := store.ListResult(ctx, query)
 if err != nil {
 	return err
 }

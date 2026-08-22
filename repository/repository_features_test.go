@@ -24,14 +24,14 @@ func TestBaseTypedKeyNotFoundAsErrorOption(t *testing.T) {
 	mustAutoMigrate(ctx, t, core, users)
 
 	defaultRepo := repository.New[User](core, users)
-	defaultByID := repository.By(defaultRepo, users.ID)
+	defaultByID := defaultRepo.By(users.ID)
 	_, err := defaultByID.Delete(ctx, int64(404))
 	require.NoError(t, err)
 	_, err = defaultByID.Update(ctx, int64(404), users.Name.Set("missing"))
 	require.NoError(t, err)
 
 	strictRepo := repository.NewWithOptions[User](core, users, repository.WithKeyNotFoundAsError(true))
-	strictByID := repository.By(strictRepo, users.ID)
+	strictByID := strictRepo.By(users.ID)
 	_, err = strictByID.Delete(ctx, int64(404))
 	require.ErrorIs(t, err, repository.ErrNotFound)
 	_, err = strictByID.Update(ctx, int64(404), users.Name.Set("missing"))
@@ -50,7 +50,7 @@ func TestBaseCreateManyAndUpsert(t *testing.T) {
 	require.NoError(t, deviceRepo.Create(deviceCtx, &Device{DeviceID: "dev-1", Name: "sensor"}))
 	require.NoError(t, deviceRepo.Upsert(deviceCtx, &Device{DeviceID: "dev-1", Name: "sensor-v2"}))
 
-	device, err := repository.By(deviceRepo, devices.DeviceID).Get(deviceCtx, "dev-1")
+	device, err := deviceRepo.By(devices.DeviceID).Get(deviceCtx, "dev-1")
 	require.NoError(t, err)
 	require.Equal(t, "sensor-v2", device.Name)
 }
@@ -154,7 +154,7 @@ func TestBaseSpecAPIs(t *testing.T) {
 func TestBaseOptionAPIs(t *testing.T) {
 	repo, users, ctx := newSeededUserRepo(t, "file:repository_option_api_test?mode=memory&cache=shared", "alice")
 
-	noneByID, err := repository.By(repo, users.ID).GetOption(ctx, int64(99999))
+	noneByID, err := repo.By(users.ID).GetOption(ctx, int64(99999))
 	require.NoError(t, err)
 	require.False(t, noneByID.IsPresent())
 
@@ -175,32 +175,31 @@ func TestBaseTypedQueryResultAPIs(t *testing.T) {
 
 	query := querydsl.SelectFromInto[typedUserNameRow](users, users.ID, users.Name).
 		Where(users.Name.Eq("alice"))
-	items, err := repository.ListResult[typedUserNameRow](ctx, repo, query)
+	items, err := repo.ListResult(ctx, query)
 	require.NoError(t, err)
 	require.Equal(t, 1, items.Len())
 
-	first, err := repository.GetResult[typedUserNameRow](ctx, repo, query)
+	first, err := repo.GetResult(ctx, query)
 	require.NoError(t, err)
 	require.Equal(t, "alice", first.Name)
 
-	found, err := repository.FindResult[typedUserNameRow](ctx, repo, query)
+	found, err := repo.FindResult(ctx, query)
 	require.NoError(t, err)
 	require.True(t, found.IsPresent())
 
-	withMapper, err := repository.ListResultWithMapper[typedUserNameRow](
+	withMapper, err := repo.ListResultWithMapper(
 		ctx,
-		repo,
 		query,
 		mapper.MustStructMapper[typedUserNameRow](),
 	)
 	require.NoError(t, err)
 	require.Equal(t, 1, withMapper.Len())
 
-	id, err := repository.ScalarResult[int64](ctx, repo, querydsl.SelectValue(users.ID).From(users).Where(users.Name.Eq("alice")))
+	id, err := repo.ScalarResult(ctx, querydsl.SelectValue(users.ID).From(users).Where(users.Name.Eq("alice")))
 	require.NoError(t, err)
 	require.EqualValues(t, 1, id)
 
-	none, err := repository.ScalarResultOption[int64](ctx, repo, querydsl.SelectValue(users.ID).From(users).Where(users.Name.Eq("missing")))
+	none, err := repo.ScalarResultOption(ctx, querydsl.SelectValue(users.ID).From(users).Where(users.Name.Eq("missing")))
 	require.NoError(t, err)
 	require.False(t, none.IsPresent())
 }
@@ -210,7 +209,7 @@ func TestTypedKeyAPIs(t *testing.T) {
 	alice, err := repo.FirstSpec(ctx, repository.Where(users.Name.Eq("alice")))
 	require.NoError(t, err)
 
-	byID := repository.By(repo, users.ID)
+	byID := repo.By(users.ID)
 	exists, err := byID.Exists(ctx, alice.ID)
 	require.NoError(t, err)
 	require.True(t, exists)
@@ -235,7 +234,7 @@ func TestTypedKeyAPIs(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, exists)
 
-	byName := repository.By(repo, users.Name)
+	byName := repo.By(users.Name)
 	bob, err := byName.Get(ctx, "bob")
 	require.NoError(t, err)
 	require.Equal(t, "bob", bob.Name)
@@ -243,7 +242,7 @@ func TestTypedKeyAPIs(t *testing.T) {
 
 func TestTypedKeyNilRepository(t *testing.T) {
 	users := schemax.MustSchema("users", UserSchema{})
-	byID := repository.By((*repository.Base[User, UserSchema])(nil), users.ID)
+	byID := (*repository.Base[User, UserSchema])(nil).By(users.ID)
 
 	_, err := byID.Get(context.Background(), int64(1))
 	require.ErrorIs(t, err, dbx.ErrNilDB)
@@ -281,7 +280,7 @@ func TestBaseUpdateByVersionSet(t *testing.T) {
 	_, err = repo.UpdateByVersionSet(ctx, key, users.Version, 1, users.Name.Set("alice-v2"))
 	require.NoError(t, err)
 
-	updated, err := repository.By(repo, users.ID).Get(ctx, item.ID)
+	updated, err := repo.By(users.ID).Get(ctx, item.ID)
 	require.NoError(t, err)
 	require.Equal(t, "alice-v2", updated.Name)
 	require.EqualValues(t, 2, updated.Version)

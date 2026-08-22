@@ -125,9 +125,16 @@ func replaceAppliedRecordOnConn(ctx context.Context, conn interface {
 }
 
 func appliedRecordForVersion(items *collectionx.List[AppliedRecord], record AppliedRecord) (AppliedRecord, error) {
-	found, ok := items.FirstWhere(func(_ int, item AppliedRecord) bool {
-		return item.Kind == record.Kind && item.Version == record.Version && item.Description == record.Description
-	}).Get()
+	var found AppliedRecord
+	ok := false
+	items.Range(func(_ int, item AppliedRecord) bool {
+		if item.Kind != record.Kind || item.Version != record.Version || item.Description != record.Description {
+			return true
+		}
+		found = item
+		ok = true
+		return false
+	})
 	if !ok {
 		return AppliedRecord{}, fmt.Errorf("dbx/migrate: applied record not found for version %s", record.Version)
 	}

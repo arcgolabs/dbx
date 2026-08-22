@@ -243,7 +243,7 @@ func resolveInsertColumns(q *InsertQuery, rows *listx.Grid[Assignment]) (*listx.
 	if q.TargetColumns.Len() > 0 {
 		return resolveTargetColumns(q.TargetColumns)
 	}
-	row, ok := rows.FirstRowWhere(func(_ int, _ []Assignment) bool { return true }).Get()
+	row, ok := rows.GetRow(0)
 	if !ok {
 		return listx.NewList[schemax.ColumnMeta](), nil
 	}

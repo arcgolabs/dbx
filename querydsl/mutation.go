@@ -63,8 +63,9 @@ func (q *InsertQuery) ValuesRowsList(rows *collectionx.List[*collectionx.List[As
 		return q
 	}
 	grid := collectionx.NewGridWithCapacity[Assignment](rows.Len())
-	rows.Each(func(_ int, row *collectionx.List[Assignment]) {
+	rows.Range(func(_ int, row *collectionx.List[Assignment]) bool {
 		grid.AddRowList(row)
+		return true
 	})
 	return q.ValuesGrid(grid)
 }

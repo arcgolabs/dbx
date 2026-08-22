@@ -91,8 +91,9 @@ tasks:
       - go test -run ^$ -bench 'Benchmark(GetTyped|QueryOneTyped|FindTyped|QueryScalar)$' -benchmem
 
   ci:
-    desc: Run workspace test, vet, and lint checks.
+    # golangci-lint does not yet support Go 1.27 generic methods:
+    # https://github.com/golangci/golangci-lint/issues/6603
+    desc: Run workspace test and vet checks.
     cmds:
       - task test:workspace
       - task vet:workspace
-      - task lint:workspace

@@ -15,14 +15,14 @@ type TypedKey[E any, S repository.EntitySchema[E], T any] struct {
 }
 
 // By returns a typed key accessor for a store column.
-func By[E any, S repository.EntitySchema[E], T any](store *Store[E, S], column repository.KeyColumn[T]) TypedKey[E, S, T] {
+func (s *Store[E, S]) By[T any](column repository.KeyColumn[T]) TypedKey[E, S, T] {
 	var repo *repository.Base[E, S]
-	if store != nil {
-		repo = store.Repository()
+	if s != nil {
+		repo = s.Repository()
 	}
 	return TypedKey[E, S, T]{
-		store:  store,
-		access: repository.By(repo, column),
+		store:  s,
+		access: repo.By(column),
 	}
 }
 

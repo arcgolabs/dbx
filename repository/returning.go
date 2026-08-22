@@ -12,28 +12,23 @@ import (
 
 // CreateReturning inserts entity and scans the RETURNING row into the repository entity type.
 func (r *Base[E, S]) CreateReturning(ctx context.Context, entity *E) (E, error) {
-	return CreateReturning(ctx, r, entity)
-}
-
-// CreateReturning inserts entity and scans the RETURNING row into the repository entity type.
-func CreateReturning[E any, S EntitySchema[E]](ctx context.Context, repo *Base[E, S], entity *E, items ...querydsl.SelectItem) (E, error) {
-	if repo == nil {
+	if r == nil {
 		var zero E
 		return zero, dbx.ErrNilDB
 	}
-	item, err := createReturningWithMapper(ctx, repo, entity, repo.mapper, items...)
+	item, err := createReturningWithMapper(ctx, r, entity, r.mapper)
 	if err != nil {
 		return item, err
 	}
-	if err := repo.writeAuditValue(ctx, AuditOperationInsert, item); err != nil {
+	if err := r.writeAuditValue(ctx, AuditOperationInsert, item); err != nil {
 		return item, err
 	}
 	return item, nil
 }
 
 // CreateReturningInto inserts entity and scans the RETURNING row into R.
-func CreateReturningInto[R any, E any, S EntitySchema[E]](ctx context.Context, repo *Base[E, S], entity *E, items ...querydsl.SelectItem) (R, error) {
-	return createReturningWithMapper(ctx, repo, entity, mapperx.MustStructMapper[R](), items...)
+func (r *Base[E, S]) CreateReturningInto[R any](ctx context.Context, entity *E, items ...querydsl.SelectItem) (R, error) {
+	return createReturningWithMapper(ctx, r, entity, mapperx.MustStructMapper[R](), items...)
 }
 
 func createReturningWithMapper[R any, E any, S EntitySchema[E]](
@@ -66,31 +61,26 @@ func createReturningWithMapper[R any, E any, S EntitySchema[E]](
 
 // UpsertReturning inserts or updates entity and scans the RETURNING row into the repository entity type.
 func (r *Base[E, S]) UpsertReturning(ctx context.Context, entity *E, conflictColumns ...string) (E, error) {
-	return UpsertReturning(ctx, r, entity, conflictColumns...)
-}
-
-// UpsertReturning inserts or updates entity and scans the RETURNING row into the repository entity type.
-func UpsertReturning[E any, S EntitySchema[E]](ctx context.Context, repo *Base[E, S], entity *E, conflictColumns ...string) (E, error) {
 	var zero E
-	if repo == nil || repo.session == nil {
+	if r == nil || r.session == nil {
 		return zero, dbx.ErrNilDB
 	}
 	if entity == nil {
 		return zero, &ValidationError{Message: "entity is nil"}
 	}
-	assignments, err := repo.insertAssignments(ctx, entity)
+	assignments, err := r.insertAssignments(ctx, entity)
 	if err != nil {
 		return zero, err
 	}
-	query, _, err := repo.upsertQuery(assignments, conflictColumns...)
+	query, _, err := r.upsertQuery(assignments, conflictColumns...)
 	if err != nil {
 		return zero, err
 	}
-	item, err := dbx.QueryOne[E](ctx, repo.session, query.ReturningList(returningItems(repo)), repo.mapper)
+	item, err := dbx.QueryOne[E](ctx, r.session, query.ReturningList(returningItems(r)), r.mapper)
 	if err != nil {
 		return zero, wrapMutationError(fmt.Errorf("upsert returning: %w", err))
 	}
-	if err := repo.writeAuditValue(ctx, AuditOperationUpsert, item); err != nil {
+	if err := r.writeAuditValue(ctx, AuditOperationUpsert, item); err != nil {
 		return item, err
 	}
 	return item, nil
@@ -98,27 +88,22 @@ func UpsertReturning[E any, S EntitySchema[E]](ctx context.Context, repo *Base[E
 
 // UpdateReturning executes an UPDATE ... RETURNING query and scans rows into the repository entity type.
 func (r *Base[E, S]) UpdateReturning(ctx context.Context, query *querydsl.UpdateQuery) (*collectionx.List[E], error) {
-	return UpdateReturning(ctx, r, query)
-}
-
-// UpdateReturning executes an UPDATE ... RETURNING query and scans rows into the repository entity type.
-func UpdateReturning[E any, S EntitySchema[E]](ctx context.Context, repo *Base[E, S], query *querydsl.UpdateQuery, items ...querydsl.SelectItem) (*collectionx.List[E], error) {
-	if repo == nil {
+	if r == nil {
 		return nil, dbx.ErrNilDB
 	}
-	rows, err := updateReturningWithMapper(ctx, repo, query, repo.mapper, items...)
+	rows, err := updateReturningWithMapper(ctx, r, query, r.mapper)
 	if err != nil {
 		return rows, err
 	}
-	if err := writeAuditRows(ctx, repo, AuditOperationUpdate, rows); err != nil {
+	if err := writeAuditRows(ctx, r, AuditOperationUpdate, rows); err != nil {
 		return rows, err
 	}
 	return rows, nil
 }
 
 // UpdateReturningInto executes an UPDATE ... RETURNING query and scans rows into R.
-func UpdateReturningInto[R any, E any, S EntitySchema[E]](ctx context.Context, repo *Base[E, S], query *querydsl.UpdateQuery, items ...querydsl.SelectItem) (*collectionx.List[R], error) {
-	return updateReturningWithMapper(ctx, repo, query, mapperx.MustStructMapper[R](), items...)
+func (r *Base[E, S]) UpdateReturningInto[R any](ctx context.Context, query *querydsl.UpdateQuery, items ...querydsl.SelectItem) (*collectionx.List[R], error) {
+	return updateReturningWithMapper(ctx, r, query, mapperx.MustStructMapper[R](), items...)
 }
 
 func updateReturningWithMapper[R any, E any, S EntitySchema[E]](
@@ -145,27 +130,22 @@ func updateReturningWithMapper[R any, E any, S EntitySchema[E]](
 
 // DeleteReturning executes a DELETE ... RETURNING query and scans rows into the repository entity type.
 func (r *Base[E, S]) DeleteReturning(ctx context.Context, query *querydsl.DeleteQuery) (*collectionx.List[E], error) {
-	return DeleteReturning(ctx, r, query)
-}
-
-// DeleteReturning executes a DELETE ... RETURNING query and scans rows into the repository entity type.
-func DeleteReturning[E any, S EntitySchema[E]](ctx context.Context, repo *Base[E, S], query *querydsl.DeleteQuery, items ...querydsl.SelectItem) (*collectionx.List[E], error) {
-	if repo == nil {
+	if r == nil {
 		return nil, dbx.ErrNilDB
 	}
-	rows, err := deleteReturningWithMapper(ctx, repo, query, repo.mapper, items...)
+	rows, err := deleteReturningWithMapper(ctx, r, query, r.mapper)
 	if err != nil {
 		return rows, err
 	}
-	if err := writeAuditRows(ctx, repo, AuditOperationDelete, rows); err != nil {
+	if err := writeAuditRows(ctx, r, AuditOperationDelete, rows); err != nil {
 		return rows, err
 	}
 	return rows, nil
 }
 
 // DeleteReturningInto executes a DELETE ... RETURNING query and scans rows into R.
-func DeleteReturningInto[R any, E any, S EntitySchema[E]](ctx context.Context, repo *Base[E, S], query *querydsl.DeleteQuery, items ...querydsl.SelectItem) (*collectionx.List[R], error) {
-	return deleteReturningWithMapper(ctx, repo, query, mapperx.MustStructMapper[R](), items...)
+func (r *Base[E, S]) DeleteReturningInto[R any](ctx context.Context, query *querydsl.DeleteQuery, items ...querydsl.SelectItem) (*collectionx.List[R], error) {
+	return deleteReturningWithMapper(ctx, r, query, mapperx.MustStructMapper[R](), items...)
 }
 
 func deleteReturningWithMapper[R any, E any, S EntitySchema[E]](

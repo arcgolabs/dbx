@@ -66,7 +66,7 @@ func main() {
 ## API Highlights
 
 - CRUD: `Create`, `CreateMany`, `List`, `First`, `Update`, `Delete`
-- Typed key accessor: `repository.By(repo, Users.ID).Get(ctx, id)`
+- Typed key accessor: `repo.By(Users.ID).Get(ctx, id)`
 - Typed composite key set: `repository.KeySet(repository.Part(Users.ID, id), ...)`
 - Dynamic/composite key helpers: `GetByKey`, `UpdateByKey`, `DeleteByKey`
 - Pagination: `paging.Request`, `paging.Result`, `ListPage`, `ListPageRequest`, `ListPageSpec`, `ListPageSpecRequest`
@@ -74,11 +74,11 @@ func main() {
 - Transactions: `InTx`
 - Specs: `Where`, `OrderBy`, `Limit`, `Offset`, `Page`, `PageByRequest`
 - Fluent query: `repository.Query(repo).Where(...).OrderBy(...).List(ctx)`
-- Typed querydsl projections: `repository.ListResult[T](ctx, repo, typedQuery)`, `GetResult[T]`, `FindResult[T]`, `ScalarResult[T]`
+- Typed querydsl projections: `repo.ListResult(ctx, typedQuery)`, `GetResult`, `FindResult`, `ScalarResult`
 - Partial updates: `repository.Patch(repo, key).Set(...).Apply(ctx)` and `PatchSet(repo, typedKeySet)`
 - Default filters and soft delete: `WithDefaultSpecs`, `WithSoftDeleteFlag`, `WithSoftDeleteTime`, `Query(repo).WithDeleted()`, `OnlyDeleted()`
 - Streaming: `repo.Cursor`, `repo.Each`, `repo.Batch`, plus the same API on `repository.Query(repo)`
-- Optional single-row reads: `repository.By(...).GetOption`, `GetByKeyOption`, `GetByKeySetOption`, `FirstOption`, `FirstSpecOption`, `repository.Query(repo).Find(ctx)` (see below)
+- Optional single-row reads: `repo.By(...).GetOption`, `GetByKeyOption`, `GetByKeySetOption`, `FirstOption`, `FirstSpecOption`, `repository.Query(repo).Find(ctx)` (see below)
 
 ## Pagination
 
@@ -148,14 +148,13 @@ type UserSummary struct {
 query := querydsl.SelectFromInto[UserSummary](Users, Users.ID, Users.Name).
 	Where(Users.Name.Eq("alice"))
 
-rows, err := repository.ListResult[UserSummary](ctx, repo, query)
+rows, err := repo.ListResult(ctx, query)
 if err != nil {
 	return err
 }
 
-id, err := repository.ScalarResult[int64](
+id, err := repo.ScalarResult(
 	ctx,
-	repo,
 	querydsl.SelectValue(Users.ID).From(Users).Where(Users.Name.Eq("alice")),
 )
 if err != nil {
@@ -241,7 +240,7 @@ err = repository.Query(repo).
 For single-column keys, bind a typed schema column once instead of passing `any` IDs through every call:
 
 ```go
-usersByID := repository.By(repo, Users.ID)
+usersByID := repo.By(Users.ID)
 
 user, err := usersByID.Get(ctx, int64(42))
 if err != nil {
@@ -253,14 +252,14 @@ if err != nil {
 	return err
 }
 
-exists, err := repository.By(repo, Users.Name).Exists(ctx, "alice-v2")
+exists, err := repo.By(Users.Name).Exists(ctx, "alice-v2")
 if err != nil {
 	return err
 }
 _ = exists
 ```
 
-`repository.By` is the public API for typed single-column keys. Use `repository.Key` only for dynamic key assembly where the key columns are not known at compile time.
+`repo.By` is the public API for typed single-column keys. Use `repository.Key` only for dynamic key assembly where the key columns are not known at compile time.
 
 For composite keys, build the key from typed column/value parts instead of a stringly typed map:
 
@@ -330,7 +329,7 @@ The update adds `Users.Version = user.Version + 1` and requires the current row 
 
 For “maybe one row” queries, you can use parallel methods that return `github.com/samber/mo.Option` instead of treating “not found” as `repository.ErrNotFound`:
 
-- `repository.By(repo, Users.ID).GetOption(ctx, id)`
+- `repo.By(Users.ID).GetOption(ctx, id)`
 - `GetByKeyOption`, `GetByKeySetOption`, `FirstOption`, `FirstSpecOption`
 - `repository.Query(repo).Find(ctx)` / `repository.Query(repo).FirstOption(ctx)`
 
@@ -348,7 +347,7 @@ When to use which:
 ```go
 // Assumes User, UserSchema, Users, repo, and ctx from the "Complete Example" above.
 
-byID, err := repository.By(repo, Users.ID).GetOption(ctx, int64(42))
+byID, err := repo.By(Users.ID).GetOption(ctx, int64(42))
 if err != nil {
 	return err
 }

@@ -9,7 +9,6 @@ import (
 	"github.com/arcgolabs/dbx/sqlstmt"
 	"github.com/samber/mo"
 	"github.com/samber/oops"
-	scanlib "github.com/stephenafamo/scan"
 )
 
 // QueryScalar builds a typed scalar querydsl SELECT and scans exactly one single-column row.
@@ -73,13 +72,19 @@ func scalarBound[T any](ctx context.Context, session Session, bound sqlstmt.Boun
 		return zero, false, wrapDBError("query scalar bound", err)
 	}
 
-	value, err := scanlib.OneFromRows[T](ctx, scanlib.SingleColumnMapper[T], rows)
-	if err != nil {
+	if !rows.Next() {
+		iterErr := rowsIterError(rows)
 		closeErr := closeRows(rows)
 		var zero T
-		if errors.Is(err, sql.ErrNoRows) {
-			return zero, false, closeErr
+		if iterErr != nil {
+			return zero, false, errors.Join(iterErr, closeErr)
 		}
+		return zero, false, closeErr
+	}
+	var value T
+	if err := rows.Scan(&value); err != nil {
+		closeErr := closeRows(rows)
+		var zero T
 		return zero, false, errors.Join(wrapDBError("scan scalar row", err), closeErr)
 	}
 	if rows.Next() {

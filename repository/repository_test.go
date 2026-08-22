@@ -109,7 +109,7 @@ func TestBaseFirstNotFound(t *testing.T) {
 
 func TestBaseTypedKeyCountExistsUpdateDeleteAndListPage(t *testing.T) {
 	repo, users, ctx := newSeededUserRepo(t, "file:repository_features_test?mode=memory&cache=shared", "alice", "bob")
-	byID := repository.By(repo, users.ID)
+	byID := repo.By(users.ID)
 
 	total, err := repo.Count(ctx, nil)
 	require.NoError(t, err)

@@ -55,18 +55,18 @@ weight: 18
 - `repository.Patch(repo, key).Set(...).Apply(ctx)` / `PatchSet(repo, keySet)` for partial updates.
 - `repository.WithDefaultSpecs(...)`, `WithSoftDeleteFlag(...)`, `WithSoftDeleteTime(...)`, `Query(repo).WithDeleted()`, and `OnlyDeleted()` for repository-level filters.
 - `repo.SoftDeleteByKey(ctx, key)` / `SoftDeleteByKeySet(ctx, keySet)` when soft delete is configured.
-- `repository.ListResult[T](ctx, repo, typedQuery)` / `GetResult[T]` / `FindResult[T]` for querydsl DTO projections through a repository session.
-- `repository.ScalarResult[T](ctx, repo, querydsl.SelectValue(column).From(schema))` / `ScalarResultOption[T]` for typed scalar projections.
+- `repo.ListResult(ctx, typedQuery)` / `GetResult` / `FindResult` for querydsl DTO projections through a repository session.
+- `repo.ScalarResult(ctx, querydsl.SelectValue(column).From(schema))` / `ScalarResultOption` for typed scalar projections.
 - `repository.PageRequest` / `repository.PageResult[T]` are aliases of the shared `paging` pagination model.
 
 ## Active Record
 
 - `activerecord.New[E](db, schema)` / `NewWithOptions[E](db, schema, opts...)`.
 - `store.First(ctx, specs...)` / `store.Find(ctx, specs...)` for spec-based single model reads.
-- `activerecord.By(store, Users.ID).Find(ctx, id)` / `FindOption(ctx, id)` for typed key reads.
+- `store.By(Users.ID).Find(ctx, id)` / `FindOption(ctx, id)` for typed key reads.
 - `store.List(ctx, specs...)` / `store.ListPage(ctx, request, specs...)` for model collections.
-- `activerecord.ListResult[T](ctx, store, typedQuery)` / `GetResult[T]` / `FindResult[T]` for DTO projections through a store.
-- `activerecord.ScalarResult[T](ctx, store, scalarQuery)` / `ScalarResultOption[T]` for scalar projections.
+- `store.ListResult(ctx, typedQuery)` / `GetResult` / `FindResult` for DTO projections through a store.
+- `store.ScalarResult(ctx, scalarQuery)` / `ScalarResultOption` for scalar projections.
 
 ## Migration and Schema Validation
 

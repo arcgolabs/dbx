@@ -41,7 +41,7 @@ func TestPatchSoftDeleteAndBatchAPIs(t *testing.T) {
 		Apply(ctx)
 	require.NoError(t, err)
 
-	updated, err := repository.By(repo, users.ID).Get(ctx, alice.ID)
+	updated, err := repo.By(users.ID).Get(ctx, alice.ID)
 	require.NoError(t, err)
 	require.Equal(t, "alice-v2", updated.Name)
 	require.EqualValues(t, alice.Version+1, updated.Version)

@@ -15,7 +15,7 @@ type userNameRow struct {
 func TestCreateReturningScansEntity(t *testing.T) {
 	repo, _, ctx := newUserRepo(t, "file:repository_create_returning_test?mode=memory&cache=shared")
 
-	created, err := repository.CreateReturning(ctx, repo, &User{Name: "alice"})
+	created, err := repo.CreateReturning(ctx, &User{Name: "alice"})
 	require.NoError(t, err)
 	require.NotZero(t, created.ID)
 	require.Equal(t, "alice", created.Name)
@@ -24,7 +24,7 @@ func TestCreateReturningScansEntity(t *testing.T) {
 func TestCreateReturningIntoScansProjection(t *testing.T) {
 	repo, users, ctx := newUserRepo(t, "file:repository_create_returning_projection_test?mode=memory&cache=shared")
 
-	created, err := repository.CreateReturningInto[userNameRow](ctx, repo, &User{Name: "alice"}, users.Name)
+	created, err := repo.CreateReturningInto[userNameRow](ctx, &User{Name: "alice"}, users.Name)
 	require.NoError(t, err)
 	require.Equal(t, "alice", created.Name)
 }
@@ -32,17 +32,17 @@ func TestCreateReturningIntoScansProjection(t *testing.T) {
 func TestUpsertReturningScansEntity(t *testing.T) {
 	repo, devices, ctx := newDeviceRepo(t, "file:repository_upsert_returning_test?mode=memory&cache=shared")
 
-	created, err := repository.UpsertReturning(ctx, repo, &Device{DeviceID: "dev-1", Name: "sensor"})
+	created, err := repo.UpsertReturning(ctx, &Device{DeviceID: "dev-1", Name: "sensor"})
 	require.NoError(t, err)
 	require.Equal(t, "dev-1", created.DeviceID)
 	require.Equal(t, "sensor", created.Name)
 
-	updated, err := repository.UpsertReturning(ctx, repo, &Device{DeviceID: "dev-1", Name: "sensor-v2"})
+	updated, err := repo.UpsertReturning(ctx, &Device{DeviceID: "dev-1", Name: "sensor-v2"})
 	require.NoError(t, err)
 	require.Equal(t, "dev-1", updated.DeviceID)
 	require.Equal(t, "sensor-v2", updated.Name)
 
-	stored, err := repository.By(repo, devices.DeviceID).Get(ctx, "dev-1")
+	stored, err := repo.By(devices.DeviceID).Get(ctx, "dev-1")
 	require.NoError(t, err)
 	require.Equal(t, "sensor-v2", stored.Name)
 }
@@ -56,7 +56,7 @@ func TestUpdateReturningScansRowsWithoutMutatingQuery(t *testing.T) {
 		Set(users.Name.Set("alice-v2")).
 		Where(users.ID.Eq(alice.ID))
 
-	rows, err := repository.UpdateReturning(ctx, repo, update)
+	rows, err := repo.UpdateReturning(ctx, update)
 	require.NoError(t, err)
 	require.Equal(t, 1, rows.Len())
 	updated, ok := rows.GetFirst()
@@ -70,9 +70,8 @@ func TestDeleteReturningIntoScansProjection(t *testing.T) {
 	alice, err := repo.FirstSpec(ctx, repository.Where(users.Name.Eq("alice")))
 	require.NoError(t, err)
 
-	deleted, err := repository.DeleteReturningInto[userNameRow](
+	deleted, err := repo.DeleteReturningInto[userNameRow](
 		ctx,
-		repo,
 		querydsl.DeleteFrom(users).Where(users.ID.Eq(alice.ID)),
 		users.Name,
 	)

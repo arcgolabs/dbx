@@ -22,8 +22,8 @@ type TypedKey[E any, S EntitySchema[E], T any] struct {
 }
 
 // By returns a typed key accessor for a repository column.
-func By[E any, S EntitySchema[E], T any](repo *Base[E, S], column KeyColumn[T]) TypedKey[E, S, T] {
-	return TypedKey[E, S, T]{repo: repo, column: column}
+func (r *Base[E, S]) By[T any](column KeyColumn[T]) TypedKey[E, S, T] {
+	return TypedKey[E, S, T]{repo: r, column: column}
 }
 
 // Get returns the entity identified by value.

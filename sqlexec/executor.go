@@ -12,7 +12,6 @@ import (
 	"github.com/arcgolabs/dbx/sqlstmt"
 	"github.com/samber/mo"
 	"github.com/samber/oops"
-	scanlib "github.com/stephenafamo/scan"
 )
 
 var (
@@ -308,13 +307,19 @@ func scalar[T any](ctx context.Context, session Session, statement sqlstmt.Sourc
 		return zero, false, err
 	}
 
-	value, err := scanlib.OneFromRows[T](ctx, scanlib.SingleColumnMapper[T], rows)
-	if err != nil {
+	if !rows.Next() {
+		iterErr := rowsIterError(rows)
 		closeErr := closeRows(rows)
 		var zero T
-		if errors.Is(err, sql.ErrNoRows) {
-			return zero, false, closeErr
+		if iterErr != nil {
+			return zero, false, errors.Join(iterErr, closeErr)
 		}
+		return zero, false, closeErr
+	}
+	var value T
+	if err := rows.Scan(&value); err != nil {
+		closeErr := closeRows(rows)
+		var zero T
 		return zero, false, errors.Join(wrapError("scan scalar row", err), closeErr)
 	}
 	if rows.Next() {

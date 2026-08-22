@@ -9,7 +9,7 @@ import (
 
 func TestBaseByIDUsesPrimaryKeyColumnFromSchema(t *testing.T) {
 	repo, devices, ctx := newDeviceRepo(t, "file:repository_pk_column_test?mode=memory&cache=shared")
-	byDeviceID := repository.By(repo, devices.DeviceID)
+	byDeviceID := repo.By(devices.DeviceID)
 	require.NoError(t, repo.Create(ctx, &Device{DeviceID: "dev-1", Name: "sensor"}))
 
 	item, err := byDeviceID.Get(ctx, "dev-1")

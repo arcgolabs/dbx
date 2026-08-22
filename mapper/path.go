@@ -69,7 +69,7 @@ func descendFieldValue(current reflect.Value, field MappedField, path *collectio
 		return reflect.Value{}, ok, err
 	}
 	if descended.Kind() != reflect.Struct {
-		return reflect.Value{}, false, fmt.Errorf("dbx: field path %v does not resolve to struct", path.Take(depth).Values())
+		return reflect.Value{}, false, fmt.Errorf("dbx: field path %v does not resolve to struct", path.Values()[:depth])
 	}
 	return descended, true, nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 	"strconv"
 
 	collectionx "github.com/arcgolabs/collectionx/list"
@@ -109,9 +110,7 @@ func migrationMatchesDialect(migration Migration, target DialectName) bool {
 	if len(databases) == 0 {
 		return true
 	}
-	return collectionx.NewList[DialectName](databases...).AnyMatch(func(_ int, database DialectName) bool {
-		return database == target
-	})
+	return slices.Contains(databases, target)
 }
 
 func migrationDatabases(migration Migration) []DialectName {

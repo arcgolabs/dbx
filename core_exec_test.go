@@ -181,9 +181,8 @@ func TestQueryAllListAndBoundList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("QueryAllBoundList returned error: %v", err)
 	}
-	if !boundItems.AllMatch(func(index int, item UserSummary) bool {
-		return index != 1 || item.ID == 2
-	}) {
+	second, ok := boundItems.Get(1)
+	if !ok || second.ID != 2 {
 		t.Fatalf("unexpected bound list items: %+v", boundItems.Values())
 	}
 }

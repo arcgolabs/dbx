@@ -214,11 +214,11 @@ func normalizeMigrationDatabases(databases []DialectName) []DialectName {
 	}
 
 	normed := setx.NewOrderedSetWithCapacity[DialectName](len(databases))
-	collectionx.NewList[DialectName](databases...).Where(func(_ int, database DialectName) bool {
-		return database.IsKnown()
-	}).Each(func(_ int, database DialectName) {
-		normed.Add(database)
-	})
+	for _, database := range databases {
+		if database.IsKnown() {
+			normed.Add(database)
+		}
+	}
 	return normed.Values()
 }
 

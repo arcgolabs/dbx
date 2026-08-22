@@ -1,13 +1,11 @@
 module github.com/arcgolabs/dbx/sqltmpl/validate
 
-go 1.26.2
+go 1.27.0
 
-require github.com/arcgolabs/collectionx/mapping v0.9.0
+require github.com/arcgolabs/collectionx/mapping v1.0.0
 
 require (
-	github.com/arcgolabs/collectionx/list v0.9.0 // indirect
-	github.com/arcgolabs/collectionx/set v0.9.0 // indirect
-	github.com/samber/lo v1.53.0 // indirect
+	github.com/arcgolabs/collectionx/list v1.0.0 // indirect
+	github.com/arcgolabs/collectionx/stream v1.0.0 // indirect
 	github.com/samber/mo v1.17.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
 )
